@@ -1,5 +1,6 @@
+#include <stdio.h>
 #include <stdint.h>
-
+#include "log.h"
 
 
 static struct {
@@ -20,10 +21,30 @@ void resetcpu(void)
 	rgs.pc = 0x200;
 }
 
+void logcpu(void)
+{
+	int i;
+
+	loginfo("PC: $%.4X\n"
+	        "SP: $%.4X\n"
+		"I:  $%.4X\n",
+		rgs.pc, rgs.sp, rgs.i);
+
+	for (i = 0; i < 0x10; ++i)
+		loginfo("V%.1X: $%.2X\n", i, rgs.v[i]);
+
+	loginfo("Delay Timer: $%.2X\n"
+	        "Sound Timer: $%.2X\n",
+		rgs.delay, rgs.sound);
+
+}
+
 void stepcpu(void)
 {
 	const uint8_t ophi = memory[rgs.pc++];
 	const uint8_t oplo = memory[rgs.pc++];
+
+	logdebug("OPCODE: %.4x\n", (ophi<<8)|oplo);
 
 	switch ((ophi&0xF0)>>4) {
 	case 0x00: {
