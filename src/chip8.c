@@ -56,12 +56,13 @@ static uint16_t stackpop(void)
 
 static void draw(uint8_t x, uint8_t y, const uint8_t n)
 {
-	const uint8_t* sprite = &ram[rgs.i];
+	const uint8_t* const sprite = &ram[rgs.i];
 	int i, j;
-
-	for (i = 0; i < n; ++i, y = (y + 1)&31) {
-		for (j = 0; j < 8; ++j, x = (x + 1)&63) {
-			rgs.v[0x0F] |= chip8_scrdata[y][x] && sprite[i]&(0x80>>j);
+	for (i = 0; i < n; ++i, ++y) {
+		y &= 31;
+		for (j = 0; j < 8; ++j, ++x) {
+			x &= 63;
+			rgs.v[0x0F] |= (chip8_scrdata[y][x] != 0) ^ ((sprite[i]&(0x80>>j)) != 0);
 			chip8_scrdata[y][x] ^= (sprite[i]&(0x80>>j)) != 0;
 		}
 	}
@@ -192,7 +193,7 @@ void chip8_step(void)
 		if (rgs.v[x] == rgs.v[y])
 			rgs.pc += 2;
 		break;
-	case 0x06:  // 6xkk - LD Vx, byte Set Vx = kk. The interpreter puts the value kk into register Vx.
+	case 0x06:  // 6xkk - LD Vx, byte Set Vx = kk.
 		rgs.v[x] = oplo;
 		break;
 	case 0x07:  // 7xkk - ADD Vx, byte Set Vx = Vx + kk.
@@ -230,7 +231,6 @@ void chip8_step(void)
 			rgs.v[0x0F] = rgs.v[y] > rgs.v[x];
 			rgs.v[x] = rgs.v[y] - rgs.v[x];
 			break;
-
 		case 0x0E: // 8xyE - SHL Vx {, Vy} Set Vx = Vx SHL 1. 
 			rgs.v[0x0F] = (rgs.v[x]&0x80) != 0;
 			rgs.v[x] <<= 1;
@@ -287,7 +287,7 @@ void chip8_step(void)
 		case 0x29: // Fx29 - LD F, Vx Set I = location of sprite for digit Vx.
 			rgs.i = rgs.v[x] * 5;
 			break;
-		case 0x33: // Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+		case 0x33: // Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2.
 			ram[rgs.i + 2] = rgs.v[x] % 10;
 			ram[rgs.i + 1] = (rgs.v[x] / 10) % rgs.v[x] % 10;
 			ram[rgs.i] = rgs.v[x] / 100;
