@@ -18,11 +18,19 @@
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
-static GsOT myOT[2];                       // ordering table header
 static GsOT_TAG myOT_TAG[2][1<<OT_LENGTH]; // ordering table unit
+static GsOT myOT[2] = {                    // ordering table header
+	{ 
+		.length = OT_LENGTH, .org = myOT_TAG[0]
+	},
+	{
+		.length = OT_LENGTH, .org = myOT_TAG[1]
+	} 
+};
 static PACKET GPUPacketArea[2][PACKETMAX]; // GPU packet data
 static u_char paddata[2][34];              // pad 1 and 2 data
 static short currrent_buffer = 0;          // holds the current buffer number
+
 
 static const uint8_t chip8rom_pong[] = {
 	0x6A, 0x02, 0x6B, 0x0C, 0x6C, 0x3F, 0x6D, 0x0C, 0xA2, 0xEA, 0xDA, 0xB6, 0xDC, 0xD6, 0x6E, 0x00, 0x22, 0xD4, 0x66, 0x03, 0x68, 0x02, 0x60, 0x60, 0xF0, 0x15, 0xF0, 0x07, 0x30, 0x00, 0x12, 0x1A, 
@@ -37,8 +45,7 @@ static const uint8_t chip8rom_pong[] = {
 
 static void init_platform(void)
 {
-	// VIDEO
-	
+	// VIDEO	
 	SetVideoMode(MODE_PAL);
 
 	// set the graphics mode resolutions (GsNONINTER for NTSC, and GsINTER for PAL)
@@ -47,27 +54,16 @@ static void init_platform(void)
 	// tell the GPU to draw from the top left coordinates of the framebuffer
 	GsDefDispBuff(0, 0, 0, SCREEN_HEIGHT);
 	
-	// init the ordertables
-	myOT[0].length = OT_LENGTH;
-	myOT[1].length = OT_LENGTH;
-	myOT[0].org = myOT_TAG[0];
-	myOT[1].org = myOT_TAG[1];
-	
 	// clear the ordertables
 	GsClearOt(0, 0, &myOT[0]);
 	GsClearOt(0, 0, &myOT[1]);
 
-
 	// INPUT
-
 	PadInitDirect(&paddata[0][0], &paddata[1][0]);
 }
 
 static void flush_graphics(void)
-{
-	// refresh the font
-	FntFlush(-1);
-	
+{	
 	// get the current buffer
 	currrent_buffer = GsGetActiveBuff();
 	
@@ -95,37 +91,14 @@ static void flush_graphics(void)
 
 int main(void)
 {
-	int pad_press_release;
 	init_platform();
 
 	chip8_loadrom(chip8rom_pong, sizeof chip8rom_pong);
 	chip8_reset();
-
 	for (;;) {
-		loginfo("PRESS ANY BUTTON TO STEP\n");
-		pad_press_release = 2;
-		do {
-			switch (pad_press_release) {
-			case 0:
-				// check if pad is unpressed
-				if (paddata[0][2] == 0xFF && paddata[0][3] == 0xFF)
-					pad_press_release = 1;
-				break;
-			case 1:
-				// check if is pressed
-				if (paddata[0][2] != 0xFF || paddata[0][3] != 0xFF)
-					pad_press_release = 2;
-				break;
-			}
-
-			PadStartCom();
-			flush_graphics();
-			PadStopCom();
-		} while (pad_press_release != 2);
-
-
 		chip8_step();
 		chip8_logcpu();
+		flush_graphics();
 	}
 }
 

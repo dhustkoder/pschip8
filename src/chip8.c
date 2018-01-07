@@ -1,4 +1,7 @@
 #include <stdio.h>
+#include <stdlib.h>
+#include <libetc.h>
+#include <rand.h>
 #include "types.h"
 #include "log.h"
 
@@ -61,6 +64,7 @@ void chip8_reset(void)
 	memset(stack, 0, sizeof stack);
 	rgs.pc = 0x200;
 	rgs.sp = 15;
+	srand(VSync(1)|VSync(-1));
 }
 
 void chip8_logcpu(void)
