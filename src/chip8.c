@@ -67,17 +67,13 @@ void chip8_logcpu(void)
 {
 	int i;
 
-	loginfo("PC: $%.4X\n"
-	        "SP: $%.4X\n"
-	        "I:  $%.4X\n",
+	loginfo("PC: $%.4X, SP: $%.4X, I: $%.4X\n",
 	        rgs.pc, rgs.sp, rgs.i);
+	loginfo("DT: $%.2X, ST: $%.2X\n",
+		rgs.dt, rgs.st);
 
 	for (i = 0; i < 0x10; ++i)
 		loginfo("V%.1X: $%.2X\n", i, rgs.v[i]);
-
-	loginfo("Delay Timer: $%.2X\n"
-	        "Sound Timer: $%.2X\n",
-		rgs.dt, rgs.st);
 
 }
 

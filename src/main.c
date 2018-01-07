@@ -103,7 +103,7 @@ int main(void)
 
 	for (;;) {
 		loginfo("PRESS ANY BUTTON TO STEP\n");
-		pad_press_release = 0;
+		pad_press_release = 2;
 		do {
 			switch (pad_press_release) {
 			case 0:
