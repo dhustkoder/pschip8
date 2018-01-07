@@ -6,7 +6,7 @@
 #include "log.h"
 
 
-bool chip8_scrdata[64][32];
+bool chip8_scrdata[32][64];
 
 static struct {
 	uint16_t pc;
@@ -64,13 +64,9 @@ static void draw(uint8_t x, uint8_t y, const uint8_t n)
 	const uint8_t* sprite = &ram[rgs.i];
 	int i, j;
 
-	for (i = 0; i < n; ++i, y = (y + 1)&32) {
+	for (i = 0; i < n; ++i, y = (y + 1)&31) {
 		for (j = 0; j < 8; ++j, x = (x + 1)&63) {
-			if (chip8_scrdata[y][x] && sprite[i]&(1<<(7 - j)))
-				rgs.v[0x0F] = 1;
-			else
-				rgs.v[0x0F] = 0;
-
+			rgs.v[0x0F] = chip8_scrdata[y][x] && sprite[i]&(1<<(7 - j));
 			chip8_scrdata[y][x] ^= (sprite[i]&(1<<(7 - j))) != 0;
 		}
 	}
@@ -90,7 +86,7 @@ void chip8_reset(void)
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
 	rgs.pc = 0x200;
-	rgs.sp = 15;
+	rgs.sp = 32;
 	srand(VSync(1)|VSync(-1));
 }
 
@@ -101,7 +97,7 @@ void chip8_logcpu(void)
 	loginfo("PC: $%.4X, SP: $%.4X, I: $%.4X\n",
 	        rgs.pc, rgs.sp, rgs.i);
 	loginfo("DT: $%.2X, ST: $%.2X\n",
-		rgs.dt, rgs.st);
+	        rgs.dt, rgs.st);
 
 	for (i = 0; i < 0x10; ++i)
 		loginfo("V%.1X: $%.2X\n", i, rgs.v[i]);
@@ -115,13 +111,13 @@ void chip8_step(void)
 	const uint16_t opcode = (ophi<<8)|oplo;
 
 	const uint8_t x = ophi&0x0F;
-	const uint8_t y = (ophi&0xF0)>>4;
+	const uint8_t y = (oplo&0xF0)>>4;
 
 
 	logdebug("OPCODE: %.4X\n", opcode);
 
 	switch ((ophi&0xF0)>>4) {
-	case 0x00: {
+	case 0x00:
 		switch (oplo) {
 		case 0xE0: // - CLS clear display
 			memset(chip8_scrdata, 0, sizeof chip8_scrdata);
@@ -131,7 +127,6 @@ void chip8_step(void)
 			break;
 		}
 		break;
-	}
 
 	case 0x01: // 1nnn - JP addr Jump to location nnn.
 		rgs.pc = opcode&0x0FFF;
@@ -158,6 +153,7 @@ void chip8_step(void)
 	case 0x07:  // 7xkk - ADD Vx, byte Set Vx = Vx + kk.
 		rgs.v[x] += oplo;
 		break;
+
 	case 0x08:
 		switch (oplo&0x0F) {
 		case 0x00: // 8xy0 - LD Vx, Vy Set Vx = Vy.
@@ -173,7 +169,7 @@ void chip8_step(void)
 			rgs.v[x] ^= rgs.v[y];
 			break;
 		case 0x04: // 8xy4 - ADD Vx, Vy Set Vx = Vx + Vy, set VF = carry.
-			rgs.v[0x0F] = (rgs.v[x] + rgs.v[y]) > 0xFF;
+			rgs.v[0x0F] = (((long)rgs.v[x]) + rgs.v[y]) > 0xFF;
 			rgs.v[x] += rgs.v[y];
 			break;
 		case 0x05: // 8xy5 - SUB Vx, Vy Set Vx = Vx - Vy, set VF = NOT borrow.
@@ -200,20 +196,18 @@ void chip8_step(void)
 		if (rgs.v[x] != rgs.v[y])
 			rgs.pc += 2;
 		break;
-	case 0x0A: break; // Annn - LD I, addr Set I = nnn. The value of register I is set to nnn.
+	case 0x0A: // Annn - LD I, addr Set I = nnn. The value of register I is set to nnn.
 		rgs.i = opcode&0x0FFF;
 		break;
 	case 0x0B: // Bnnn - JP V0, addr Jump to location nnn + V0.
 		rgs.pc = (opcode&0x0FFF) + rgs.v[0];
 		break;
 	case 0x0C: // Cxkk - RND Vx, byte Set Vx = random byte AND kk.
-		rgs.v[x] = rand() & oplo;
+		rgs.v[x] = rand()&oplo;
 		break;
-
 	case 0x0D: // Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy)...
 		draw(rgs.v[x], rgs.v[y], oplo&0x0F);
 		break;
-
 	case 0x0E: // TODO
 		if (oplo == 0x9E) { // Ex9E - SKP Vx Skip next instruction if key with the value of Vx is pressed.
 
@@ -221,7 +215,6 @@ void chip8_step(void)
 
 		}
 		break;
-
 	case 0x0F:
 		switch (oplo) {
 		case 0x07: // Fx07 - LD Vx, DT Set Vx = delay timer value. The value of DT is placed into Vx.
@@ -241,7 +234,7 @@ void chip8_step(void)
 		case 0x29: // Fx29 - LD F, Vx Set I = location of sprite for digit Vx.
 			rgs.i = rgs.v[x] * 5;
 			break;
-		case 0x33: // TODO Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+		case 0x33: // Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
 			ram[rgs.i + 2] = rgs.v[x] % 10;
 			ram[rgs.i + 1] = (rgs.v[x] / 10) % rgs.v[x] % 10;
 			ram[rgs.i] = rgs.v[x] / 100;

@@ -10,10 +10,10 @@
 #include "chip8.h"
 
 
-#define OT_LENGTH 16        // the ordertable length
-#define PACKETMAX (64 * 32) // the maximum number of objects on the screen
-#define SCREEN_WIDTH  320   // screen width
-#define	SCREEN_HEIGHT 256   // screen height (240 NTSC, 256 PAL)
+#define OT_LENGTH     14       // the ordertable length
+#define PACKETMAX     1024 * 256       // the maximum number of objects on the screen
+#define SCREEN_WIDTH  320      // screen width
+#define	SCREEN_HEIGHT 256      // screen height (240 NTSC, 256 PAL)
 
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
@@ -69,8 +69,8 @@ static void flush_graphics(void)
 
 	GsBOXF box = {
 		.attribute = 0,
-		.w = 4,
-		.h = 10,
+		.w = 5,
+		.h = 8,
 		.x = 0,
 		.y = 0,
 		.r = 0xFF,
@@ -78,7 +78,7 @@ static void flush_graphics(void)
 		.b = 0xFF
 	};
 
-	int i, j;
+	int i, j, otidx = 0;
 
 	// finish drawing last table
 	current_buffer = GsGetActiveBuff();
@@ -92,10 +92,10 @@ static void flush_graphics(void)
 	GsSwapDispBuff();
 	GsSortClear(50, 50, 50, &myOT[current_buffer]);
 	// draw all graphics here
-	for (i = 0; i < 32; ++i, box.y += 10) {
-		for (j = 0, box.x = 0; j < 64; ++j, box.x += 4) {
+	for (i = 0; i < 32; ++i, box.y += 8) {
+		for (j = 0, box.x = 0; j < 64; ++j, box.x += 5) {
 			if (chip8_scrdata[i][j])
-				GsSortBoxFill(&box, &myOT[current_buffer], 0);
+				GsSortBoxFill(&box, &myOT[current_buffer], otidx++);
 		}
 	}
 
