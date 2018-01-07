@@ -15,7 +15,7 @@ static struct {
 static uint8_t ram[0x1000];
 static uint16_t stack[16];
 
-static const uint8_t font[80] {
+static const uint8_t font[80] = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
 	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
@@ -77,7 +77,7 @@ void chip8_logcpu(void)
 
 	loginfo("Delay Timer: $%.2X\n"
 	        "Sound Timer: $%.2X\n",
-		rgs.delay, rgs.sound);
+		rgs.dt, rgs.st);
 
 }
 
