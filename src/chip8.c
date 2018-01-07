@@ -57,13 +57,16 @@ static uint16_t stackpop(void)
 static void draw(uint8_t x, uint8_t y, const uint8_t n)
 {
 	const uint8_t* const sprite = &ram[rgs.i];
-	int i, j;
+	uint8_t i, j, bit;
+
+	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i, ++y) {
 		y &= 31;
 		for (j = 0; j < 8; ++j, ++x) {
 			x &= 63;
-			rgs.v[0x0F] |= (chip8_scrdata[y][x] != 0) ^ ((sprite[i]&(0x80>>j)) != 0);
-			chip8_scrdata[y][x] ^= (sprite[i]&(0x80>>j)) != 0;
+			bit = ((sprite[i]&(0x80>>j)) != 0);
+			rgs.v[0x0F] |= chip8_scrdata[y][x] ^ bit;
+			chip8_scrdata[y][x] ^= bit;
 		}
 	}
 }
@@ -110,12 +113,10 @@ void chip8_loadrom(const uint8_t* const rom, const uint32_t size)
 
 void chip8_reset(void)
 {
-	int i;
-	for (i = 0; i < 0x200; ++i)
-		ram[i] = font[i%80];
-
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
+	memset(chip8_scrdata, 0, sizeof chip8_scrdata);
+	memcpy(ram, font, sizeof font);
 	rgs.pc = 0x200;
 	rgs.sp = 31;
 	paddata_old = 0;
