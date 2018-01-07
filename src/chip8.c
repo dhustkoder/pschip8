@@ -5,6 +5,7 @@
 #include "types.h"
 #include "log.h"
 
+extern uint16_t paddata;
 
 bool chip8_scrdata[32][64];
 
@@ -17,6 +18,9 @@ static struct {
 	uint8_t st;
 } rgs;
 
+static uint16_t paddata_old;
+static uint8_t pressed_key;
+static bool waiting_keypress;
 static uint8_t ram[0x1000];
 static uint16_t stack[32];
 
@@ -52,25 +56,51 @@ static uint16_t stackpop(void)
 
 static void draw(uint8_t x, uint8_t y, const uint8_t n)
 {
-	/* set VF = collision. The interpreter reads n bytes from memory, starting at the address stored in I. 
-	 * These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
-	 * Sprites are XORed onto the existing screen. 
-	 * If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
-	 * If the sprite is positioned so part of it is outside the coordinates of the display, 
-	 * it wraps around to the opposite side of the screen. See instruction 8xy3 for more information on XOR, 
-	 * and section 2.4, Display, for more information on the Chip-8 screen and sprites.
-	 */
-
 	const uint8_t* sprite = &ram[rgs.i];
 	int i, j;
 
 	for (i = 0; i < n; ++i, y = (y + 1)&31) {
 		for (j = 0; j < 8; ++j, x = (x + 1)&63) {
-			rgs.v[0x0F] = chip8_scrdata[y][x] && sprite[i]&(1<<(7 - j));
-			chip8_scrdata[y][x] ^= (sprite[i]&(1<<(7 - j))) != 0;
+			rgs.v[0x0F] |= chip8_scrdata[y][x] && sprite[i]&(0x80>>j);
+			chip8_scrdata[y][x] ^= (sprite[i]&(0x80>>j)) != 0;
 		}
 	}
 }
+
+static void update_keys(void)
+{
+	const uint8_t keytable[3][5] = { 
+		{ 0x4, 0x8, 0x6, 0x2, 0xf },
+		{ 0xe, 0x1, 0x3, 0x5, 0x7 },
+		{ 0xa, 0xb, 0xc, 0xd, 0x0 }
+	};
+
+	const bool paddata_change = paddata != paddata_old;
+	uint8_t i, j, bit;
+
+	if (paddata_change) {
+		pressed_key = 0xFF;
+		bit = 15;
+		for (i = 0; i < 3 && pressed_key == 0xFF; ++i) {
+			for (j = 0; j < 5; ++j, --bit) {
+				if (paddata&(0x01<<bit)) {
+					pressed_key = keytable[i][j];
+					break;
+				}
+			}
+		}
+	}
+
+	paddata_old = paddata;
+}
+
+static void unknown_opcode(const uint16_t opcode)
+{
+	for (;;) {
+		loginfo("UNKNOWN OPCODE: %.4X\n", opcode);
+	}
+}
+
 
 void chip8_loadrom(const uint8_t* const rom, const uint32_t size)
 {
@@ -86,7 +116,10 @@ void chip8_reset(void)
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
 	rgs.pc = 0x200;
-	rgs.sp = 32;
+	rgs.sp = 31;
+	paddata_old = 0;
+	pressed_key = 0xFF;
+	waiting_keypress = false;
 	srand(VSync(1)|VSync(-1));
 }
 
@@ -106,19 +139,31 @@ void chip8_logcpu(void)
 
 void chip8_step(void)
 {
-	const uint8_t ophi = ram[rgs.pc++];
-	const uint8_t oplo = ram[rgs.pc++];
-	const uint16_t opcode = (ophi<<8)|oplo;
+	uint8_t ophi, oplo, x, y;
+	uint16_t opcode;
 
-	const uint8_t x = ophi&0x0F;
-	const uint8_t y = (oplo&0xF0)>>4;
+	update_keys();
 
+	if (waiting_keypress) {
+		if (pressed_key == 0xFF)
+			return;
+		else
+			waiting_keypress = false;
+	}
 
-	logdebug("OPCODE: %.4X\n", opcode);
+	ophi = ram[rgs.pc++];
+	oplo = ram[rgs.pc++];
+	x = ophi&0x0F;
+	y = (oplo&0xF0)>>4;
+	opcode = (ophi<<8)|oplo;
+
+	logdebug("OPCODE: %.4X\nKEYPRESSED: $%.2X\n", opcode, pressed_key);
 
 	switch ((ophi&0xF0)>>4) {
+	default: unknown_opcode(opcode); break;
 	case 0x00:
 		switch (oplo) {
+		default: unknown_opcode(opcode); break;
 		case 0xE0: // - CLS clear display
 			memset(chip8_scrdata, 0, sizeof chip8_scrdata);
 			break;
@@ -156,6 +201,7 @@ void chip8_step(void)
 
 	case 0x08:
 		switch (oplo&0x0F) {
+		default: unknown_opcode(opcode); break;
 		case 0x00: // 8xy0 - LD Vx, Vy Set Vx = Vy.
 			rgs.v[x] = rgs.v[y];
 			break;
@@ -208,19 +254,26 @@ void chip8_step(void)
 	case 0x0D: // Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy)...
 		draw(rgs.v[x], rgs.v[y], oplo&0x0F);
 		break;
-	case 0x0E: // TODO
+	case 0x0E:
 		if (oplo == 0x9E) { // Ex9E - SKP Vx Skip next instruction if key with the value of Vx is pressed.
-
+			if (pressed_key == rgs.v[x])
+				rgs.pc += 2;
 		} else if (oplo == 0xA1) { // ExA1 - SKNP Vx Skip next instruction if key with the value of Vx is not pressed.
-
+			if (pressed_key != rgs.v[x])
+				rgs.pc += 2;
 		}
 		break;
 	case 0x0F:
 		switch (oplo) {
+		default: unknown_opcode(opcode); break;
 		case 0x07: // Fx07 - LD Vx, DT Set Vx = delay timer value. The value of DT is placed into Vx.
 			rgs.v[x] = rgs.dt;
 			break;
-		case 0x0A: // TODO Fx0A - LD Vx, K Wait for a key press, store the value of the key in Vx.
+		case 0x0A: // Fx0A - LD Vx, K Wait for a key press, store the value of the key in Vx.
+			if (pressed_key == 0xFF)
+				waiting_keypress = true;
+			else
+				rgs.v[x] = pressed_key;
 			break;
 		case 0x15: // Fx15 - LD DT, Vx Set delay timer = Vx.
 			rgs.dt = rgs.v[x];
