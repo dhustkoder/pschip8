@@ -10,10 +10,10 @@
 #include "chip8.h"
 
 
-#define OT_LENGTH 1       // the ordertable length
-#define PACKETMAX 18      // the maximum number of objects on the screen
-#define SCREEN_WIDTH  320 // screen width
-#define	SCREEN_HEIGHT 256 // screen height (240 NTSC, 256 PAL)
+#define OT_LENGTH 16        // the ordertable length
+#define PACKETMAX (32 * 64) // the maximum number of objects on the screen
+#define SCREEN_WIDTH  320  // screen width
+#define	SCREEN_HEIGHT 256  // screen height (240 NTSC, 256 PAL)
 
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
@@ -29,8 +29,7 @@ static GsOT myOT[2] = {                    // ordering table header
 };
 static PACKET GPUPacketArea[2][PACKETMAX]; // GPU packet data
 static u_char paddata[2][34];              // pad 1 and 2 data
-static short currrent_buffer = 0;          // holds the current buffer number
-
+static short current_buffer = 0;          // holds the current buffer number
 
 static const uint8_t chip8rom_pong[] = {
 	0x6A, 0x02, 0x6B, 0x0C, 0x6C, 0x3F, 0x6D, 0x0C, 0xA2, 0xEA, 0xDA, 0xB6, 0xDC, 0xD6, 0x6E, 0x00, 0x22, 0xD4, 0x66, 0x03, 0x68, 0x02, 0x60, 0x60, 0xF0, 0x15, 0xF0, 0x07, 0x30, 0x00, 0x12, 0x1A, 
@@ -42,6 +41,7 @@ static const uint8_t chip8rom_pong[] = {
 	0x12, 0xC8, 0x79, 0x01, 0x49, 0x02, 0x69, 0x01, 0x60, 0x04, 0xF0, 0x18, 0x76, 0x01, 0x46, 0x40, 0x76, 0xFE, 0x12, 0x6C, 0xA2, 0xF2, 0xFE, 0x33, 0xF2, 0x65, 0xF1, 0x29, 0x64, 0x14, 0x65, 0x00, 
 	0xD4, 0x55, 0x74, 0x15, 0xF2, 0x29, 0xD4, 0x55, 0x00, 0xEE, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x80, 0x00, 0x00, 0x00, 0x00, 0x00
 };
+
 
 static void init_platform(void)
 {
@@ -62,35 +62,42 @@ static void init_platform(void)
 	PadInitDirect(&paddata[0][0], &paddata[1][0]);
 }
 
+
+GsBOXF box = {
+	.attribute = 0,
+	.x = (320 / 2) - 10,
+	.y = (256 / 2) - 10,
+	.w = 10,
+	.h = 10,
+	.r = 0xFF,
+	.g = 0xFF,
+	.b = 0xFF
+};
+
 static void flush_graphics(void)
-{	
-	// get the current buffer
-	currrent_buffer = GsGetActiveBuff();
-	
-	// setup the packet workbase
-	GsSetWorkBase((PACKET*)GPUPacketArea[currrent_buffer]);
-	
-	// clear the ordering table
-	GsClearOt(0, 0, &myOT[currrent_buffer]);
-	
-	// wait for all drawing to finish
+{
+
+	// finish drawing last table
+	current_buffer = GsGetActiveBuff();
+	GsSetWorkBase((PACKET*)GPUPacketArea[current_buffer]);
+	// GsClearOt(0, 0, &myOT[current_buffer]);
+
 	DrawSync(0);
-	
-	// wait for v_blank interrupt
 	VSync(0);
-	
+
 	// flip the double buffers
 	GsSwapDispBuff();
-	
-	// clear the ordering table with a background color (R,G,B)
-	GsSortClear(0, 0, 0, &myOT[currrent_buffer]);
-	
-	// draw the ordering table
-	GsDrawOt(&myOT[currrent_buffer]);
+	GsSortClear(50, 50, 50, &myOT[current_buffer]);
+	// draw all graphics here
+	GsSortBoxFill(&box, &myOT[current_buffer], 0);
+	GsDrawOt(&myOT[current_buffer]);
+
 }
+
 
 int main(void)
 {
+
 	init_platform();
 
 	chip8_loadrom(chip8rom_pong, sizeof chip8rom_pong);

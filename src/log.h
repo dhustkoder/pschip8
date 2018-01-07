@@ -7,7 +7,7 @@
 #ifdef DEBUG
 #define logdebug printf
 #else
-#define logdebug ((void)0)
+#define logdebug(...)
 #endif
 
 

@@ -12,6 +12,8 @@ typedef int int32_t;
 
 
 typedef uint8_t bool;
+#define false ((bool)0)
+#define true  ((bool)1)
 
 #endif
 #endif
