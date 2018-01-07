@@ -6,6 +6,8 @@
 #include "log.h"
 
 
+bool chip8_scrdata[64][32];
+
 static struct {
 	uint16_t pc;
 	uint16_t i;
@@ -16,7 +18,7 @@ static struct {
 } rgs;
 
 static uint8_t ram[0x1000];
-static uint16_t stack[16];
+static uint16_t stack[32];
 
 static const uint8_t font[80] = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -48,6 +50,31 @@ static uint16_t stackpop(void)
 	return stack[++rgs.sp];
 }
 
+static void draw(uint8_t x, uint8_t y, const uint8_t n)
+{
+	/* set VF = collision. The interpreter reads n bytes from memory, starting at the address stored in I. 
+	 * These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
+	 * Sprites are XORed onto the existing screen. 
+	 * If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
+	 * If the sprite is positioned so part of it is outside the coordinates of the display, 
+	 * it wraps around to the opposite side of the screen. See instruction 8xy3 for more information on XOR, 
+	 * and section 2.4, Display, for more information on the Chip-8 screen and sprites.
+	 */
+
+	const uint8_t* sprite = &ram[rgs.i];
+	int i, j;
+
+	for (i = 0; i < n; ++i, y = (y + 1)&32) {
+		for (j = 0; j < 8; ++j, x = (x + 1)&63) {
+			if (chip8_scrdata[y][x] && sprite[i]&(1<<(7 - j)))
+				rgs.v[0x0F] = 1;
+			else
+				rgs.v[0x0F] = 0;
+
+			chip8_scrdata[y][x] ^= (sprite[i]&(1<<(7 - j))) != 0;
+		}
+	}
+}
 
 void chip8_loadrom(const uint8_t* const rom, const uint32_t size)
 {
@@ -96,7 +123,9 @@ void chip8_step(void)
 	switch ((ophi&0xF0)>>4) {
 	case 0x00: {
 		switch (oplo) {
-		case 0xE0: break; // CLS clear display
+		case 0xE0: // - CLS clear display
+			memset(chip8_scrdata, 0, sizeof chip8_scrdata);
+			break;
 		case 0xEE: // - RET Return from a subroutine.
 			rgs.pc = stackpop();
 			break;
@@ -148,7 +177,7 @@ void chip8_step(void)
 			rgs.v[x] += rgs.v[y];
 			break;
 		case 0x05: // 8xy5 - SUB Vx, Vy Set Vx = Vx - Vy, set VF = NOT borrow.
-			rgs.v[0x0F] = rgs.v[x] > rgs.v[y];
+			rgs.v[0x0F] = rgs.v[y] > rgs.v[x];
 			rgs.v[x] -= rgs.v[y];
 			break;
 		case 0x06: // 8xy6 - SHR Vx {, Vy} Set Vx = Vx SHR 1.
@@ -156,7 +185,7 @@ void chip8_step(void)
 			rgs.v[x] >>= 1;
 			break;
 		case 0x07: // 8xy7 - SUBN Vx, Vy Set Vx = Vy - Vx, set VF = NOT borrow.
-			rgs.v[0x0F] = rgs.v[y] > rgs.v[x];
+			rgs.v[0x0F] = rgs.v[x] > rgs.v[y];
 			rgs.v[x] = rgs.v[y] - rgs.v[x];
 			break;
 
@@ -181,16 +210,8 @@ void chip8_step(void)
 		rgs.v[x] = rand() & oplo;
 		break;
 
-	case 0x0D: // TODO
-		/* Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy),
-		 * set VF = collision. The interpreter reads n bytes from memory, starting at the address stored in I. 
-		 * These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
-		 * Sprites are XORed onto the existing screen. 
-		 * If this causes any pixels to be erased, VF is set to 1, otherwise it is set to 0. 
-		 * If the sprite is positioned so part of it is outside the coordinates of the display, 
-		 * it wraps around to the opposite side of the screen. See instruction 8xy3 for more information on XOR, 
-		 * and section 2.4, Display, for more information on the Chip-8 screen and sprites.
-		 */
+	case 0x0D: // Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy)...
+		draw(rgs.v[x], rgs.v[y], oplo&0x0F);
 		break;
 
 	case 0x0E: // TODO
@@ -221,6 +242,9 @@ void chip8_step(void)
 			rgs.i = rgs.v[x] * 5;
 			break;
 		case 0x33: // TODO Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+			ram[rgs.i + 2] = rgs.v[x] % 10;
+			ram[rgs.i + 1] = (rgs.v[x] / 10) % rgs.v[x] % 10;
+			ram[rgs.i] = rgs.v[x] / 100;
 			break;
 		case 0x55: // Fx55 - LD [I], Vx Store registers V0 through Vx in memory starting at location I.
 			memcpy(&ram[rgs.i], &rgs.v[0], x + 1);
