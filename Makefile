@@ -17,6 +17,11 @@ PROJ_DIR=C:\PSYQ\PROJECTS\$(PROJNAME)
 
 LIBS=-llibpad
 
+CFLAGS_DEBUG=-O0 -G2 -DDEBUG
+CFLAGS_RELEASE=-O2 -G0
+CFLAGS=-Wall -Xo$$80010000
+CFLAGS+= $(CFLAGS_DEBUG)
+
 .PHONY all: clean main cdiso
 
 .PHONY clean:
@@ -27,7 +32,7 @@ main: %.CPE
 	cpe2x /ce MAIN.CPE
 
 %.CPE:
-	ccpsx -Wall -Werror -O2 -G0 -Xo$$80010000 $(LIBS) src/*.c -oMAIN.CPE
+	ccpsx $(CFLAGS) $(LIBS) src/*.c -oMAIN.CPE
 
 cdiso: %.IMG
 	stripiso s 2352 $(PROJNAME).IMG $(PROJNAME).ISO
