@@ -219,7 +219,7 @@ void chip8_step(void)
 			rgs.v[x] += rgs.v[y];
 			break;
 		case 0x05: // 8xy5 - SUB Vx, Vy Set Vx = Vx - Vy, set VF = NOT borrow.
-			rgs.v[0x0F] = rgs.v[y] > rgs.v[x];
+			rgs.v[0x0F] = rgs.v[x] > rgs.v[y];
 			rgs.v[x] -= rgs.v[y];
 			break;
 		case 0x06: // 8xy6 - SHR Vx {, Vy} Set Vx = Vx SHR 1.
@@ -227,7 +227,7 @@ void chip8_step(void)
 			rgs.v[x] >>= 1;
 			break;
 		case 0x07: // 8xy7 - SUBN Vx, Vy Set Vx = Vy - Vx, set VF = NOT borrow.
-			rgs.v[0x0F] = rgs.v[x] > rgs.v[y];
+			rgs.v[0x0F] = rgs.v[y] > rgs.v[x];
 			rgs.v[x] = rgs.v[y] - rgs.v[x];
 			break;
 
