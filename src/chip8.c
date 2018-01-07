@@ -8,11 +8,31 @@ static struct {
 	uint16_t i;
 	uint8_t sp;
 	uint8_t v[0x10];
-	uint8_t delay, sound;
+	uint8_t dt;
+	uint8_t st;
 } rgs;
 
 static uint8_t ram[0x1000];
 static uint16_t stack[16];
+
+static const uint8_t font[80] {
+	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
+	0x20, 0x60, 0x20, 0x20, 0x70, // 1
+	0xF0, 0x10, 0xF0, 0x80, 0xF0, // 2
+	0xF0, 0x10, 0xF0, 0x10, 0xF0, // 3
+	0x90, 0x90, 0xF0, 0x10, 0x10, // 4
+	0xF0, 0x80, 0xF0, 0x10, 0xF0, // 5
+	0xF0, 0x80, 0xF0, 0x90, 0xF0, // 6
+	0xF0, 0x10, 0x20, 0x40, 0x40, // 7
+	0xF0, 0x90, 0xF0, 0x90, 0xF0, // 8
+	0xF0, 0x90, 0xF0, 0x10, 0xF0, // 9
+	0xF0, 0x90, 0xF0, 0x90, 0x90, // A
+	0xE0, 0x90, 0xE0, 0x90, 0xE0, // B
+	0xF0, 0x80, 0x80, 0x80, 0xF0, // C
+	0xE0, 0x90, 0x90, 0x90, 0xE0, // D
+	0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
+	0xF0, 0x80, 0xF0, 0x80, 0x80  // F
+};
 
 
 static void stackpush(const uint16_t value)
@@ -33,6 +53,10 @@ void chip8_loadrom(const uint8_t* const rom, const uint32_t size)
 
 void chip8_reset(void)
 {
+	int i;
+	for (i = 0; i < 0x200; ++i)
+		ram[i] = font[i%80];
+
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
 	rgs.pc = 0x200;
@@ -92,11 +116,11 @@ void chip8_step(void)
 			rgs.pc += 2;
 		break;
 	case 0x04: // 4xkk - SNE Vx, byte Skip next instruction if Vx != kk.
-		if ((x) != oplo)
+		if (rgs.v[x] != oplo)
 			rgs.pc += 2;
 		break;
 	case 0x05:  // 5xy0 - SE Vx, Vy Skip next instruction if Vx = Vy.
-		if (rgs.v[(x)] == rgs.v[y])
+		if (rgs.v[x] == rgs.v[y])
 			rgs.pc += 2;
 		break;
 	case 0x06:  // 6xkk - LD Vx, byte Set Vx = kk. The interpreter puts the value kk into register Vx.
@@ -156,7 +180,8 @@ void chip8_step(void)
 	case 0x0C: // Cxkk - RND Vx, byte Set Vx = random byte AND kk.
 		rgs.v[x] = rand() & oplo;
 		break;
-	case 0x0D: 
+
+	case 0x0D: // TODO
 		/* Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy),
 		 * set VF = collision. The interpreter reads n bytes from memory, starting at the address stored in I. 
 		 * These bytes are then displayed as sprites on screen at coordinates (Vx, Vy). 
@@ -167,38 +192,40 @@ void chip8_step(void)
 		 * and section 2.4, Display, for more information on the Chip-8 screen and sprites.
 		 */
 		break;
-	case 0x0E:
+
+	case 0x0E: // TODO
 		if (oplo == 0x9E) { // Ex9E - SKP Vx Skip next instruction if key with the value of Vx is pressed.
 
 		} else if (oplo == 0xA1) { // ExA1 - SKNP Vx Skip next instruction if key with the value of Vx is not pressed.
 
 		}
 		break;
+
 	case 0x0F:
 		switch (oplo) {
 		case 0x07: // Fx07 - LD Vx, DT Set Vx = delay timer value. The value of DT is placed into Vx.
-			rgs.v[x] = rgs.delay;
+			rgs.v[x] = rgs.dt;
 			break;
-		case 0x0A: // Fx0A - LD Vx, K Wait for a key press, store the value of the key in Vx. All execution stops until a key is pressed, then the value of that key is stored in Vx.
-			rgs.v[x] = 0x00;
+		case 0x0A: // TODO Fx0A - LD Vx, K Wait for a key press, store the value of the key in Vx.
 			break;
-		case 0x15: // Fx15 - LD DT, Vx Set delay timer = Vx. DT is set equal to the value of Vx.
-			rgs.delay = rgs.v[x];
+		case 0x15: // Fx15 - LD DT, Vx Set delay timer = Vx.
+			rgs.dt = rgs.v[x];
 			break;
-		case 0x18: // Fx18 - LD ST, Vx Set sound timer = Vx. ST is set equal to the value of Vx.
-			rgs.sound = rgs.v[x];
+		case 0x18: // Fx18 - LD ST, Vx Set sound timer = Vx.
+			rgs.st = rgs.v[x];
 			break;
-		case 0x1E: // Fx1E - ADD I, Vx Set I = I + Vx. The values of I and Vx are added, and the results are stored in I.
+		case 0x1E: // Fx1E - ADD I, Vx Set I = I + Vx.
 			rgs.i += rgs.v[x];
 			break;
-		case 0x29: // Fx29 - LD F, Vx Set I = location of sprite for digit Vx. The value of I is set to the location for the hexadecimal sprite corresponding to the value of Vx. See section 2.4, Display, for more information on the Chip-8 hexadecimal font.
+		case 0x29: // Fx29 - LD F, Vx Set I = location of sprite for digit Vx.
+			rgs.i = rgs.v[x] * 5;
 			break;
-		case 0x33: // Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
+		case 0x33: // TODO Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2. The interpreter takes the decimal value of Vx, and places the hundreds digit in memory at location in I, the tens digit at location I+1, and the ones digit at location I+2.
 			break;
-		case 0x55: // Fx55 - LD [I], Vx Store registers V0 through Vx in memory starting at location I. The interpreter copies the values of registers V0 through Vx into memory, starting at the address in I.
+		case 0x55: // Fx55 - LD [I], Vx Store registers V0 through Vx in memory starting at location I.
 			memcpy(&ram[rgs.i], &rgs.v[0], x + 1);
 			break;
-		case 0x65: // Fx65 - LD Vx, [I] Read registers V0 through Vx from memory starting at location I. The interpreter reads values from memory starting at location I into registers V0 through Vx.
+		case 0x65: // Fx65 - LD Vx, [I] Read registers V0 through Vx from memory starting at location I.
 			memcpy(&rgs.v[0], &ram[rgs.i], x + 1);
 			break;
 		}
