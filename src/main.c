@@ -76,11 +76,10 @@ GsBOXF box = {
 
 static void flush_graphics(void)
 {
-
 	// finish drawing last table
 	current_buffer = GsGetActiveBuff();
 	GsSetWorkBase((PACKET*)GPUPacketArea[current_buffer]);
-	// GsClearOt(0, 0, &myOT[current_buffer]);
+	GsClearOt(0, 0, &myOT[current_buffer]);
 
 	DrawSync(0);
 	VSync(0);
@@ -91,20 +90,18 @@ static void flush_graphics(void)
 	// draw all graphics here
 	GsSortBoxFill(&box, &myOT[current_buffer], 0);
 	GsDrawOt(&myOT[current_buffer]);
-
 }
 
 
 int main(void)
 {
-
 	init_platform();
 
-	chip8_loadrom(chip8rom_pong, sizeof chip8rom_pong);
-	chip8_reset();
+	//chip8_loadrom(chip8rom_pong, sizeof chip8rom_pong);
+	//chip8_reset();
 	for (;;) {
-		chip8_step();
-		chip8_logcpu();
+		//chip8_step();
+		//chip8_logcpu();
 		flush_graphics();
 	}
 }
