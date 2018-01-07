@@ -120,7 +120,7 @@ void chip8_step(void)
 			rgs.v[x] ^= rgs.v[y];
 			break;
 		case 0x04: // 8xy4 - ADD Vx, Vy Set Vx = Vx + Vy, set VF = carry.
-			rgs.v[0x0F] = (rgs.v[x] + rgs.[y]) > 0xFF;
+			rgs.v[0x0F] = (rgs.v[x] + rgs.v[y]) > 0xFF;
 			rgs.v[x] += rgs.v[y];
 			break;
 		case 0x05: // 8xy5 - SUB Vx, Vy Set Vx = Vx - Vy, set VF = NOT borrow.
