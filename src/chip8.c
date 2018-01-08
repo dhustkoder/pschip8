@@ -65,8 +65,8 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 	const unsigned scrx = (SCREEN_WIDTH / 2) - CHIP8_WIDTH;
 	const uint8_t* const sprite = &ram[rgs.i];
 	uint16_t* scrline;
-	uint8_t i, j, x, y;
 	uint16_t pixel;
+	uint8_t i, j, x, y;
 	
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i) {
@@ -75,7 +75,7 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
 			pixel = (sprite[i]&(0x80>>j)) != 0 ? 0xFFFF : 0x0000;
-			rgs.v[0x0F] |= scrline[x] && !pixel;
+			rgs.v[0x0F] |= scrline[x] && pixel;
 			scrline[x] ^= pixel;
 		}
 	}
