@@ -1,13 +1,14 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <rand.h>
-#include <libetc.h>
-#include <libapi.h>
 #include "types.h"
 #include "log.h"
+#include "system.h"
 #include "chip8.h"
 
-bool chip8_scrdata[CHIP8_HEIGHT][CHIP8_WIDTH];
+
+extern uint16_t sys_screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+
 
 static struct {
 	uint16_t pc;
@@ -57,23 +58,24 @@ static uint16_t stackpop(void)
 static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 {
 	const uint8_t* const sprite = &ram[rgs.i];
-	uint8_t i, j, x, y, bit;
+	uint8_t i, j, x, y;
+	uint16_t pixel;
 
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i) {
 		y = (vy + i)%CHIP8_HEIGHT;
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
-			bit = (sprite[i]&(0x80>>j)) != 0;
-			rgs.v[0x0F] |= chip8_scrdata[y][x] && !bit;
-			chip8_scrdata[y][x] ^= bit;
+			pixel = (sprite[i]&(0x80>>j)) != 0 ? 0xFFFF : 0x0000;
+			rgs.v[0x0F] |= sys_screen_buffer[y][x] && !pixel;
+			sys_screen_buffer[y][x] ^= pixel;
 		}
 	}
 }
 
 static void update_keys(void)
 {
-	extern uint16_t paddata;
+	extern uint16_t sys_paddata;
 
 	const uint8_t keytable[3][5] = { 
 		{ 0x4, 0x8, 0x6, 0x2, 0xf },
@@ -81,7 +83,7 @@ static void update_keys(void)
 		{ 0xa, 0xb, 0xc, 0xd, 0x0 }
 	};
 
-	const bool paddata_change = paddata != paddata_old;
+	const bool paddata_change = sys_paddata != paddata_old;
 	uint8_t i, j, bit;
 
 	if (paddata_change) {
@@ -90,14 +92,14 @@ static void update_keys(void)
 		
 		for (i = 0; i < 3 && pressed_key == 0xFF; ++i) {
 			for (j = 0; j < 5; ++j, --bit) {
-				if (paddata&(0x01<<bit)) {
+				if (sys_paddata&(0x01<<bit)) {
 					pressed_key = keytable[i][j];
 					break;
 				}
 			}
 		}
 
-		paddata_old = paddata;
+		paddata_old = sys_paddata;
 	}
 }
 
@@ -118,14 +120,13 @@ void chip8_reset(void)
 {
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
-	memset(chip8_scrdata, 0, sizeof chip8_scrdata);
+	memset(sys_screen_buffer, 0, sizeof sys_screen_buffer);
 	memcpy(ram, font, sizeof font);
 	rgs.pc = 0x200;
 	rgs.sp = 31;
 	paddata_old = 0x0000;
 	pressed_key = 0xFF;
 	waiting_keypress = false;
-	srand(VSync(1)|VSync(-1));
 }
 
 void chip8_logcpu(void)
@@ -156,10 +157,14 @@ void chip8_step(void)
 			waiting_keypress = false;
 	}
 
-	if (rgs.dt > 0)
-		--rgs.dt;
-	if (rgs.st > 0)
-		--rgs.st;
+	if (rgs.dt || rgs.st) {
+		if ((get_msec_timer() % 17) == 0x00) {
+			if (rgs.dt)
+				--rgs.dt;
+			if (rgs.st)
+				--rgs.st;
+		}
+	}
 
 	ophi = ram[rgs.pc++];
 	oplo = ram[rgs.pc++];
@@ -176,7 +181,7 @@ void chip8_step(void)
 		switch (oplo) {
 		default: unknown_opcode(opcode); break;
 		case 0xE0: // - CLS clear display
-			memset(chip8_scrdata, 0, sizeof chip8_scrdata);
+			memset(sys_screen_buffer, 0, sizeof sys_screen_buffer);
 			break;
 		case 0xEE: // - RET Return from a subroutine.
 			rgs.pc = stackpop();

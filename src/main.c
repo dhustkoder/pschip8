@@ -1,27 +1,12 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <libgte.h>
-#include <libgpu.h>
-#include <libetc.h>
 #include <libapi.h>
 #include "types.h"
 #include "log.h"
+#include "system.h"
 #include "chip8.h"
 
 
-#define SCREEN_WIDTH  320     // screen width
-#define SCREEN_HEIGHT 256     // screen height (240 NTSC, 256 PAL)
-
-u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
-u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
-
-uint16_t paddata;
-
-static unsigned long usec_cnter;
-static unsigned long msec_cnter;
-static long last_rcnt1;
-static DISPENV dispenv;
-static uint16_t screen[CHIP8_HEIGHT][CHIP8_WIDTH];
 static const uint8_t chip8rom_brix[] = {
 	0x6E, 0x05, 0x65, 0x00, 0x6B, 0x06, 0x6A, 0x00, 0xA3, 0x0C, 0xDA, 0xB1, 0x7A, 0x04, 0x3A, 0x40, 
 	0x12, 0x08, 0x7B, 0x02, 0x3B, 0x12, 0x12, 0x06, 0x6C, 0x20, 0x6D, 0x1F, 0xA3, 0x10, 0xDC, 0xD1, 
@@ -43,82 +28,22 @@ static const uint8_t chip8rom_brix[] = {
 	0xFC, 0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static void init_systems(void)
-{
-	// VIDEO SYSTEM
-	SetVideoMode(MODE_PAL);
-	ResetGraph(0);
-	SetDispMask(1);
-	
-	// init dispenv
-	memset(&dispenv, 0, sizeof dispenv);
-	dispenv.isinter = 1;
-	dispenv.disp.w = SCREEN_WIDTH;
-	dispenv.disp.h = SCREEN_HEIGHT;
-	dispenv.screen.w = SCREEN_WIDTH;
-	dispenv.screen.h = SCREEN_HEIGHT;
-
-	// ensure fb is full cleared
-	PutDispEnv(&dispenv);
-	ClearImage2(&dispenv.disp, 0, 0, 0);
-
-	// set the chip8 dimensions and position on screen
-	dispenv.disp.w = CHIP8_WIDTH;
-	dispenv.disp.h = CHIP8_HEIGHT;
-	dispenv.screen.x = (SCREEN_WIDTH / 2) - CHIP8_WIDTH;
-	dispenv.screen.y = (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT;
-	PutDispEnv(&dispenv);
-
-
-	// INPUT SYSTEM
-	PadInit(0);
-
-	// TIMER SYSTEM
-	msec_cnter = 0;
-	usec_cnter = 0;
-	last_rcnt1 = 0;
-	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
-	StartRCnt(RCntCNT1);
-	ResetRCnt(RCntCNT1);
-}
-
-static void update_screen_and_pad(void)
-{
-	extern bool chip8_scrdata[CHIP8_HEIGHT][CHIP8_WIDTH];
-	int i, j;
-	u_long padinfo;
-
-	for (i = 0; i < CHIP8_HEIGHT; ++i) {
-		for (j = 0; j < CHIP8_WIDTH; ++j) {
-			screen[i][j] = chip8_scrdata[i][j] ? 0xFFFF : 0x0000;
-		}
-	}
-
-	LoadImage2(&dispenv.disp, (void*)&screen);
-
-	padinfo = PadRead(0);
-	paddata = padinfo&0x0000FFFF;
-
-	DrawSync(0);
-	VSync(0);
-
-	usec_cnter += GetRCnt(RCntCNT1) * 64;
-	if (usec_cnter > 1000) {
-		msec_cnter += usec_cnter / 1000;
-		usec_cnter -= (usec_cnter / 1000) * 1000;
-	}
-
-	ResetRCnt(RCntCNT1);
-}
-
 
 int main(void)
-{
-	// TODO time system
+{	
+	extern uint16_t sys_paddata;
 	init_systems();
+	//chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
+	//chip8_reset();
+	
 	for (;;) {
-		printf("%.3ld:%.3ld:%.3ld\n",
-		       msec_cnter / 1000, msec_cnter % 1000, usec_cnter);
-		update_screen_and_pad();
+		printf("PADDATA: $%.4X\n", sys_paddata);
+		printf("%.3ld:%.3ld\n",
+		       get_msec_timer() / 1000,
+		       get_msec_timer() % 1000);
+		update_pads();
+		update_display();
 	}
+
 }
+
