@@ -4,9 +4,9 @@
 #include <rand.h>
 #include "types.h"
 #include "log.h"
+#include "chip8.h"
 
-
-bool chip8_scrdata[32][64];
+bool chip8_scrdata[CHIP8_HEIGHT][CHIP8_WIDTH];
 
 static struct {
 	uint16_t pc;
@@ -60,9 +60,9 @@ static void draw(uint8_t x, uint8_t y, const uint8_t n)
 
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i, ++y) {
-		y &= 31;
+		y %= CHIP8_HEIGHT;
 		for (j = 0; j < 8; ++j, ++x) {
-			x &= 63;
+			x %= CHIP8_WIDTH;
 			bit = (sprite[i]&(0x80>>j)) != 0;
 			rgs.v[0x0F] |= chip8_scrdata[y][x] ^ bit;
 			chip8_scrdata[y][x] ^= bit;

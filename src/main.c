@@ -16,7 +16,7 @@ u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 uint16_t paddata;
 
 static DISPENV dispenv;
-static uint16_t screen[32][64];
+static uint16_t screen[CHIP8_HEIGHT][CHIP8_WIDTH];
 static const uint8_t chip8rom_brix[] = {
 	0x6E, 0x05, 0x65, 0x00, 0x6B, 0x06, 0x6A, 0x00, 0xA3, 0x0C, 0xDA, 0xB1, 0x7A, 0x04, 0x3A, 0x40, 
 	0x12, 0x08, 0x7B, 0x02, 0x3B, 0x12, 0x12, 0x06, 0x6C, 0x20, 0x6D, 0x1F, 0xA3, 0x10, 0xDC, 0xD1, 
@@ -38,32 +38,36 @@ static const uint8_t chip8rom_brix[] = {
 	0xFC, 0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-
 static void init_platform(void)
 {
+	// init display
 	SetVideoMode(MODE_PAL);
 	ResetGraph(0);
 	SetDispMask(1);
-	SetDefDispEnv(&dispenv, 0, 0, 64, 32);
+
+	// clear all display area
+	SetDefDispEnv(&dispenv, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	PutDispEnv(&dispenv);
+	ClearImage2(&dispenv.disp, 0, 0, 0);
+
+	SetDefDispEnv(&dispenv, 0, 0, CHIP8_WIDTH, CHIP8_HEIGHT);
 	PutDispEnv(&dispenv);
 	PadInit(0);
-
-	memset(screen, 0x00, sizeof screen);
 }
 
 static void update_screen_and_pad(void)
 {
-	extern bool chip8_scrdata[32][64];
+	extern bool chip8_scrdata[CHIP8_HEIGHT][CHIP8_WIDTH];
 	int i, j;
 	u_long padinfo;
 
-	for (i = 0; i < 32; ++i) {
-		for (j = 0; j < 64; ++j) {
+	for (i = 0; i < CHIP8_HEIGHT; ++i) {
+		for (j = 0; j < CHIP8_WIDTH; ++j) {
 			screen[i][j] = chip8_scrdata[i][j] ? 0xFFFF : 0x0000;
 		}
 	}
 
-	LoadImage(&dispenv.disp, (void*)&screen);
+	LoadImage2(&dispenv.disp, (void*)&screen);
 	loginfo("DISPENV.DISP: (%d,%d) (%dx%d)\n",
 	         dispenv.disp.x, dispenv.disp.y,
 	         dispenv.disp.w, dispenv.disp.h);
