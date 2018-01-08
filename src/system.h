@@ -9,6 +9,7 @@ void update_display(void);
 void update_pads(void);
 void update_timers(void);
 void reset_timers(void);
+void fatal_failure(const char* msg);
 
 static inline unsigned long get_msec_timer(void)
 {

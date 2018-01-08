@@ -7,6 +7,7 @@
 #include <sys/errno.h>
 #include "types.h"
 #include "chip8.h"
+#include "log.h"
 #include "system.h"
 
 
@@ -21,12 +22,7 @@ unsigned long sys_usec_timer;
 
 static DISPENV dispenv;
 
-static void fatal_failure(const char* const msg)
-{
-	const int err = _get_errno();
-	printf("FATAL FAILURE: %s\nERRNO: %d\n", msg, err);
-	SystemError((char)err, err);
-}
+
 
 void init_systems(void)
 {
@@ -68,7 +64,7 @@ void update_display(void)
 
 	++fps;
 	if ((sys_msec_timer - msec_last) >= 1000) {
-		printf("FPS: %d\n", fps);
+		logdebug("FPS: %d\n", fps);
 		fps = 0;
 		msec_last = sys_msec_timer;
 	}
@@ -108,4 +104,10 @@ void reset_timers(void)
 	ResetRCnt(RCntCNT1);
 }
 
+void fatal_failure(const char* const msg)
+{
+	const int err = _get_errno();
+	loginfo("FATAL FAILURE: %s\nERRNO: %d\n", msg, err);
+	SystemError((char)err, err);
+}
 

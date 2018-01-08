@@ -44,6 +44,10 @@ static const uint8_t font[80] = {
 	0xF0, 0x80, 0xF0, 0x80, 0x80  // F
 };
 
+static void unknown_opcode(const uint16_t opcode)
+{
+	fatal_failure("Unkown Opcode");
+}
 
 static void stackpush(const uint16_t value)
 {
@@ -57,18 +61,22 @@ static uint16_t stackpop(void)
 
 static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 {
+	const unsigned scry = (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT;
+	const unsigned scrx = (SCREEN_WIDTH / 2) - CHIP8_WIDTH;
 	const uint8_t* const sprite = &ram[rgs.i];
+	uint16_t* scrline;
 	uint8_t i, j, x, y;
 	uint16_t pixel;
-
+	
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i) {
 		y = (vy + i)%CHIP8_HEIGHT;
+		scrline = &sys_screen_buffer[scry + y][scrx];
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
 			pixel = (sprite[i]&(0x80>>j)) != 0 ? 0xFFFF : 0x0000;
-			rgs.v[0x0F] |= sys_screen_buffer[y][x] && !pixel;
-			sys_screen_buffer[y][x] ^= pixel;
+			rgs.v[0x0F] |= scrline[x] && !pixel;
+			scrline[x] ^= pixel;
 		}
 	}
 }
@@ -103,12 +111,6 @@ static void update_keys(void)
 	}
 }
 
-static void unknown_opcode(const uint16_t opcode)
-{
-	for (;;) {
-		loginfo("UNKNOWN OPCODE: %.4X\n", opcode);
-	}
-}
 
 
 void chip8_loadrom(const uint8_t* const rom, const uint32_t size)

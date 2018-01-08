@@ -46,16 +46,10 @@ int main(void)
 		update_pads();
 		update_timers();
 
-		printf("PADDATA: $%.4X\n", sys_paddata);
-		printf("%.3ld:%.3ld\n",
-		       sys_msec_timer / 1000,
-		       sys_msec_timer % 1000);
-
 		timer = sys_msec_timer;
 
 		if ((timer - last_step) >= 2) {
 			chip8_step();
-			update_timers();
 			last_step = timer;
 		}
 
