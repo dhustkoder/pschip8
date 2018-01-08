@@ -1,4 +1,3 @@
-#include <stdio.h>
 #include <stdlib.h>
 #include <rand.h>
 #include "types.h"
@@ -162,10 +161,13 @@ void chip8_step(void)
 	update_keys();
 
 	if (waiting_keypress) {
-		if (pressed_key == 0xFF)
+		if (pressed_key == 0xFF) {
+			logdebug("Waiting Key Press...\n");
 			return;
-		else
+		} else {
+			logdebug("Key Press Received!\n");
 			waiting_keypress = false;
+		}
 	}
 
 	ophi = ram[rgs.pc++];
@@ -174,8 +176,8 @@ void chip8_step(void)
 	y = (oplo&0xF0)>>4;
 	opcode = (ophi<<8)|oplo;
 
-	logdebug("OPCODE: %.4X\nKEYPRESSED: $%.2X\n",
-	         opcode, pressed_key);
+	logdebug("PRESSED KEY: $%.2X\n", pressed_key);
+	logdebug("OPCODE: $%.4X\n", opcode);
 
 	switch ((ophi&0xF0)>>4) {
 	default: unknown_opcode(opcode); break;

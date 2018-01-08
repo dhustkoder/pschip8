@@ -1,5 +1,4 @@
 #include <stdlib.h>
-#include <stdio.h>
 #include <libgte.h>
 #include <libgpu.h>
 #include <libetc.h>
@@ -105,7 +104,7 @@ void reset_timers(void)
 void fatal_failure(const char* const msg)
 {
 	const int err = _get_errno();
-	loginfo("FATAL FAILURE: %s\nERRNO: %d\n", msg, err);
+	logerror("FATAL FAILURE: %s: ERRNO: %d\n", msg, err);
 	SystemError((char)err, err);
 }
 
