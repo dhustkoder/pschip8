@@ -68,7 +68,6 @@ void update_display(void)
 
 	++fps;
 	if ((sys_msec_timer - msec_last) >= 1000) {
-
 		printf("FPS: %d\n", fps);
 		fps = 0;
 		msec_last = sys_msec_timer;
