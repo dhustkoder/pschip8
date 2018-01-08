@@ -53,18 +53,18 @@ static uint16_t stackpop(void)
 	return stack[++rgs.sp];
 }
 
-static void draw(uint8_t x, uint8_t y, const uint8_t n)
+static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 {
 	const uint8_t* const sprite = &ram[rgs.i];
-	uint8_t i, j, bit;
+	uint8_t i, j, x, y, bit;
 
 	rgs.v[0x0F] = 0;
-	for (i = 0; i < n; ++i, ++y) {
-		y %= CHIP8_HEIGHT;
-		for (j = 0; j < 8; ++j, ++x) {
-			x %= CHIP8_WIDTH;
+	for (i = 0; i < n; ++i) {
+		y = (vy + i)%CHIP8_HEIGHT;
+		for (j = 0; j < 8; ++j) {
+			x = (vx + j)%CHIP8_WIDTH;
 			bit = (sprite[i]&(0x80>>j)) != 0;
-			rgs.v[0x0F] |= chip8_scrdata[y][x] ^ bit;
+			rgs.v[0x0F] |= chip8_scrdata[y][x] && !bit;
 			chip8_scrdata[y][x] ^= bit;
 		}
 	}

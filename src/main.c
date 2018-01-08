@@ -47,9 +47,10 @@ static void init_systems(void)
 	
 	// init dispenv
 	memset(&dispenv, 0, sizeof dispenv);
-	dispenv.isinter = 1;
 	dispenv.disp.w = SCREEN_WIDTH;
 	dispenv.disp.h = SCREEN_HEIGHT;
+	dispenv.screen.w = SCREEN_WIDTH;
+	dispenv.screen.h = SCREEN_HEIGHT;
 
 	// ensure fb is full cleared
 	PutDispEnv(&dispenv);
