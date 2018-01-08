@@ -3,6 +3,7 @@
 #include <libgte.h>
 #include <libgpu.h>
 #include <libetc.h>
+#include <libapi.h>
 #include "types.h"
 #include "log.h"
 #include "chip8.h"
@@ -13,6 +14,7 @@
 
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
+
 uint16_t paddata;
 
 static DISPENV dispenv;
@@ -47,6 +49,7 @@ static void init_systems(void)
 	
 	// init dispenv
 	memset(&dispenv, 0, sizeof dispenv);
+	dispenv.isinter = 1;
 	dispenv.disp.w = SCREEN_WIDTH;
 	dispenv.disp.h = SCREEN_HEIGHT;
 	dispenv.screen.w = SCREEN_WIDTH;
@@ -66,6 +69,9 @@ static void init_systems(void)
 
 	// INPUT SYSTEM
 	PadInit(0);
+
+	// TIMER SYSTEM
+
 }
 
 static void update_screen_and_pad(void)
@@ -81,9 +87,6 @@ static void update_screen_and_pad(void)
 	}
 
 	LoadImage2(&dispenv.disp, (void*)&screen);
-	loginfo("DISPENV.DISP: (%d,%d) (%dx%d)\n",
-	         dispenv.disp.x, dispenv.disp.y,
-	         dispenv.disp.w, dispenv.disp.h);
 
 	padinfo = PadRead(0);
 	paddata = padinfo&0x0000FFFF;
@@ -95,14 +98,9 @@ static void update_screen_and_pad(void)
 
 int main(void)
 {
+	// TODO time system
 	init_systems();
-
-	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
-	chip8_reset();
 	for (;;) {
-		loginfo("PADDATA: $%.4X\n", paddata);
-		chip8_step();
-		chip8_logcpu();
 		update_screen_and_pad();
 	}
 }

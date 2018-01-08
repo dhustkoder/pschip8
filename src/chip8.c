@@ -1,7 +1,8 @@
 #include <stdio.h>
 #include <stdlib.h>
-#include <libetc.h>
 #include <rand.h>
+#include <libetc.h>
+#include <libapi.h>
 #include "types.h"
 #include "log.h"
 #include "chip8.h"
