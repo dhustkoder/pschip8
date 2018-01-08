@@ -5,15 +5,14 @@
 #include "types.h"
 #include "log.h"
 
-extern uint16_t paddata;
 
 bool chip8_scrdata[32][64];
 
 static struct {
 	uint16_t pc;
 	uint16_t i;
-	uint8_t sp;
 	uint8_t v[0x10];
+	uint8_t sp;
 	uint8_t dt;
 	uint8_t st;
 } rgs;
@@ -64,7 +63,7 @@ static void draw(uint8_t x, uint8_t y, const uint8_t n)
 		y &= 31;
 		for (j = 0; j < 8; ++j, ++x) {
 			x &= 63;
-			bit = ((sprite[i]&(0x80>>j)) != 0);
+			bit = (sprite[i]&(0x80>>j)) != 0;
 			rgs.v[0x0F] |= chip8_scrdata[y][x] ^ bit;
 			chip8_scrdata[y][x] ^= bit;
 		}
@@ -73,6 +72,8 @@ static void draw(uint8_t x, uint8_t y, const uint8_t n)
 
 static void update_keys(void)
 {
+	extern uint16_t paddata;
+
 	const uint8_t keytable[3][5] = { 
 		{ 0x4, 0x8, 0x6, 0x2, 0xf },
 		{ 0xe, 0x1, 0x3, 0x5, 0x7 },
@@ -85,6 +86,7 @@ static void update_keys(void)
 	if (paddata_change) {
 		pressed_key = 0xFF;
 		bit = 15;
+		
 		for (i = 0; i < 3 && pressed_key == 0xFF; ++i) {
 			for (j = 0; j < 5; ++j, --bit) {
 				if (paddata&(0x01<<bit)) {
@@ -93,9 +95,9 @@ static void update_keys(void)
 				}
 			}
 		}
-	}
 
-	paddata_old = paddata;
+		paddata_old = paddata;
+	}
 }
 
 static void unknown_opcode(const uint16_t opcode)
@@ -119,7 +121,7 @@ void chip8_reset(void)
 	memcpy(ram, font, sizeof font);
 	rgs.pc = 0x200;
 	rgs.sp = 31;
-	paddata_old = 0;
+	paddata_old = 0x0000;
 	pressed_key = 0xFF;
 	waiting_keypress = false;
 	srand(VSync(1)|VSync(-1));
@@ -153,13 +155,19 @@ void chip8_step(void)
 			waiting_keypress = false;
 	}
 
+	if (rgs.dt > 0)
+		--rgs.dt;
+	if (rgs.st > 0)
+		--rgs.st;
+
 	ophi = ram[rgs.pc++];
 	oplo = ram[rgs.pc++];
 	x = ophi&0x0F;
 	y = (oplo&0xF0)>>4;
 	opcode = (ophi<<8)|oplo;
 
-	logdebug("OPCODE: %.4X\nKEYPRESSED: $%.2X\n", opcode, pressed_key);
+	logdebug("OPCODE: %.4X\nKEYPRESSED: $%.2X\n",
+	         opcode, pressed_key);
 
 	switch ((ophi&0xF0)>>4) {
 	default: unknown_opcode(opcode); break;
@@ -217,7 +225,7 @@ void chip8_step(void)
 			rgs.v[x] ^= rgs.v[y];
 			break;
 		case 0x04: // 8xy4 - ADD Vx, Vy Set Vx = Vx + Vy, set VF = carry.
-			rgs.v[0x0F] = (((long)rgs.v[x]) + rgs.v[y]) > 0xFF;
+			rgs.v[0x0F] = (rgs.v[x] + rgs.v[y]) > 0xFF;
 			rgs.v[x] += rgs.v[y];
 			break;
 		case 0x05: // 8xy5 - SUB Vx, Vy Set Vx = Vx - Vy, set VF = NOT borrow.
@@ -250,7 +258,7 @@ void chip8_step(void)
 		rgs.pc = (opcode&0x0FFF) + rgs.v[0];
 		break;
 	case 0x0C: // Cxkk - RND Vx, byte Set Vx = random byte AND kk.
-		rgs.v[x] = rand()&oplo;
+		rgs.v[x] = (rand()%0xFF)&oplo;
 		break;
 	case 0x0D: // Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy)...
 		draw(rgs.v[x], rgs.v[y], oplo&0x0F);
@@ -271,10 +279,9 @@ void chip8_step(void)
 			rgs.v[x] = rgs.dt;
 			break;
 		case 0x0A: // Fx0A - LD Vx, K Wait for a key press, store the value of the key in Vx.
-			if (pressed_key == 0xFF)
-				waiting_keypress = true;
-			else
-				rgs.v[x] = pressed_key;
+			paddata_old = 0x0000;
+			pressed_key = 0xFF;
+			waiting_keypress = true;
 			break;
 		case 0x15: // Fx15 - LD DT, Vx Set delay timer = Vx.
 			rgs.dt = rgs.v[x];
@@ -290,7 +297,7 @@ void chip8_step(void)
 			break;
 		case 0x33: // Fx33 - LD B, Vx Store BCD representation of Vx in memory locations I, I+1, and I+2.
 			ram[rgs.i + 2] = rgs.v[x] % 10;
-			ram[rgs.i + 1] = (rgs.v[x] / 10) % rgs.v[x] % 10;
+			ram[rgs.i + 1] = (rgs.v[x] / 10) % 10;
 			ram[rgs.i] = rgs.v[x] / 100;
 			break;
 		case 0x55: // Fx55 - LD [I], Vx Store registers V0 through Vx in memory starting at location I.
