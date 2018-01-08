@@ -145,13 +145,17 @@ void chip8_logcpu(void)
 
 void chip8_step(void)
 {
+	extern unsigned long sys_msec_timer;
+
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;
 
-	if (rgs.dt > 0)
-		--rgs.dt;
-	if (rgs.st > 0)
-		--rgs.st;
+	if ((sys_msec_timer&15) == 0) {
+		if (rgs.dt > 0)
+			--rgs.dt;
+		if (rgs.st > 0)
+			--rgs.st;
+	}
 
 	update_keys();
 

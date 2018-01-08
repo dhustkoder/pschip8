@@ -33,9 +33,9 @@ int main(void)
 {	
 	extern uint16_t sys_paddata;
 	extern unsigned long sys_msec_timer;
-	extern unsigned long sys_usec_timer;
-	unsigned long msec_disp_last = 0;
-	unsigned long step_timer, step_timer_last = 0;
+	unsigned long timer;
+	unsigned long last_step = 0;
+	unsigned long last_disp = 0;
 
 	init_systems();
 	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
@@ -51,15 +51,17 @@ int main(void)
 		       sys_msec_timer / 1000,
 		       sys_msec_timer % 1000);
 
-		step_timer = (sys_msec_timer * 1000) + sys_usec_timer;
-		if ((step_timer - step_timer_last) > 316) {
+		timer = sys_msec_timer;
+
+		if ((timer - last_step) >= 2) {
 			chip8_step();
-			step_timer_last = step_timer;
+			update_timers();
+			last_step = timer;
 		}
-		
-		if ((sys_msec_timer - msec_disp_last) > 15) {
+
+		if ((timer - last_disp) >= 33) {
 			update_display();
-			msec_disp_last = sys_msec_timer;
+			last_disp = timer;
 		}
 	}
 

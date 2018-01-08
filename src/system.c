@@ -63,14 +63,12 @@ void update_display(void)
 	static unsigned long msec_last = 0;
 
 	LoadImage(&dispenv.disp, (void*)&sys_screen_buffer);
-
 	DrawSync(0);
-	
 	VSync(0);
 
 	++fps;
-
 	if ((sys_msec_timer - msec_last) >= 1000) {
+
 		printf("FPS: %d\n", fps);
 		fps = 0;
 		msec_last = sys_msec_timer;
