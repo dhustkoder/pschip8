@@ -38,26 +38,31 @@ static const uint8_t chip8rom_brix[] = {
 	0xFC, 0x00, 0xAA, 0x00, 0x00, 0x00, 0x00, 0x00
 };
 
-static void init_platform(void)
+static void init_systems(void)
 {
-	// init display
+	// VIDEO SYSTEM
 	SetVideoMode(MODE_PAL);
 	ResetGraph(0);
 	SetDispMask(1);
+	
+	// init dispenv
+	memset(&dispenv, 0, sizeof dispenv);
+	dispenv.disp.w = SCREEN_WIDTH;
+	dispenv.disp.h = SCREEN_HEIGHT;
 
-	// clear all display area
-	SetDefDispEnv(&dispenv, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	dispenv.isinter = 1;
+	// ensure fb is full cleared
 	PutDispEnv(&dispenv);
 	ClearImage2(&dispenv.disp, 0, 0, 0);
 
-	// setup the chip8 display area
-	SetDefDispEnv(&dispenv,
-	              (SCREEN_WIDTH / 2) - CHIP8_WIDTH,
-	              (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT,
-	              CHIP8_WIDTH, CHIP8_HEIGHT);
-	dispenv.isinter = 1;
+	// set the chip8 dimensions and position on screen
+	dispenv.disp.w = CHIP8_WIDTH;
+	dispenv.disp.h = CHIP8_HEIGHT;
+	dispenv.screen.x = (SCREEN_WIDTH / 2) - CHIP8_WIDTH;
+	dispenv.screen.y = (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT;
 	PutDispEnv(&dispenv);
+
+
+	// INPUT SYSTEM
 	PadInit(0);
 }
 
@@ -88,8 +93,7 @@ static void update_screen_and_pad(void)
 
 int main(void)
 {
-	init_platform();
-	update_screen_and_pad();
+	init_systems();
 
 	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
 	chip8_reset();
