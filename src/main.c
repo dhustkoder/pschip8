@@ -17,6 +17,9 @@ u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
 uint16_t paddata;
 
+static unsigned long usec_cnter;
+static unsigned long msec_cnter;
+static long last_rcnt1;
 static DISPENV dispenv;
 static uint16_t screen[CHIP8_HEIGHT][CHIP8_WIDTH];
 static const uint8_t chip8rom_brix[] = {
@@ -71,7 +74,12 @@ static void init_systems(void)
 	PadInit(0);
 
 	// TIMER SYSTEM
-
+	msec_cnter = 0;
+	usec_cnter = 0;
+	last_rcnt1 = 0;
+	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
+	StartRCnt(RCntCNT1);
+	ResetRCnt(RCntCNT1);
 }
 
 static void update_screen_and_pad(void)
@@ -93,6 +101,14 @@ static void update_screen_and_pad(void)
 
 	DrawSync(0);
 	VSync(0);
+
+	usec_cnter += GetRCnt(RCntCNT1) * 64;
+	if (usec_cnter > 1000) {
+		msec_cnter += usec_cnter / 1000;
+		usec_cnter -= (usec_cnter / 1000) * 1000;
+	}
+
+	ResetRCnt(RCntCNT1);
 }
 
 
@@ -101,6 +117,8 @@ int main(void)
 	// TODO time system
 	init_systems();
 	for (;;) {
+		printf("%.3ld:%.3ld:%.3ld\n",
+		       msec_cnter / 1000, msec_cnter % 1000, usec_cnter);
 		update_screen_and_pad();
 	}
 }
