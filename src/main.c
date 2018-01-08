@@ -43,8 +43,8 @@ int main(void)
 
 	reset_timers();
 	for (;;) {
-		update_timers();
 		update_pads();
+		update_timers();
 
 		timer = sys_msec_timer;
 
