@@ -53,9 +53,9 @@ static void init_platform(void)
 
 	// setup the chip8 display area
 	SetDefDispEnv(&dispenv,
-	             (SCREEN_WIDTH / 2) - CHIP8_WIDTH,
-		         (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT,
-		         CHIP8_WIDTH, CHIP8_HEIGHT);
+	              (SCREEN_WIDTH / 2) - CHIP8_WIDTH,
+	              (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT,
+	              CHIP8_WIDTH, CHIP8_HEIGHT);
 	dispenv.isinter = 1;
 	PutDispEnv(&dispenv);
 	PadInit(0);
