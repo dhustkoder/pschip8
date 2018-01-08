@@ -47,13 +47,16 @@ static void init_platform(void)
 
 	// clear all display area
 	SetDefDispEnv(&dispenv, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	dispenv.isinter = 1;
 	PutDispEnv(&dispenv);
 	ClearImage2(&dispenv.disp, 0, 0, 0);
 
-	DrawSync(0);
-	VSync(0);
-	
-	SetDefDispEnv(&dispenv, 0, 0, CHIP8_WIDTH, CHIP8_HEIGHT);
+	// setup the chip8 display area
+	SetDefDispEnv(&dispenv,
+	             (SCREEN_WIDTH / 2) - CHIP8_WIDTH,
+		         (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT,
+		         CHIP8_WIDTH, CHIP8_HEIGHT);
+	dispenv.isinter = 1;
 	PutDispEnv(&dispenv);
 	PadInit(0);
 }
