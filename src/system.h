@@ -11,11 +11,5 @@ void update_timers(void);
 void reset_timers(void);
 void fatal_failure(const char* msg);
 
-static inline unsigned long get_msec_timer(void)
-{
-	extern unsigned long sys_msec_timer;
-	update_timers();
-	return sys_msec_timer;
-}
 
 #endif

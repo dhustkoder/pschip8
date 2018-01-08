@@ -43,8 +43,9 @@ int main(void)
 
 	reset_timers();
 	for (;;) {
-		update_pads();
+		/*
 		update_timers();
+		update_pads();
 
 		timer = sys_msec_timer;
 
@@ -57,6 +58,8 @@ int main(void)
 			update_display();
 			last_disp = timer;
 		}
+		*/
+		printf("%ld\n", sys_msec_timer);
 	}
 
 }

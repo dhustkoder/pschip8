@@ -48,7 +48,7 @@ void init_systems(void)
 	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
 	StartRCnt(RCntCNT1);
 	reset_timers();
-
+	VSyncCallback(update_timers);
 }
 
 void update_display(void)
