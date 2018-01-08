@@ -32,17 +32,35 @@ static const uint8_t chip8rom_brix[] = {
 int main(void)
 {	
 	extern uint16_t sys_paddata;
+	extern unsigned long sys_msec_timer;
+	extern unsigned long sys_usec_timer;
+	unsigned long msec_disp_last = 0;
+	unsigned long step_timer, step_timer_last = 0;
+
 	init_systems();
-	//chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
-	//chip8_reset();
-	
+	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
+	chip8_reset();
+
+	reset_timers();
 	for (;;) {
+		update_pads();
+		update_timers();
+
 		printf("PADDATA: $%.4X\n", sys_paddata);
 		printf("%.3ld:%.3ld\n",
-		       get_msec_timer() / 1000,
-		       get_msec_timer() % 1000);
-		update_pads();
-		update_display();
+		       sys_msec_timer / 1000,
+		       sys_msec_timer % 1000);
+
+		step_timer = (sys_msec_timer * 1000) + sys_usec_timer;
+		if ((step_timer - step_timer_last) > 316) {
+			chip8_step();
+			step_timer_last = step_timer;
+		}
+		
+		if ((sys_msec_timer - msec_disp_last) > 15) {
+			update_display();
+			msec_disp_last = sys_msec_timer;
+		}
 	}
 
 }

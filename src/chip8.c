@@ -148,6 +148,11 @@ void chip8_step(void)
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;
 
+	if (rgs.dt > 0)
+		--rgs.dt;
+	if (rgs.st > 0)
+		--rgs.st;
+
 	update_keys();
 
 	if (waiting_keypress) {
@@ -155,15 +160,6 @@ void chip8_step(void)
 			return;
 		else
 			waiting_keypress = false;
-	}
-
-	if (rgs.dt || rgs.st) {
-		if ((get_msec_timer() % 17) == 0x00) {
-			if (rgs.dt)
-				--rgs.dt;
-			if (rgs.st)
-				--rgs.st;
-		}
 	}
 
 	ophi = ram[rgs.pc++];
