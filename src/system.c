@@ -27,16 +27,14 @@ static DISPENV dispenv;
 void init_systems(void)
 {
 	// VIDEO SYSTEM
-	SetVideoMode(MODE_PAL);
 	ResetGraph(0);
 	SetDispMask(1);
-	
+	SetVideoMode(MODE_PAL);
+
 	// init dispenv
 	memset(&dispenv, 0, sizeof dispenv);
 	dispenv.disp.w = SCREEN_WIDTH;
 	dispenv.disp.h = SCREEN_HEIGHT;
-	dispenv.screen.w = SCREEN_WIDTH;
-	dispenv.screen.h = SCREEN_HEIGHT;
 	// ensure fb is full cleared
 	PutDispEnv(&dispenv);
 	ClearImage2(&dispenv.disp, 0, 0, 0);
