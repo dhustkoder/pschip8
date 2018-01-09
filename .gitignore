@@ -7,7 +7,6 @@
 *.img
 *.cnf
 *.cti
-*.iso
 
 *.EXE
 *.SYM
@@ -18,5 +17,4 @@
 *.IMG
 *.CNF
 *.CTI
-*.ISO
 
