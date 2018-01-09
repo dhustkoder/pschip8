@@ -5,7 +5,6 @@
 #include <libgpu.h>
 #include <libetc.h>
 #include <libapi.h>
-#include "types.h"
 #include "chip8.h"
 #include "log.h"
 #include "system.h"
@@ -79,11 +78,6 @@ void update_display(void)
 	VSync(0);
 }
 
-void update_pads(void)
-{
-	sys_paddata = PadRead(0)&0x0000FFFF;
-}
-
 void update_timers(void)
 {
 	const long rcnt1 = GetRCnt(RCntCNT1);
@@ -101,7 +95,6 @@ void update_timers(void)
 	}
 
 	rcnt1_last = rcnt1;
-
 }
 
 void reset_timers(void)
@@ -121,4 +114,5 @@ void fatal_failure(const char* const msg)
 	logerror("FATAL FAILURE: %s: ERRNO: %d\n", msg, err);
 	SystemError((char)err, err);
 }
+
 

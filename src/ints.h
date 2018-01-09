@@ -1,6 +1,6 @@
 #ifndef STDINT_H
-#ifndef PSCHIP8_TYPES_H_
-#define PSCHIP8_TYPES_H_
+#ifndef PSCHIP8_INT_H_
+#define PSCHIP8_INT_H_
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;

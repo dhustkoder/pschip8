@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <rand.h>
-#include "types.h"
+#include "ints.h"
 #include "log.h"
 #include "system.h"
 #include "chip8.h"
@@ -80,31 +80,35 @@ static void update_keys(void)
 {
 	extern uint16_t sys_paddata;
 
-	const uint8_t keytable[3][5] = { 
-		{ 0x4, 0x8, 0x6, 0x2, 0xf },
-		{ 0xe, 0x1, 0x3, 0x5, 0x7 },
-		{ 0xa, 0xb, 0xc, 0xd, 0x0 }
+	static const uint8_t keytable[14] = {
+		0x2, 0x8, 0x4, 0x6,
+		0x5, 0x1, 0x3, 0x7,
+		0xf, 0xa, 0xa, 0x0,
+		0xb, 0xc
 	};
 
+	static const uint16_t padtable[14] = {
+		BUTTON_UP, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT,
+		BUTTON_CIRCLE, BUTTON_CROSS, BUTTON_SQUARE, BUTTON_TRIANGLE,
+		BUTTON_START, BUTTON_SELECT, BUTTON_R1, BUTTON_R2,
+		BUTTON_L1, BUTTON_L2
+	};
+
+
 	bool paddata_change;
-	uint8_t i, j, bit;
+	uint8_t i;
 
 	update_pads();
 	paddata_change = sys_paddata != paddata_old;
 
 	if (paddata_change) {
 		pressed_key = 0xFF;
-		bit = 15;
-		
-		for (i = 0; i < 3 && pressed_key == 0xFF; ++i) {
-			for (j = 0; j < 5; ++j, --bit) {
-				if (sys_paddata&(0x01<<bit)) {
-					pressed_key = keytable[i][j];
-					break;
-				}
+		for (i = 0; i < 14; ++i) {
+			if (sys_paddata&padtable[i]) {
+				pressed_key = keytable[i];
+				break;
 			}
 		}
-
 		paddata_old = sys_paddata;
 	}
 }
@@ -151,8 +155,8 @@ void chip8_step(void)
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;
 
-	while ((timer - msec_last) >= (1000 / 320)) {
-		msec_last += (1000 / 320);
+	while ((timer - msec_last) >= 16) {
+		msec_last += 16;
 		if (rgs.dt > 0)
 			--rgs.dt;
 		if (rgs.st > 0)
