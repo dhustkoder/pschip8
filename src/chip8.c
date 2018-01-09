@@ -273,7 +273,7 @@ void chip8_step(void)
 		rgs.pc = (opcode&0x0FFF) + rgs.v[0];
 		break;
 	case 0x0C: // Cxkk - RND Vx, byte Set Vx = random byte AND kk.
-		rgs.v[x] = (rand()%0xFF)&oplo;
+		rgs.v[x] = rand()&oplo;
 		break;
 	case 0x0D: // Dxyn - DRW Vx, Vy, nibble Display n-byte sprite starting at memory location I at (Vx, Vy)...
 		draw(rgs.v[x], rgs.v[y], oplo&0x0F);
