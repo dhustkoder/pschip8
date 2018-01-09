@@ -33,7 +33,6 @@ static const uint8_t chip8rom_brix[] = {
 int main(void)
 {	
 	extern unsigned long sys_msec_timer;
-	unsigned long timer;
 	unsigned long last_step = 0;
 	unsigned long last_disp = 0;
 
@@ -43,19 +42,16 @@ int main(void)
 
 	reset_timers();
 	for (;;) {
-		update_pads();
 		update_timers();
 
-		timer = sys_msec_timer;
-
-		if ((timer - last_step) >= 2) {
+		if ((sys_msec_timer - last_step) >= 2) {
+			last_step = sys_msec_timer;
 			chip8_step();
-			last_step = timer;
 		}
 
-		if ((timer - last_disp) >= 20) {
+		if ((sys_msec_timer - last_disp) >= 16) {
+			last_disp = sys_msec_timer;
 			update_display();
-			last_disp = timer;
 		}
 	}
 }

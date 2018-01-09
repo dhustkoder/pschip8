@@ -14,10 +14,13 @@ u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
 uint16_t sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+static uint16_t chip8_gfx_last[CHIP8_HEIGHT][CHIP8_WIDTH];
+
 uint16_t sys_paddata;
 unsigned long sys_msec_timer;
-unsigned long sys_usec_timer;
 
+static unsigned long sys_usec_timer;
+static unsigned short rcnt1_last;
 
 static DISPENV dispenv;
 
@@ -34,24 +37,19 @@ void init_systems(void)
 	dispenv.disp.h = SCREEN_HEIGHT;
 	dispenv.screen.w = SCREEN_WIDTH;
 	dispenv.screen.h = SCREEN_HEIGHT;
+
 	PutDispEnv(&dispenv);
 	ClearImage(&dispenv.disp, 0, 0, 0);
-	// load Fnt
-	FntLoad(960, 256);
-	SetDumpFnt(FntOpen(0, 0, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 128));
 
+	FntLoad(960, 256);
+	SetDumpFnt(FntOpen(32, 32, SCREEN_WIDTH, SCREEN_HEIGHT, 1, 32));
 
 	// INPUT SYSTEM
 	PadInit(0);
 	sys_paddata = 0;
 
 	// TIMER SYSTEM
-	// setup timer cnt1
-	StopRCnt(RCntCNT1);
-	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
-	StartRCnt(RCntCNT1);
 	reset_timers();
-	VSyncCallback(update_timers);
 }
 
 void update_display(void)
@@ -66,19 +64,18 @@ void update_display(void)
 		.h = CHIP8_HEIGHT
 	};
 
-	LoadImage(&chip8_area, (void*)&sys_chip8_gfx);
-	FntFlush(-1);
-
-	DrawSync(0);
-	VSync(0);
-
 	++fps;
+
 	if ((sys_msec_timer - msec_last) >= 1000) {
-		// ensure fb is full cleared
-		ClearImage(&dispenv.disp, 0, 0, 0);
-		FntPrint("FPS: %d", fps);
-		fps = 0;
 		msec_last = sys_msec_timer;
+		FntPrint("FPS: %d", fps);
+		FntFlush(-1);
+		fps = 0;
+	}
+
+	if (fps == 0 || memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
+		LoadImage(&chip8_area, (void*)&sys_chip8_gfx);
+		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 	}
 
 }
@@ -90,9 +87,7 @@ void update_pads(void)
 
 void update_timers(void)
 {
-	static unsigned short rcnt1_last = 0;
-
-	long rcnt1 = GetRCnt(RCntCNT1);
+	const long rcnt1 = GetRCnt(RCntCNT1);
 
 	if (rcnt1 < rcnt1_last) {
 		sys_usec_timer += (0xFFFF - rcnt1_last) * 64;
@@ -111,9 +106,12 @@ void update_timers(void)
 
 void reset_timers(void)
 {
+	rcnt1_last = 0;
 	sys_usec_timer = 0;
 	sys_msec_timer = 0;
-	ResetRCnt(RCntCNT1);
+	StopRCnt(RCntCNT1);
+	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
+	StartRCnt(RCntCNT1);
 }
 
 void fatal_failure(const char* const msg)

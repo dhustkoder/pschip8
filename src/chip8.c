@@ -86,8 +86,11 @@ static void update_keys(void)
 		{ 0xa, 0xb, 0xc, 0xd, 0x0 }
 	};
 
-	const bool paddata_change = sys_paddata != paddata_old;
+	bool paddata_change;
 	uint8_t i, j, bit;
+
+	update_pads();
+	paddata_change = sys_paddata != paddata_old;
 
 	if (paddata_change) {
 		pressed_key = 0xFF;
@@ -143,11 +146,14 @@ void chip8_logcpu(void)
 void chip8_step(void)
 {
 	extern unsigned long sys_msec_timer;
+	
+	static unsigned long msec_last = 0;
 
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;
 
-	if ((sys_msec_timer&15) == 0) {
+	if ((sys_msec_timer - msec_last) >= 2) {
+		msec_last = sys_msec_timer;
 		if (rgs.dt > 0)
 			--rgs.dt;
 		if (rgs.st > 0)
