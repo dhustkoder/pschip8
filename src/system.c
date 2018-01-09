@@ -21,8 +21,8 @@ static uint16_t screen_gfx[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 uint16_t sys_paddata;
 int32_t sys_msec_timer;
+uint32_t sys_usec_timer;
 
-static uint32_t sys_usec_timer;
 static uint16_t rcnt1_last;
 static DISPENV dispenv;
 
@@ -74,8 +74,6 @@ void update_display(void)
 		LoadImage(&dispenv.disp, (void*)&screen_gfx);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 	}
-
-	VSync(0);
 }
 
 void update_timers(void)
