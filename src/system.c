@@ -28,22 +28,6 @@ static uint16_t rcnt1_last;
 static DISPENV dispenv;
 
 
-static void scale_chip8_gfx(void)
-{
-	uint16_t xratio = ((CHIP8_WIDTH<<16)/SCREEN_WIDTH) + 1;
-	uint16_t yratio = ((CHIP8_HEIGHT<<16)/SCREEN_HEIGHT) + 1;
-	uint16_t px, py;
-	int16_t i, j;
-
-	for (i = 0; i < SCREEN_HEIGHT; ++i) {
-		for (j = 0; j < SCREEN_WIDTH; ++j) {
-			py = (i * yratio)>>16;
-			px = (j * xratio)>>16;
-			screen_gfx[i][j] = sys_chip8_gfx[py][px];
-		}
-	}
-}
-
 
 void init_systems(void)
 {
@@ -72,8 +56,21 @@ void init_systems(void)
 
 void update_display(void)
 {
+	const uint16_t xratio = ((CHIP8_WIDTH<<16)/SCREEN_WIDTH) + 1;
+	const uint16_t yratio = ((CHIP8_HEIGHT<<16)/SCREEN_HEIGHT) + 1;
+	uint16_t px, py;
+	int16_t i, j;
+
 	if (memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
-		scale_chip8_gfx();
+		// scale chip8 graphics
+		for (i = 0; i < SCREEN_HEIGHT; ++i) {
+			for (j = 0; j < SCREEN_WIDTH; ++j) {
+				py = (i * yratio)>>16;
+				px = (j * xratio)>>16;
+				screen_gfx[i][j] = sys_chip8_gfx[py][px];
+			}
+		}
+
 		LoadImage(&dispenv.disp, (void*)&screen_gfx);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 	}
