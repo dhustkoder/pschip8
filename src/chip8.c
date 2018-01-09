@@ -145,14 +145,14 @@ void chip8_logcpu(void)
 
 void chip8_step(void)
 {
-	extern int32_t sys_msec_timer;
 	static int32_t msec_last = 0;
+	const int32_t timer = get_msec_now();
 
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;
 
-	while ((sys_msec_timer - msec_last) >= (1000 / 320)) {
-		msec_last += 2;
+	while ((timer - msec_last) >= (1000 / 320)) {
+		msec_last += (1000 / 320);
 		if (rgs.dt > 0)
 			--rgs.dt;
 		if (rgs.st > 0)

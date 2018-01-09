@@ -32,7 +32,7 @@ static const uint8_t chip8rom_brix[] = {
 
 int main(void)
 {	
-	extern int32_t sys_msec_timer;
+	int32_t timer;
 	int32_t last_step = 0;
 	int32_t last_disp = 0;
 	int32_t last_fps = 0;
@@ -44,25 +44,25 @@ int main(void)
 
 	reset_timers();
 	for (;;) {
-		update_timers();
-
-		if ((sys_msec_timer - last_step) >= (1000 / 256)) {
+		timer = get_msec_now();
+		while ((timer - last_step) >= (1000 / 256)) {
 			chip8_step();
-			last_step = sys_msec_timer;
+			last_step += (1000 / 256);
 		}
 		
-
-		if ((sys_msec_timer - last_disp) >= (1000 / 30)) {
+		timer = get_msec_now();
+		if ((timer - last_disp) >= (1000 / 50)) {
 			update_display();
-			
 			++fps;
-			if ((sys_msec_timer - last_fps) >= 1000) {	
-				loginfo("FPS: %d\n", fps);
-				fps = 0;
-				last_fps = sys_msec_timer;
-			}
-
-			last_disp = sys_msec_timer;
+			last_disp += (1000 / 50);
+		}
+		
+		
+		timer = get_msec_now();
+		if ((timer - last_fps) >= 1000) {	
+			loginfo("FPS: %d\n", fps);
+			fps = 0;
+			last_fps = timer;
 		}
 	}
 }

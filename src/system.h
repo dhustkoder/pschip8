@@ -11,6 +11,11 @@ void update_timers(void);
 void reset_timers(void);
 void fatal_failure(const char* msg);
 
-
+static int32_t get_msec_now(void)
+{
+	extern int32_t sys_msec_timer;
+	update_timers();
+	return sys_msec_timer;
+}
 
 #endif
