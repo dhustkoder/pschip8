@@ -30,17 +30,16 @@ static DISPENV dispenv;
 
 static void scale_chip8_gfx(void)
 {
-	float xratio = ((float)CHIP8_WIDTH)/SCREEN_WIDTH;
-	float yratio = ((float)CHIP8_HEIGHT)/SCREEN_HEIGHT;
-	float px, py;
-	int i, j;
+	uint16_t xratio = ((CHIP8_WIDTH<<16)/SCREEN_WIDTH) + 1;
+	uint16_t yratio = ((CHIP8_HEIGHT<<16)/SCREEN_HEIGHT) + 1;
+	uint16_t px, py;
+	int16_t i, j;
 
 	for (i = 0; i < SCREEN_HEIGHT; ++i) {
 		for (j = 0; j < SCREEN_WIDTH; ++j) {
-			py = floor(i * yratio);
-			px = floor(j * xratio);
-			screen_gfx[i][j] =
-			  sys_chip8_gfx[(int)py][(int)px] ? 0xFFFF : 0x0000;
+			py = (i * yratio)>>16;
+			px = (j * xratio)>>16;
+			screen_gfx[i][j] = sys_chip8_gfx[py][px];
 		}
 	}
 }
@@ -79,21 +78,20 @@ void update_display(void)
 	static int fps = 0;
 	static unsigned long msec_last = 0;
 
+	if (fps == 0 || memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
+		scale_chip8_gfx();
+		LoadImage(&dispenv.disp, (void*)&screen_gfx);
+		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
+	}
+
 	++fps;
 
 	if ((sys_msec_timer - msec_last) >= 1000) {
+		DrawSync(0);
 		msec_last = sys_msec_timer;
 		FntPrint("FPS: %d", fps);
 		FntFlush(-1);
 		fps = 0;
-		DrawSync(0);
-	}
-
-	if (fps == 0 || memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
-		scale_chip8_gfx();
-		LoadImage2(&dispenv.disp, (void*)&screen_gfx);
-		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
-		DrawSync(0);
 	}
 
 }
