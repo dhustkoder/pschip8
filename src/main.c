@@ -53,7 +53,7 @@ int main(void)
 			last_step = timer;
 		}
 
-		if ((timer - last_disp) >= 33) {
+		if ((timer - last_disp) >= 20) {
 			update_display();
 			last_disp = timer;
 		}

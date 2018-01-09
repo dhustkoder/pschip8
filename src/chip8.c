@@ -6,7 +6,7 @@
 #include "chip8.h"
 
 
-extern uint16_t sys_screen_buffer[SCREEN_HEIGHT][SCREEN_WIDTH];
+extern uint16_t sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
 
 
 static struct {
@@ -60,22 +60,18 @@ static uint16_t stackpop(void)
 
 static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 {
-	const unsigned scry = (SCREEN_HEIGHT / 2) - CHIP8_HEIGHT;
-	const unsigned scrx = (SCREEN_WIDTH / 2) - CHIP8_WIDTH;
 	const uint8_t* const sprite = &ram[rgs.i];
-	uint16_t* scrline;
 	uint16_t pixel;
 	uint8_t i, j, x, y;
 	
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i) {
 		y = (vy + i)%CHIP8_HEIGHT;
-		scrline = &sys_screen_buffer[scry + y][scrx];
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
 			pixel = (sprite[i]&(0x80>>j)) != 0 ? 0xFFFF : 0x0000;
-			rgs.v[0x0F] |= scrline[x] && pixel;
-			scrline[x] ^= pixel;
+			rgs.v[0x0F] |= sys_chip8_gfx[y][x] && pixel;
+			sys_chip8_gfx[y][x] ^= pixel;
 		}
 	}
 }
@@ -121,7 +117,7 @@ void chip8_reset(void)
 {
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
-	memset(sys_screen_buffer, 0, sizeof sys_screen_buffer);
+	memset(sys_chip8_gfx, 0, sizeof sys_chip8_gfx);
 	memcpy(ram, font, sizeof font);
 	rgs.pc = 0x200;
 	rgs.sp = 31;
@@ -185,7 +181,7 @@ void chip8_step(void)
 		switch (oplo) {
 		default: unknown_opcode(opcode); break;
 		case 0xE0: // - CLS clear display
-			memset(sys_screen_buffer, 0, sizeof sys_screen_buffer);
+			memset(sys_chip8_gfx, 0, sizeof sys_chip8_gfx);
 			break;
 		case 0xEE: // - RET Return from a subroutine.
 			rgs.pc = stackpop();
