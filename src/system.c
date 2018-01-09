@@ -21,10 +21,10 @@ static uint16_t screen_gfx[SCREEN_HEIGHT][SCREEN_WIDTH];
 
 
 uint16_t sys_paddata;
-unsigned long sys_msec_timer;
+int32_t sys_msec_timer;
 
-static unsigned long sys_usec_timer;
-static unsigned short rcnt1_last;
+static uint32_t sys_usec_timer;
+static uint16_t rcnt1_last;
 static DISPENV dispenv;
 
 
@@ -62,9 +62,6 @@ void init_systems(void)
 	PutDispEnv(&dispenv);
 	ClearImage(&dispenv.disp, 0, 0, 0);
 
-	FntLoad(960, 256);
-	SetDumpFnt(FntOpen(32, 32, SCREEN_WIDTH, SCREEN_HEIGHT, 1, 32));
-
 	// INPUT SYSTEM
 	PadInit(0);
 	sys_paddata = 0;
@@ -75,25 +72,11 @@ void init_systems(void)
 
 void update_display(void)
 {
-	static int fps = 0;
-	static unsigned long msec_last = 0;
-
-	if (fps == 0 || memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
+	if (memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
 		scale_chip8_gfx();
 		LoadImage(&dispenv.disp, (void*)&screen_gfx);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 	}
-
-	++fps;
-
-	if ((sys_msec_timer - msec_last) >= 1000) {
-		DrawSync(0);
-		msec_last = sys_msec_timer;
-		FntPrint("FPS: %d", fps);
-		FntFlush(-1);
-		fps = 0;
-	}
-
 }
 
 void update_pads(void)
@@ -118,6 +101,7 @@ void update_timers(void)
 	}
 
 	rcnt1_last = rcnt1;
+
 }
 
 void reset_timers(void)
@@ -128,6 +112,7 @@ void reset_timers(void)
 	StopRCnt(RCntCNT1);
 	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
 	StartRCnt(RCntCNT1);
+	ResetRCnt(RCntCNT1);
 }
 
 void fatal_failure(const char* const msg)
