@@ -29,9 +29,9 @@ static const uint8_t chip8rom_brix[] = {
 };
 
 
+
 int main(void)
 {	
-	extern uint16_t sys_paddata;
 	extern unsigned long sys_msec_timer;
 	unsigned long timer;
 	unsigned long last_step = 0;
@@ -43,7 +43,6 @@ int main(void)
 
 	reset_timers();
 	for (;;) {
-		/*
 		update_timers();
 		update_pads();
 
@@ -58,9 +57,6 @@ int main(void)
 			update_display();
 			last_disp = timer;
 		}
-		*/
-		printf("%ld\n", sys_msec_timer);
 	}
-
 }
 
