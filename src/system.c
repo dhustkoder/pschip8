@@ -55,8 +55,8 @@ void init_systems(void)
 
 void update_display(void)
 {
-	const int16_t scaled_w = CHIP8_WIDTH * 2;
-	const int16_t scaled_h = CHIP8_HEIGHT * 2;
+	const int16_t scaled_w = CHIP8_WIDTH * 3;
+	const int16_t scaled_h = CHIP8_HEIGHT * 3;
 	const uint32_t xratio = ((CHIP8_WIDTH<<16) / scaled_w) + 1;
 	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / scaled_h) + 1;
 	uint32_t px, py;
