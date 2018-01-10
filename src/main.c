@@ -1,6 +1,7 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <libapi.h>
+#include <libmath.h>
 #include "log.h"
 #include "system.h"
 #include "chip8.h"
@@ -29,12 +30,13 @@ static const uint8_t chip8rom_brix[] = {
 
 
 int main(void)
-{	
+{
 	int32_t timer;
 	int32_t step_last = 0;
 	int32_t fps_last = 0;
 	int fps = 0;
-	int steps, i;
+	int steps = 0;
+	int i;
 
 	init_systems();
 	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
@@ -42,17 +44,18 @@ int main(void)
 	reset_timers();
 	for (;;) {
 		timer = get_msec_now();
-		steps = (timer - step_last) / (1000 / 380);
-		step_last = timer;
-		for (i = 0; i < steps; ++i)
-			chip8_step();
-		
-		update_display();
 
+		i = floor((float)(timer - step_last) / (1000.0f / CHIP8_FREQ));
+		steps += i;
+		step_last = timer;
+		for (; i >= 0; --i)
+			chip8_step();
+
+		update_display(true);
 		++fps;
-		timer = get_msec_now();
 		if ((timer - fps_last) >= 1000) {
 			loginfo("FPS: %d\n", fps);
+			loginfo("STEPS: %d\n", steps);
 			fps = 0;
 			steps = 0;
 			fps_last = timer;

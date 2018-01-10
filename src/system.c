@@ -14,15 +14,15 @@ u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
 
-uint16_t sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
-static uint16_t chip8_gfx_last[CHIP8_HEIGHT][CHIP8_WIDTH];
-static uint16_t screen_gfx[SCREEN_HEIGHT][SCREEN_WIDTH];
+bool sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH]; // the buffer filled by chip8.c
+static bool chip8_gfx_last[CHIP8_HEIGHT][CHIP8_WIDTH]; // save the last drawn buffer
+static uint16_t chip8_disp_buffer[CHIP8_HEIGHT * 2][CHIP8_WIDTH * 2]; // the scaled display buffer for chip8 gfx
 
 
 uint16_t sys_paddata;
 int32_t sys_msec_timer;
-static uint32_t usec_timer;
 
+static uint32_t usec_timer;
 static uint16_t rcnt1_last;
 static DISPENV dispenv;
 
@@ -43,7 +43,7 @@ void init_systems(void)
 	dispenv.screen.h = SCREEN_HEIGHT;
 
 	PutDispEnv(&dispenv);
-	ClearImage(&dispenv.disp, 0, 0, 0);
+	ClearImage(&dispenv.disp, 50, 50, 50);
 
 	// INPUT SYSTEM
 	PadInit(0);
@@ -53,12 +53,19 @@ void init_systems(void)
 	reset_timers();
 }
 
-void update_display(void)
+void update_display(const bool vsync)
 {
-	const int16_t scaled_w = CHIP8_WIDTH * 3;
-	const int16_t scaled_h = CHIP8_HEIGHT * 3;
+	const int16_t scaled_w = CHIP8_WIDTH * 2;
+	const int16_t scaled_h = CHIP8_HEIGHT * 2;
 	const uint32_t xratio = ((CHIP8_WIDTH<<16) / scaled_w) + 1;
 	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / scaled_h) + 1;
+	const RECT chip8_area = {
+		.x = (SCREEN_WIDTH / 2) - (scaled_w / 2),
+		.y = (SCREEN_HEIGHT / 2) - (scaled_h / 2),
+		.w = scaled_w,
+		.h = scaled_h
+	};
+
 	uint32_t px, py;
 	int16_t i, j;
 	
@@ -68,15 +75,16 @@ void update_display(void)
 			py = (i * yratio)>>16;
 			for (j = 0; j < scaled_w; ++j) {
 				px = (j * xratio)>>16;
-				screen_gfx[i][j] = sys_chip8_gfx[py][px];
+				chip8_disp_buffer[i][j] = sys_chip8_gfx[py][px] ? ~0 : 0;
 			}
 		}
-		LoadImage(&dispenv.disp, (void*)screen_gfx);
+		LoadImage(&chip8_area, (void*)chip8_disp_buffer);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 		DrawSync(0);
 	}
-
-	VSync(0);
+	
+	if (vsync)
+		VSync(0);
 }
 
 void update_timers(void)

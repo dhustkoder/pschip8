@@ -27,21 +27,21 @@ enum Button {
 
 
 void init_systems(void);
-void update_display(void);
+void update_display(bool vsync);
 void update_timers(void);
 void reset_timers(void);
 void fatal_failure(const char* msg);
 
-static int32_t get_msec_now(void)
+static inline int32_t get_msec_now(void)
 {
 	extern int32_t sys_msec_timer;
 	update_timers();
 	return sys_msec_timer;
 }
 
-static void update_pads(void)
+static inline void update_pads(void)
 {
-	extern int16_t sys_paddata;
+	extern uint16_t sys_paddata;
 	sys_paddata = PadRead(0);
 }
 

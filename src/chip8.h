@@ -4,6 +4,7 @@
 
 #define CHIP8_WIDTH  (64)
 #define CHIP8_HEIGHT (32)
+#define CHIP8_FREQ   (380)
 
 void chip8_loadrom(const uint8_t* data, uint32_t size);
 void chip8_reset(void);

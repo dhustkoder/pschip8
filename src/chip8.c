@@ -6,7 +6,7 @@
 #include "chip8.h"
 
 
-extern uint16_t sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+extern bool sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
 
 
 static struct {
@@ -69,7 +69,7 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 		y = (vy + i)%CHIP8_HEIGHT;
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
-			pixel = (sprite[i]&(0x80>>j)) != 0 ? 0xFFFF : 0x0000;
+			pixel = (sprite[i]&(0x80>>j)) != 0;
 			rgs.v[0x0F] |= sys_chip8_gfx[y][x] && pixel;
 			sys_chip8_gfx[y][x] ^= pixel;
 		}
