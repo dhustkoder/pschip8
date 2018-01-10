@@ -3,6 +3,11 @@
 #include <libcd.h>
 #include <libapi.h>
 #include <libmath.h>
+#include <libmath.h>
+#include <libgte.h>
+#include <libgpu.h>
+#include <libetc.h>
+#include <libapi.h>
 #include "log.h"
 #include "system.h"
 #include "chip8.h"
@@ -56,6 +61,8 @@ static void MyLoadFileFromCD(const char* const lpszFilename, void * const dst)
 
 
 static uint8_t buffer[0x800];
+static uint8_t tim_buffer[1024 * 164];
+
 
 int main(void)
 {
@@ -65,10 +72,18 @@ int main(void)
 	short fps = 0;
 	short steps = 0;
 
+	RECT bkg_area = {
+		.x = 0, .y = 0,
+		.w = SCREEN_WIDTH, .h = SCREEN_HEIGHT
+	};
+
+
 	init_systems();
 	CdInit();
 
 	MyLoadFileFromCD("\\BRIX.CH8;1", buffer);
+	MyLoadFileFromCD("\\BKG.TIM;1", tim_buffer);
+	LoadImage2(&bkg_area, tim_buffer);
 
 	chip8_loadrom(buffer, sizeof buffer);
 	chip8_reset();

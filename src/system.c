@@ -45,7 +45,6 @@ void init_systems(void)
 	dispenv.screen.h = SCREEN_HEIGHT;
 
 	PutDispEnv(&dispenv);
-	ClearImage(&dispenv.disp, 50, 50, 50);
 
 	// INPUT SYSTEM
 	PadInit(0);
