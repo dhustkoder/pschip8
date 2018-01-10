@@ -12,7 +12,7 @@ PROJNAME=PSCHIP8
 # Set this to the PSYQ directory
 PSYQ_DIR=C:\PSYQ
 
-# Set this to this project directory
+# Set this to the project's directory
 PROJ_DIR=C:\PSYQ\PROJECTS\$(PROJNAME)
 
 LIBS=
