@@ -33,6 +33,7 @@ int main(void)
 	int32_t timer;
 	int32_t fps_last = 0;
 	int fps = 0;
+	int i;
 
 	init_systems();
 	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
@@ -40,10 +41,10 @@ int main(void)
 
 	reset_timers();
 	for (;;) {
-		timer = get_msec_now();
-		chip8_step();
+		for (i = 0; i < 8; ++i)
+			chip8_step();
+			
 		update_display();
-		loginfo("MAIN LOOP TOOK: %d ms\n", get_msec_now() - timer);
 
 		++fps;
 

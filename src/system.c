@@ -74,6 +74,8 @@ void update_display(void)
 		LoadImage(&dispenv.disp, (void*)&screen_gfx);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 	}
+
+	VSync(0);
 }
 
 void update_timers(void)
