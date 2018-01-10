@@ -32,9 +32,10 @@ static DISPENV dispenv;
 void init_systems(void)
 {
 	// VIDEO SYSTEM
+	ResetCallback();
 	ResetGraph(0);
-	SetDispMask(1);
 	SetVideoMode(MODE_PAL);
+	SetDispMask(1);
 
 	// init dispenv
 	memset(&dispenv, 0, sizeof dispenv);

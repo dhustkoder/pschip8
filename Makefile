@@ -32,11 +32,11 @@ main: %.CPE
 	cpe2x /ce MAIN.CPE
 
 %.CPE:
-	ccpsx $(CFLAGS) $(LIBS) src/*.c -oMAIN.CPE
+	ccpsx $(CFLAGS) $(LIBS) src/*.c -oMAIN.CPE,MAIN.SYM,MAIN.MAP
 
 cdiso: %.IMG
 	stripiso s 2352 $(PROJNAME).IMG $(PROJNAME).ISO
-	psxlicense /eu /i $(PROJNAME).ISO
+	#psxlicense /eu /i $(PROJNAME).ISO
 
 %.IMG: %.CTI
 	buildcd -l -i$(PROJNAME).IMG $(PROJNAME).CTI
@@ -79,9 +79,9 @@ cdiso: %.IMG
 	echo 						XAFileAttributes Form1 Data >> $(PROJNAME).CTI
 	echo 						Source [ProjectPath]MAIN.EXE >> $(PROJNAME).CTI
 	echo 					EndFile >> $(PROJNAME).CTI
-	echo					File BRIX >> $(PROJNAME).CTI
+	echo					File BRIX.CH8 >> $(PROJNAME).CTI
 	echo						XAFileAttributes Form1 Data >> $(PROJNAME).CTI
-	echo						Source [ProjectPath]data\BRIX >> $(PROJNAME).CTI
+	echo						Source [ProjectPath]data\BRIX.CH8 >> $(PROJNAME).CTI
 	echo					EndFile >> $(PROJNAME).CTI
 	echo				EndHierarchy ;ends the root directory definition >> $(PROJNAME).CTI
 	echo 			EndPrimaryVolume ;ends the primary volume definition >> $(PROJNAME).CTI
