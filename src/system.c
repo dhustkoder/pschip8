@@ -55,22 +55,25 @@ void init_systems(void)
 
 void update_display(void)
 {
+	/*
 	const uint16_t xratio = ((CHIP8_WIDTH<<16)/SCREEN_WIDTH) + 1;
 	const uint16_t yratio = ((CHIP8_HEIGHT<<16)/SCREEN_HEIGHT) + 1;
+	uint16_t px, py;
+	int16_t i, j;
+	*/
 	
-	RECT chip8_area = {
+	const RECT chip8_area = {
 		.x = (SCREEN_WIDTH / 2) - (CHIP8_WIDTH / 2),
 		.y = (SCREEN_HEIGHT / 2) - (CHIP8_HEIGHT / 2),
 		.w = CHIP8_WIDTH,
 		.h = CHIP8_HEIGHT
 	};
 
-	uint16_t px, py;
-	int16_t i, j;
+	int16_t i;
 	
 	if (memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
 		// scale chip8 graphics
-		/*	
+		/*
 		for (i = 0; i < SCREEN_HEIGHT; ++i) {
 			for (j = 0; j < SCREEN_WIDTH; ++j) {
 				py = (i * yratio)>>16;
@@ -79,17 +82,19 @@ void update_display(void)
 			}
 		}
 		*/
-		
+		// display chip8 on middle screen
 		for (i = 0; i < CHIP8_HEIGHT; ++i) {
 			memcpy(&screen_gfx[chip8_area.y+i][chip8_area.x],
 			       &sys_chip8_gfx[i][0],
 			       sizeof(uint16_t) * CHIP8_WIDTH);
 		}
 		
-		DrawSync(0);
 		LoadImage(&dispenv.disp, (void*)screen_gfx);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
+		DrawSync(0);
 	}
+
+	VSync(0);
 }
 
 void update_timers(void)

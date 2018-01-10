@@ -22,7 +22,7 @@ static uint16_t paddata_old;
 static uint8_t pressed_key;
 static bool waiting_keypress;
 static uint8_t ram[0x1000];
-static uint16_t stack[32];
+static uint16_t stack[16];
 
 static const uint8_t font[80] = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
@@ -127,7 +127,7 @@ void chip8_reset(void)
 	memset(sys_chip8_gfx, 0, sizeof sys_chip8_gfx);
 	memcpy(ram, font, sizeof font);
 	rgs.pc = 0x200;
-	rgs.sp = 31;
+	rgs.sp = 15;
 	paddata_old = 0x0000;
 	pressed_key = 0xFF;
 	waiting_keypress = false;
