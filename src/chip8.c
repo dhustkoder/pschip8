@@ -149,8 +149,8 @@ void chip8_logcpu(void)
 
 void chip8_step(void)
 {
-	static int32_t msec_last = 0;
-	const int32_t timer = get_msec_now();
+	static uint32_t msec_last = 0;
+	const uint32_t timer = get_msec_now();
 
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;

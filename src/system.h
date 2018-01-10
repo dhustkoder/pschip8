@@ -32,11 +32,18 @@ void update_timers(void);
 void reset_timers(void);
 void fatal_failure(const char* msg);
 
-static inline int32_t get_msec_now(void)
+// this counter resets every 4294967 seconds
+static inline uint32_t get_msec_now(void)
 {
-	extern int32_t sys_msec_timer;
-	update_timers();
+	extern uint32_t sys_msec_timer;
 	return sys_msec_timer;
+}
+
+// this counter resets every 4294 seconds
+static inline uint32_t get_usec_now(void)
+{
+	extern uint32_t sys_usec_timer;
+	return sys_usec_timer;
 }
 
 static inline void update_pads(void)

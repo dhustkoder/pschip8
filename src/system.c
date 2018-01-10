@@ -20,9 +20,10 @@ static uint16_t chip8_disp_buffer[CHIP8_HEIGHT * 2][CHIP8_WIDTH * 2]; // the sca
 
 
 uint16_t sys_paddata;
-int32_t sys_msec_timer;
+uint32_t sys_msec_timer;
+uint32_t sys_usec_timer;
 
-static uint32_t usec_timer;
+static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
 static DISPENV dispenv;
 
@@ -51,6 +52,7 @@ void init_systems(void)
 
 	// TIMER SYSTEM
 	reset_timers();
+	VSyncCallback(update_timers);
 }
 
 void update_display(const bool vsync)
@@ -92,15 +94,15 @@ void update_timers(void)
 	const long rcnt1 = GetRCnt(RCntCNT1);
 
 	if (rcnt1 < rcnt1_last) {
-		usec_timer += (0xFFFF - rcnt1_last) * 64;
+		sys_usec_timer += (0xFFFF - rcnt1_last) * 64u;
 		rcnt1_last = 0;
 	}
 
-	usec_timer += (rcnt1 - rcnt1_last) * 64;
-
-	if (usec_timer >= 1000) {
-		sys_msec_timer += usec_timer / 1000;
-		usec_timer -= (usec_timer / 1000) * 1000;
+	sys_usec_timer += (rcnt1 - rcnt1_last) * 64u;
+	
+	if ((sys_usec_timer - usec_timer_last) >= 1000) {
+		sys_msec_timer += (sys_usec_timer - usec_timer_last) / 1000;
+		usec_timer_last = sys_usec_timer;
 	}
 
 	rcnt1_last = rcnt1;
@@ -109,8 +111,9 @@ void update_timers(void)
 void reset_timers(void)
 {
 	rcnt1_last = 0;
-	usec_timer = 0;
+	sys_usec_timer = 0;
 	sys_msec_timer = 0;
+	usec_timer_last = 0;
 	StopRCnt(RCntCNT1);
 	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
 	StartRCnt(RCntCNT1);
