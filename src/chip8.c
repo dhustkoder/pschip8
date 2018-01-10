@@ -116,10 +116,10 @@ static void update_keys(void)
 static void update_dt_st(void)
 {
 	static uint32_t msec_last = 0;
-	const uint32_t timer = get_msec_now();
+	const uint32_t timer = get_usec_now();
 
-	while ((timer - msec_last) >= 16) {
-		msec_last += 16;
+	while ((timer - msec_last) >= (1000000 / CHIP8_DELAY_FREQ)) {
+		msec_last += (1000000 / CHIP8_DELAY_FREQ);
 		if (rgs.dt > 0)
 			--rgs.dt;
 		if (rgs.st > 0)
