@@ -34,9 +34,10 @@ int main(void)
 	uint32_t timer = 0;
 	uint32_t step_last = 0;
 	uint32_t fps_last = 0;
-	int fps = 0;
-	int steps = 0;
-	int32_t i = 0;
+	short fps = 0;
+	short steps = 0;
+	short steps_needed = 0;
+	short i = 0;
 
 	init_systems();
 	chip8_loadrom(chip8rom_brix, sizeof chip8rom_brix);
@@ -44,10 +45,11 @@ int main(void)
 	reset_timers();
 	for (;;) {
 		timer = get_usec_now();
-		i = ceil((double)(timer - step_last) / (1000000.0 / CHIP8_FREQ));
-		steps += i;
+		steps_needed = (timer - step_last) / (1000000 / CHIP8_FREQ);
+		steps += steps_needed;
 		step_last = timer;
-		for (; i >= 0; --i)
+
+		for (i = 0; i < steps_needed; ++i)
 			chip8_step();
 
 		update_display(true);

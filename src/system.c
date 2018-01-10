@@ -16,7 +16,7 @@ u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
 bool sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH]; // the buffer filled by chip8.c
 static bool chip8_gfx_last[CHIP8_HEIGHT][CHIP8_WIDTH]; // save the last drawn buffer
-static uint16_t chip8_disp_buffer[CHIP8_HEIGHT * 2][CHIP8_WIDTH * 2]; // the scaled display buffer for chip8 gfx
+static uint16_t chip8_disp_buffer[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH]; // the scaled display buffer for chip8 gfx
 
 
 uint16_t sys_paddata;
@@ -57,15 +57,14 @@ void init_systems(void)
 
 void update_display(const bool vsync)
 {
-	const int16_t scaled_w = CHIP8_WIDTH * 2;
-	const int16_t scaled_h = CHIP8_HEIGHT * 2;
-	const uint32_t xratio = ((CHIP8_WIDTH<<16) / scaled_w) + 1;
-	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / scaled_h) + 1;
-	const RECT chip8_area = {
-		.x = (SCREEN_WIDTH / 2) - (scaled_w / 2),
-		.y = (SCREEN_HEIGHT / 2) - (scaled_h / 2),
-		.w = scaled_w,
-		.h = scaled_h
+	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
+	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
+	
+	RECT chip8_area = {
+		.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
+		.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
+		.w = CHIP8_SCALED_WIDTH,
+		.h = CHIP8_SCALED_HEIGHT
 	};
 
 	uint32_t px, py;
@@ -73,9 +72,9 @@ void update_display(const bool vsync)
 	
 	if (memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
 		// scale chip8 graphics
-		for (i = 0; i < scaled_h; ++i) {
+		for (i = 0; i < CHIP8_SCALED_HEIGHT; ++i) {
 			py = (i * yratio)>>16;
-			for (j = 0; j < scaled_w; ++j) {
+			for (j = 0; j < CHIP8_SCALED_WIDTH; ++j) {
 				px = (j * xratio)>>16;
 				chip8_disp_buffer[i][j] = sys_chip8_gfx[py][px] ? ~0 : 0;
 			}

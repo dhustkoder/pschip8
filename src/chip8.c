@@ -113,6 +113,19 @@ static void update_keys(void)
 	}
 }
 
+static void update_dt_st(void)
+{
+	static uint32_t msec_last = 0;
+	const uint32_t timer = get_msec_now();
+
+	while ((timer - msec_last) >= 16) {
+		msec_last += 16;
+		if (rgs.dt > 0)
+			--rgs.dt;
+		if (rgs.st > 0)
+			--rgs.st;
+	}
+}
 
 
 void chip8_loadrom(const uint8_t* const rom, const uint32_t size)
@@ -149,20 +162,10 @@ void chip8_logcpu(void)
 
 void chip8_step(void)
 {
-	static uint32_t msec_last = 0;
-	const uint32_t timer = get_msec_now();
-
 	uint8_t ophi, oplo, x, y;
 	uint16_t opcode;
 
-	while ((timer - msec_last) >= 16) {
-		msec_last += 16;
-		if (rgs.dt > 0)
-			--rgs.dt;
-		if (rgs.st > 0)
-			--rgs.st;
-	}
-
+	update_dt_st();
 	update_keys();
 
 	if (waiting_keypress) {
