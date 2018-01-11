@@ -44,18 +44,35 @@ void open_cd_files(const char* const * filenames,
                    uint8_t* const * dsts,
                    int nfiles);
 
-// this counter resets every 4294967 seconds
-static inline uint32_t get_msec_now(void)
+// msec counter resets every 4294967 seconds
+// usec counter resets every 4294 seconds
+
+// msec counter at the last vsync or last call to update_timers()
+static inline uint32_t get_msec(void)
 {
 	extern uint32_t sys_msec_timer;
 	return sys_msec_timer;
 }
 
-// this counter resets every 4294 seconds
-static inline uint32_t get_usec_now(void)
+// msec counter at the last vsync or last call to update_timers()
+static inline uint32_t get_usec(void)
 {
 	extern uint32_t sys_usec_timer;
 	return sys_usec_timer;
+}
+
+// msec at this precise moment
+static inline uint32_t get_msec_now(void)
+{
+	update_timers();
+	return get_msec();
+}
+
+// usec at this precise moment
+static inline uint32_t get_usec_now(void)
+{
+	update_timers();
+	return get_usec();
 }
 
 static inline void update_pads(void)

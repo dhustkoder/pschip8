@@ -42,6 +42,8 @@ void init_systems(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
+	SetDispMask(1);
+
 	buffer_idx = 0;
 
 	SetDefDispEnv(&dispenv[0], 0, 0,
@@ -56,15 +58,17 @@ void init_systems(void)
 	SetDefDrawEnv(&drawenv[1], 0, 0,
 	              SCREEN_WIDTH, SCREEN_HEIGHT);
 
-    ClearImage(&dispenv[0].disp, 50, 50, 50);
-    ClearImage(&drawenv[0].clip, 50, 50, 50);
+	ClearImage(&dispenv[0].disp, 50, 50, 50);
+	DrawSync(0);
+	ClearImage(&drawenv[0].clip, 50, 50, 50);
+	DrawSync(0);
+
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
 
 	FntLoad(SCREEN_WIDTH, 0);
-	SetDumpFnt(FntOpen(0, 16, 128, 64, 1, 128));
+	SetDumpFnt(FntOpen(0, 16, 128, 64, 0, 128));
 
-	SetDispMask(1);
 
 	// INPUT SYSTEM
 	PadInit(0);
@@ -107,13 +111,15 @@ void update_display(const bool vsync)
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 		DrawSync(0);
 
+		if (vsync)
+			VSync(0);
+
 		buffer_idx = 1 - buffer_idx;
 		PutDispEnv(&dispenv[buffer_idx]);
 		PutDrawEnv(&drawenv[buffer_idx]);
-	}
-	
-	if (vsync)
+	} else if (vsync) {
 		VSync(0);
+	}
 }
 
 void update_timers(void)
