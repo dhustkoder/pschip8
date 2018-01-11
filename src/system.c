@@ -25,8 +25,21 @@ uint32_t sys_usec_timer;
 
 static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
-static DISPENV dispenv;
+static RECT display_rect = { 
+	.x = 0,
+	.y = 0,
+	.w = SCREEN_WIDTH,
+	.h = SCREEN_HEIGHT
+};
+static RECT chip8_rect = {
+	.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
+	.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
+	.w = CHIP8_SCALED_WIDTH,
+	.h = CHIP8_SCALED_HEIGHT
+};
 
+static DISPENV dispenv;
+static DRAWENV drawenv;
 
 
 void init_systems(void)
@@ -41,15 +54,16 @@ void init_systems(void)
 	#endif
 	SetDispMask(1);
 
-	// init dispenv
-	memset(&dispenv, 0, sizeof dispenv);
-	dispenv.disp.w = SCREEN_WIDTH;
-	dispenv.disp.h = SCREEN_HEIGHT;
-	dispenv.screen.w = SCREEN_WIDTH;
-	dispenv.screen.h = SCREEN_HEIGHT;
+	SetDefDispEnv(&dispenv, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+	SetDefDrawEnv(&drawenv, SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	drawenv.r0 = 50;
+	drawenv.g0 = 50;
+	drawenv.b0 = 50;
+	drawenv.isbg = 1;
 
 	PutDispEnv(&dispenv);
-	ClearImage(&dispenv.disp, 50, 50, 50);
+	PutDrawEnv(&drawenv);
 
 	// INPUT SYSTEM
 	PadInit(0);
@@ -64,14 +78,6 @@ void update_display(const bool vsync)
 {
 	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
 	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
-	
-	RECT chip8_area = {
-		.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
-		.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
-		.w = CHIP8_SCALED_WIDTH,
-		.h = CHIP8_SCALED_HEIGHT
-	};
-
 	uint32_t px, py;
 	int16_t i, j;
 	
@@ -84,7 +90,7 @@ void update_display(const bool vsync)
 				chip8_disp_buffer[i][j] = sys_chip8_gfx[py][px] ? ~0 : 0;
 			}
 		}
-		LoadImage(&chip8_area, (void*)chip8_disp_buffer);
+		LoadImage(&drawenv.clip, (void*)chip8_disp_buffer);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 		DrawSync(0);
 	}
@@ -141,7 +147,7 @@ void open_cd_files(const char* const* const filenames, uint8_t* const* const dst
 				continue;
 
 			CdControl(CdlSetloc, (void*)&fp.pos, NULL);
-			nsector = (fp.size + 2047) / 2048;
+			nsector = (fp.size / 2048) + 1;
 
 			mode = CdlModeSpeed;
 			CdControlB(CdlSetmode, (void*)&mode, 0);

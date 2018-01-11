@@ -6,8 +6,12 @@
 #include "log.h"
 #include "ints.h"
 
-#define SCREEN_WIDTH  320     // screen width
-#define SCREEN_HEIGHT 256     // screen height (240 NTSC, 256 PAL)
+#define SCREEN_WIDTH  320
+#ifdef DISPLAY_TYPE_PAL
+#define SCREEN_HEIGHT 256
+#else
+#define SCREEN_HEIGHT 240
+#endif
 
 #define fatal_failure(...) logerror("FATAL FAILURE: " __VA_ARGS__); \
                            SystemError(_get_errno(), _get_errno())
