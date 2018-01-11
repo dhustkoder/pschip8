@@ -1,10 +1,16 @@
 #ifndef PSCHIP8_SYSTEM_H_
 #define PSCHIP8_SYSTEM_H_
 #include <libetc.h>
+#include <libapi.h>
+#include <sys/errno.h>
+#include "log.h"
 #include "ints.h"
 
 #define SCREEN_WIDTH  320     // screen width
 #define SCREEN_HEIGHT 256     // screen height (240 NTSC, 256 PAL)
+
+#define fatal_failure(...) logerror("FATAL FAILURE: " __VA_ARGS__); \
+                           SystemError(_get_errno(), _get_errno())
 
 typedef uint16_t Button;
 enum Button {
@@ -30,7 +36,7 @@ void init_systems(void);
 void update_display(bool vsync);
 void update_timers(void);
 void reset_timers(void);
-void fatal_failure(const char* msg);
+void open_cd_files(const char* const *filenames, uint8_t* const *dsts, int nfiles);
 
 // this counter resets every 4294967 seconds
 static inline uint32_t get_msec_now(void)

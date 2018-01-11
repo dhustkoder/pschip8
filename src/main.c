@@ -1,67 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
-#include <libcd.h>
-#include <libapi.h>
 #include <libmath.h>
-#include <libmath.h>
-#include <libgte.h>
-#include <libgpu.h>
-#include <libetc.h>
-#include <libapi.h>
 #include "log.h"
 #include "system.h"
 #include "chip8.h"
-
-static int ReadFromCD(const long nbytes , void * const dst, int mode)
-// "nbytes" = number of bytes to read
-// "dst" = address in memory where items will be written.
-{
-	int cnt, nsector;
-
-	nsector = (nbytes + 2047) / 2048;
-
-	CdControlB(CdlSetmode, &mode, 0);
-	VSync(3);
-
-	// Start reading.
-	CdRead(nsector, dst, mode);
-
-	while ((cnt = CdReadSync(1, 0)) > 0) {
-		loginfo("CNT: %d\n", cnt);
-		VSync(0);
-	}
-
-	return (cnt);
-
-}
-
-
-static void MyLoadFileFromCD(const char* const lpszFilename, void * const dst)
-{
-	CdlFILE fp;  // File
-
-	int i, cnt;
-
-	// Try 10 times to find the file.
-	for (i=0; i<10; i++) {
-		if (CdSearchFile(&fp, lpszFilename)==0)
-			continue;  // Failed read, retry.
-
-		// Set target position
-		CdControl(CdlSetloc, (u_char*) &(fp.pos), 0);
-
-		cnt = ReadFromCD(fp.size, (void*) dst, CdlModeSpeed); 
-		if (!cnt) 
-			break; 
-	}
-
-	if (i == 10)
-		fatal_failure("Couldn't read CD");
-}
-
-
-static uint8_t buffer[0x800];
-static uint8_t tim_buffer[1024 * 164];
 
 
 int main(void)
@@ -72,23 +14,11 @@ int main(void)
 	short fps = 0;
 	short steps = 0;
 
-	RECT bkg_area = {
-		.x = 0, .y = 0,
-		.w = SCREEN_WIDTH, .h = SCREEN_HEIGHT
-	};
-
-
 	init_systems();
-	CdInit();
-
-	MyLoadFileFromCD("\\BRIX.CH8;1", buffer);
-	MyLoadFileFromCD("\\BKG.TIM;1", tim_buffer);
-	LoadImage2(&bkg_area, tim_buffer);
-
-	chip8_loadrom(buffer, sizeof buffer);
+	chip8_loadrom("\\BRIX.CH8;1");
 	chip8_reset();
-
 	reset_timers();
+
 	for (;;) {
 		timer = get_usec_now();
 		while ((timer - step_last) > (1000000u / CHIP8_FREQ)) {

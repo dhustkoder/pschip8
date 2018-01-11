@@ -1,10 +1,10 @@
 #include <stdlib.h>
-#include <sys/errno.h>
+#include <string.h>
 #include <libmath.h>
 #include <libgte.h>
 #include <libgpu.h>
 #include <libetc.h>
-#include <libapi.h>
+#include <libcd.h>
 #include "chip8.h"
 #include "log.h"
 #include "system.h"
@@ -45,6 +45,7 @@ void init_systems(void)
 	dispenv.screen.h = SCREEN_HEIGHT;
 
 	PutDispEnv(&dispenv);
+	ClearImage(&dispenv.disp, 50, 50, 50);
 
 	// INPUT SYSTEM
 	PadInit(0);
@@ -119,11 +120,45 @@ void reset_timers(void)
 	ResetRCnt(RCntCNT1);
 }
 
-void fatal_failure(const char* const msg)
+
+void open_cd_files(const char* const* const filenames, uint8_t* const* const dsts, const int nfiles)
 {
-	const int err = _get_errno();
-	logerror("FATAL FAILURE: %s: ERRNO: %d\n", msg, err);
-	SystemError((char)err, err);
+	CdlFILE fp;
+	int i, j, nsector, mode;
+	char namebuff[10];
+
+	CdInit();
+
+	for (i = 0; i < nfiles; ++i) {
+		strcpy(namebuff, filenames[i]);
+		loginfo("LOADING %s...\n", namebuff);
+		for (j=0; j < 10; j++) {
+			if (!CdSearchFile(&fp, namebuff))
+				continue;
+
+			CdControl(CdlSetloc, (void*)&fp.pos, NULL);
+			nsector = (fp.size + 2047) / 2048;
+
+			mode = CdlModeSpeed;
+			CdControlB(CdlSetmode, (void*)&mode, 0);
+			VSync(3);
+
+			CdRead(nsector, (void*)dsts[i], mode);
+
+			while (CdReadSync(1, 0) > 0)
+				VSync(0);
+
+			break;
+		}
+
+		if (j == 10) {
+			fatal_failure("Couldn't read file %s from CDROM\n",
+			              namebuff);
+		}
+	}
+
+	CdStop();
 }
+
 
 

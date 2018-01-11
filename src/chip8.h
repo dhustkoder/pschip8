@@ -10,7 +10,7 @@
 #define CHIP8_DELAY_FREQ    (60)
 #define CHIP8_BUZZ_FREQ     (480)
 
-void chip8_loadrom(const uint8_t* data, uint32_t size);
+void chip8_loadrom(const char* filename);
 void chip8_reset(void);
 void chip8_step(void);
 void chip8_logcpu(void);

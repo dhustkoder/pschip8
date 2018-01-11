@@ -45,7 +45,7 @@ static const uint8_t font[80] = {
 
 static void unknown_opcode(const uint16_t opcode)
 {
-	fatal_failure("Unkown Opcode");
+	fatal_failure("Unkown Opcode: $%.4X\n", opcode);
 }
 
 static void stackpush(const uint16_t value)
@@ -128,9 +128,12 @@ static void update_dt_st(void)
 }
 
 
-void chip8_loadrom(const uint8_t* const rom, const uint32_t size)
+void chip8_loadrom(const char* const fname)
 {
-	memcpy(&ram[0x200], rom, size);
+	uint8_t* const p = &ram[0x200];
+	const char* const fnames[] = { fname };
+	uint8_t* const dsts[] = { p };
+	open_cd_files(fnames, dsts, 1);
 }
 
 void chip8_reset(void)
