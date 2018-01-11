@@ -16,19 +16,16 @@ int main(void)
 	short steps = 0;
 
 	init_systems();
-
-	chip8_loadrom(chip8rom_invaders, sizeof chip8rom_invaders);
-	chip8_reset();
-
 	reset_timers();
 	for (;;) {
+		/*
 		timer = get_usec_now();
 		while ((timer - step_last) > (1000000u / CHIP8_FREQ)) {
 			chip8_step();
 			++steps;
 			step_last += (1000000u / CHIP8_FREQ);
 		}
-
+		*/
 		update_display(true);
 
 		++fps;
