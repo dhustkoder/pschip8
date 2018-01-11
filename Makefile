@@ -36,7 +36,7 @@ main: %.CPE
 
 cdiso: %.IMG
 	stripiso s 2352 $(PROJNAME).IMG $(PROJNAME).ISO
-	#psxlicense /eu /i $(PROJNAME).ISO
+	psxlicense /eu /i $(PROJNAME).ISO
 
 %.IMG: %.CTI
 	buildcd -l -i$(PROJNAME).IMG $(PROJNAME).CTI

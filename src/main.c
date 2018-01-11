@@ -11,20 +11,20 @@ static int ReadFromCD(const long nbytes , void * const dst, int mode)
 // "nbytes" = number of bytes to read
 // "dst" = address in memory where items will be written.
 {
-	int nsection, cnt, nsector;
-	unsigned char com;
+	int cnt, nsector;
 
 	nsector = (nbytes + 2047) / 2048;
 
-	com=mode;
-	CdControlB( CdlSetmode, &mode, 0);
+	CdControlB(CdlSetmode, &mode, 0);
 	VSync(3);
 
 	// Start reading.
 	CdRead(nsector, dst, mode);
 
-	while ((cnt = CdReadSync(1, 0)) > 0)
+	while ((cnt = CdReadSync(1, 0)) > 0) {
+		loginfo("CNT: %d\n", cnt);
 		VSync(0);
+	}
 
 	return (cnt);
 
@@ -85,7 +85,7 @@ int main(void)
 		update_display(true);
 
 		++fps;
-		if ((timer - fps_last) >= 1000000) {
+		if ((timer - fps_last) >= 1000000u) {
 			loginfo("FPS: %d\n", fps);
 			loginfo("STEPS: %d\n", steps);
 			fps = 0;
