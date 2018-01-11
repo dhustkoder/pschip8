@@ -83,6 +83,14 @@ cdiso: %.IMG
 	echo						XAFileAttributes Form1 Data >> $(PROJNAME).CTI
 	echo						Source [ProjectPath]data\BRIX.CH8 >> $(PROJNAME).CTI
 	echo					EndFile >> $(PROJNAME).CTI
+	echo					File BLINKY.CH8 >> $(PROJNAME).CTI
+	echo						XAFileAttributes Form1 Data >> $(PROJNAME).CTI
+	echo						Source [ProjectPath]data\BRIX.CH8 >> $(PROJNAME).CTI
+	echo					EndFile >> $(PROJNAME).CTI
+	echo					File BKG.PNG >> $(PROJNAME).CTI
+	echo						XAFileAttributes Form1 Data >> $(PROJNAME).CTI
+	echo						Source [ProjectPath]data\BRIX.CH8 >> $(PROJNAME).CTI
+	echo					EndFile >> $(PROJNAME).CTI
 	echo				EndHierarchy ;ends the root directory definition >> $(PROJNAME).CTI
 	echo 			EndPrimaryVolume ;ends the primary volume definition >> $(PROJNAME).CTI
 	echo 		EndVolume ;ends the ISO 9660 definition >> $(PROJNAME).CTI
