@@ -15,9 +15,31 @@ PSYQ_DIR=C:\PSYQ
 # Set this to the project's directory
 PROJ_DIR=C:\PSYQ\PROJECTS\$(PROJNAME)
 
+# set to PAL, NTSC_U, NTSC_J
+DISPLAY_TYPE=NTSC_U
+
+ifeq ($(DISPLAY_TYPE), PAL)
+	LICENSEFILE=LICENSEE.DAT
+	PSXLICENSE_FLAGS=/eu
+else ifeq ($(DISPLAY_TYPE), NTSC_U)
+	LICENSEFILE=LICENSEA.DAT
+	PSXLICENSE_FLAGS=/us
+else
+	LICENSEFILE=LICENSEJ.DAT
+	PSXLICENSE_FLAGS=/jp
+endif
+
+ifeq ($(DISPLAY_TYPE),PAL)
+	CPE2X_FLAGS=/ce
+else
+	CPE2X_FLAGS=/ca
+endif
+
+
+
 LIBS=
 
-CFLAGS=-Wall -Xo$$80010000
+CFLAGS=-Wall -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE)
 CFLAGS_DEBUG=-O0 -G2 -DDEBUG
 CFLAGS_RELEASE=-O2 -DNDEBUG 
 CFLAGS+=$(CFLAGS_RELEASE)
@@ -29,14 +51,14 @@ CFLAGS+=$(CFLAGS_RELEASE)
 
 
 main: %.CPE
-	cpe2x /ce MAIN.CPE
+	cpe2x $(CPE2X_FLAGS) MAIN.CPE
 
 %.CPE:
 	ccpsx $(CFLAGS) $(LIBS) src/*.c -oMAIN.CPE,MAIN.SYM,MAIN.MAP
 
 cdiso: %.IMG
 	stripiso s 2352 $(PROJNAME).IMG $(PROJNAME).ISO
-	psxlicense /eu /i $(PROJNAME).ISO
+	psxlicense $(PSXLICENSE_FLAGS) /i $(PROJNAME).ISO
 
 %.IMG: %.CTI
 	buildcd -l -i$(PROJNAME).IMG $(PROJNAME).CTI
@@ -45,7 +67,7 @@ cdiso: %.IMG
 	del *.CTI
 	echo Define ProjectPath $(PROJ_DIR)\ >> $(PROJNAME).CTI
 	echo Define LicensePath $(PSYQ_DIR)\CDGEN\LCNSFILE\ >> $(PROJNAME).CTI
-	echo Define LicenseFile licensee.dat >> $(PROJNAME).CTI
+	echo Define LicenseFile $(LICENSEFILE) >> $(PROJNAME).CTI
 	echo Disc CDROMXA_PSX ;the disk format >> $(PROJNAME).CTI
 	echo 	CatalogNumber 0000000000000 >> $(PROJNAME).CTI
 	echo 	LeadIn XA ;lead in track (track 0) >> $(PROJNAME).CTI

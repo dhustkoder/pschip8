@@ -34,7 +34,11 @@ void init_systems(void)
 	// VIDEO SYSTEM
 	ResetCallback();
 	ResetGraph(0);
+	#ifdef DISPLAY_TYPE_PAL
 	SetVideoMode(MODE_PAL);
+	#else
+	SetVideoMode(MODE_NTSC);
+	#endif
 	SetDispMask(1);
 
 	// init dispenv
