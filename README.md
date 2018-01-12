@@ -1,1 +1,1 @@
-![ScreenShot](https://user-images.githubusercontent.com/11935784/34859006-7eb77c28-f708-11e7-86b4-195279ff29a9.JPG "Linux PCSXR")
+![ScreenShot](https://user-images.githubusercontent.com/11935784/34879783-3aae4a24-f763-11e7-91a7-6410648590a7.JPG "Linux PCSXR")
