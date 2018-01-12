@@ -131,8 +131,8 @@ void update_timers(void)
 
 	sys_usec_timer += (rcnt1 - rcnt1_last) * 64u;
 	
-	if ((sys_usec_timer - usec_timer_last) >= 1000) {
-		sys_msec_timer += (sys_usec_timer - usec_timer_last) / 1000;
+	if ((sys_usec_timer - usec_timer_last) >= 1000u) {
+		sys_msec_timer += (sys_usec_timer - usec_timer_last) / 1000u;
 		usec_timer_last = sys_usec_timer;
 	}
 
