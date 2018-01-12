@@ -25,25 +25,16 @@ uint32_t sys_usec_timer;
 
 static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
-static RECT display_rect = { 
-	.x = 0,
-	.y = 0,
-	.w = SCREEN_WIDTH,
-	.h = SCREEN_HEIGHT
-};
-static RECT chip8_rect = {
-	.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
-	.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
-	.w = CHIP8_SCALED_WIDTH,
-	.h = CHIP8_SCALED_HEIGHT
-};
 
-static DISPENV dispenv;
-static DRAWENV drawenv;
+static uint8_t buffer_idx;
+static DISPENV dispenv[2];
+static DRAWENV drawenv[2];
 
 
 void init_systems(void)
 {
+	int i;
+
 	// VIDEO SYSTEM
 	ResetCallback();
 	ResetGraph(0);
@@ -52,18 +43,32 @@ void init_systems(void)
 	#else
 	SetVideoMode(MODE_NTSC);
 	#endif
+
+	buffer_idx = 0;
+
+	SetDefDispEnv(&dispenv[0], 0, 0,
+	              SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	SetDefDrawEnv(&drawenv[0], 0, SCREEN_HEIGHT,
+	              SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	SetDefDispEnv(&dispenv[1], 0, SCREEN_HEIGHT,
+	              SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	SetDefDrawEnv(&drawenv[1], 0, 0,
+	              SCREEN_WIDTH, SCREEN_HEIGHT);
+
+	for (i = 0; i < 2; ++i) {
+		drawenv[i].r0 = 50;
+		drawenv[i].g0 = 50;
+		drawenv[i].b0 = 50;
+		drawenv[i].isbg = 1;
+	}
+
+	PutDispEnv(&dispenv[buffer_idx]);
+	PutDrawEnv(&drawenv[buffer_idx]);
+
 	SetDispMask(1);
-
-	SetDefDispEnv(&dispenv, 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDrawEnv(&drawenv, SCREEN_WIDTH, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-	drawenv.r0 = 50;
-	drawenv.g0 = 50;
-	drawenv.b0 = 50;
-	drawenv.isbg = 1;
-
-	PutDispEnv(&dispenv);
-	PutDrawEnv(&drawenv);
 
 	// INPUT SYSTEM
 	PadInit(0);
@@ -78,6 +83,14 @@ void update_display(const bool vsync)
 {
 	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
 	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
+
+	RECT chip8_rect = {
+		.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
+		.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
+		.w = CHIP8_SCALED_WIDTH,
+		.h = CHIP8_SCALED_HEIGHT
+	};
+
 	uint32_t px, py;
 	int16_t i, j;
 	
@@ -90,9 +103,17 @@ void update_display(const bool vsync)
 				chip8_disp_buffer[i][j] = sys_chip8_gfx[py][px] ? ~0 : 0;
 			}
 		}
-		LoadImage(&drawenv.clip, (void*)chip8_disp_buffer);
+
+		chip8_rect.x += drawenv[buffer_idx].clip.x;
+		chip8_rect.y += drawenv[buffer_idx].clip.y;
+
+		LoadImage(&chip8_rect, (void*)chip8_disp_buffer);
 		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 		DrawSync(0);
+
+		buffer_idx = 1 - buffer_idx;
+		PutDispEnv(&dispenv[buffer_idx]);
+		PutDrawEnv(&drawenv[buffer_idx]);
 	}
 	
 	if (vsync)
@@ -131,7 +152,9 @@ void reset_timers(void)
 }
 
 
-void open_cd_files(const char* const* const filenames, uint8_t* const* const dsts, const int nfiles)
+void open_cd_files(const char* const* const filenames, 
+                   uint8_t* const* const dsts, 
+                   const int nfiles)
 {
 	CdlFILE fp;
 	int i, j, nsector, mode;

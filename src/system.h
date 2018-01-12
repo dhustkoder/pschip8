@@ -40,7 +40,9 @@ void init_systems(void);
 void update_display(bool vsync);
 void update_timers(void);
 void reset_timers(void);
-void open_cd_files(const char* const *filenames, uint8_t* const *dsts, int nfiles);
+void open_cd_files(const char* const * filenames,
+                   uint8_t* const * dsts,
+                   int nfiles);
 
 // this counter resets every 4294967 seconds
 static inline uint32_t get_msec_now(void)
