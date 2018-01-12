@@ -3,6 +3,7 @@
 #include <libetc.h>
 #include <libapi.h>
 #include <sys/errno.h>
+#include <assert.h>
 #include "log.h"
 #include "ints.h"
 
@@ -13,8 +14,20 @@
 #define SCREEN_HEIGHT (240)
 #endif
 
-#define fatal_failure(...) logerror("FATAL FAILURE: " __VA_ARGS__); \
-                           SystemError(_get_errno(), _get_errno())
+#define fatal_failure(...) {                 \
+	logerror("FATAL FAILURE: " __VA_ARGS__); \
+	logerror("\n");                          \
+	SystemError(_get_errno(), _get_errno()); \
+}
+
+#ifdef DEBUG
+#define assert_msg(cond, ...) {      \
+	if (!(cond))                     \
+		fatal_failure(__VA_ARGS__);  \
+}
+#else
+#define assert_msg(...) ((void)0)
+#endif
 
 typedef uint16_t Button;
 enum Button {
@@ -36,13 +49,20 @@ enum Button {
 
 
 
-void init_systems(void);
+void init_system(void);
 void update_display(bool vsync);
 void update_timers(void);
 void reset_timers(void);
 void open_cd_files(const char* const * filenames,
                    uint8_t* const * dsts,
                    int nfiles);
+
+
+static inline uint16_t get_paddata(void)
+{
+	extern uint16_t sys_paddata;
+	return sys_paddata;
+}
 
 // msec counter resets every 4294967 seconds
 // usec counter resets every 4294 seconds
@@ -75,11 +95,6 @@ static inline uint32_t get_usec_now(void)
 	return get_usec();
 }
 
-static inline void update_pads(void)
-{
-	extern uint16_t sys_paddata;
-	sys_paddata = PadRead(0);
-}
 
 
 #endif

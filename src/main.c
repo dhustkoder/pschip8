@@ -14,7 +14,6 @@ static char fntbuff[256] = { '\0' };
 
 int main(void)
 {
-	extern uint16_t sys_paddata;
 	uint32_t timer = 0;
 	uint32_t step_last = 0;
 	uint32_t fps_last = 0;
@@ -22,8 +21,10 @@ int main(void)
 	int fps = 0;
 	int steps = 0;
 	unsigned int usecs_per_step = (1000000u / freq);
+	uint16_t paddata;
 
-	init_systems();
+	init_system();
+
 	chip8_loadrom("\\BRIX.CH8;1");
 	chip8_reset();
 	reset_timers();
@@ -32,23 +33,23 @@ int main(void)
 	SetDumpFnt(FntOpen(0, 0, SCREEN_WIDTH, 64, 0, 256));
 
 	for (;;) {
-		timer = get_usec_now();
+		timer = get_usec();
 		while ((timer - step_last) > usecs_per_step) {
 			chip8_step();
 			++steps;
 			step_last += usecs_per_step;
 		}
 
-		update_pads();
-		if (sys_paddata&BUTTON_UP && freq < 1000) {
+		paddata = get_paddata();
+		if (paddata&BUTTON_UP && freq < 1000) {
 			++freq;
 			usecs_per_step = (1000000u / freq);
-		} else if (sys_paddata&BUTTON_DOWN && freq > 10) {
+		} else if (paddata&BUTTON_DOWN && freq > 10) {
 			--freq;
 			usecs_per_step = (1000000u / freq);
 		}
 
-		update_display(true);
+		update_display(false);
 		FntPrint(fntbuff);
 		FntFlush(-1);
 
@@ -58,7 +59,7 @@ int main(void)
 			        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
 			        "Frames per second: %d\n\n"
 			        "Steps per second: %d\n\n"
-			        "UP and DOWN to control Chip8 Hz: %d.",
+			        "UP and DOWN to control Chip8 Hz: %d",
 			        fps, steps, freq);
 			fps = 0;
 			steps = 0;

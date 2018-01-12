@@ -13,6 +13,6 @@
 void chip8_loadrom(const char* filename);
 void chip8_reset(void);
 void chip8_step(void);
-void chip8_logcpu(void);
+
 
 #endif

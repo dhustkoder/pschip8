@@ -6,16 +6,17 @@
 #include "chip8.h"
 
 
-extern bool sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+bool chip8_draw_flag;
+bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
 
 
 static struct {
 	uint16_t pc;
 	uint16_t i;
-	uint8_t v[0x10];
-	uint8_t sp;
-	uint8_t dt;
-	uint8_t st;
+	int8_t   sp;
+	uint8_t  v[0x10];
+	uint8_t  dt;
+	uint8_t  st;
 } rgs;
 
 static uint16_t paddata_old;
@@ -23,7 +24,6 @@ static uint8_t pressed_key;
 static bool waiting_keypress;
 static uint8_t ram[0x1000];
 static uint16_t stack[16];
-
 static const uint8_t font[80] = {
 	0xF0, 0x90, 0x90, 0x90, 0xF0, // 0
 	0x20, 0x60, 0x20, 0x20, 0x70, // 1
@@ -50,11 +50,13 @@ static void unknown_opcode(const uint16_t opcode)
 
 static void stackpush(const uint16_t value)
 {
+	assert_msg(rgs.sp >= 0, "Chip8 Stack Underflow");
 	stack[rgs.sp--] = value;
 }
 
 static uint16_t stackpop(void)
 {
+	assert_msg((rgs.sp + 1) <= 15, "Chip8 Stack Overflow");
 	return stack[++rgs.sp];
 }
 
@@ -70,16 +72,15 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
 			pixel = (sprite[i]&(0x80>>j)) != 0;
-			rgs.v[0x0F] |= sys_chip8_gfx[y][x] && pixel;
-			sys_chip8_gfx[y][x] ^= pixel;
+			rgs.v[0x0F] |= chip8_gfx[y][x] && pixel;
+			chip8_draw_flag |= (chip8_gfx[y][x] ^ pixel) != chip8_gfx[y][x];
+			chip8_gfx[y][x] ^= pixel;
 		}
 	}
 }
 
 static void update_keys(void)
 {
-	extern uint16_t sys_paddata;
-
 	static const uint8_t keytable[14] = {
 		0x2, 0x8, 0x4, 0x6,
 		0x5, 0x1, 0x3, 0x7,
@@ -94,22 +95,22 @@ static void update_keys(void)
 		BUTTON_L1, BUTTON_L2
 	};
 
-
-	bool paddata_change;
+	uint16_t paddata;
 	uint8_t i;
+	bool paddata_change;
 
-	update_pads();
-	paddata_change = sys_paddata != paddata_old;
+	paddata = get_paddata();
+	paddata_change = paddata != paddata_old;
 
 	if (paddata_change) {
 		pressed_key = 0xFF;
 		for (i = 0; i < 14; ++i) {
-			if (sys_paddata&padtable[i]) {
+			if (paddata&padtable[i]) {
 				pressed_key = keytable[i];
 				break;
 			}
 		}
-		paddata_old = sys_paddata;
+		paddata_old = paddata;
 	}
 }
 
@@ -138,27 +139,14 @@ void chip8_reset(void)
 {
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
-	memset(sys_chip8_gfx, 0, sizeof sys_chip8_gfx);
+	memset(chip8_gfx, 0, sizeof chip8_gfx);
 	memcpy(ram, font, sizeof font);
 	rgs.pc = 0x200;
 	rgs.sp = 15;
 	paddata_old = 0x0000;
 	pressed_key = 0xFF;
 	waiting_keypress = false;
-}
-
-void chip8_logcpu(void)
-{
-	int i;
-
-	loginfo("PC: $%.4X, SP: $%.4X, I: $%.4X\n",
-	        rgs.pc, rgs.sp, rgs.i);
-	loginfo("DT: $%.2X, ST: $%.2X\n",
-	        rgs.dt, rgs.st);
-
-	for (i = 0; i < 0x10; ++i)
-		loginfo("V%.1X: $%.2X\n", i, rgs.v[i]);
-
+	chip8_draw_flag = true;
 }
 
 void chip8_step(void)
@@ -171,22 +159,18 @@ void chip8_step(void)
 
 	if (waiting_keypress) {
 		if (pressed_key == 0xFF) {
-			logdebug("Waiting Key Press...\n");
 			return;
 		} else {
-			logdebug("Key Press Received!\n");
 			waiting_keypress = false;
 		}
 	}
 
+	assert_msg(rgs.pc <= 0x0FFF, "Chip8 PC Register out of range");
 	ophi = ram[rgs.pc++];
 	oplo = ram[rgs.pc++];
 	x = ophi&0x0F;
 	y = (oplo&0xF0)>>4;
 	opcode = (ophi<<8)|oplo;
-
-	logdebug("PRESSED KEY: $%.2X\n", pressed_key);
-	logdebug("OPCODE: $%.4X\n", opcode);
 
 	switch ((ophi&0xF0)>>4) {
 	default: unknown_opcode(opcode); break;
@@ -194,7 +178,8 @@ void chip8_step(void)
 		switch (oplo) {
 		default: unknown_opcode(opcode); break;
 		case 0xE0: // - CLS clear display
-			memset(sys_chip8_gfx, 0, sizeof sys_chip8_gfx);
+			memset(chip8_gfx, 0, sizeof chip8_gfx);
+			chip8_draw_flag = true;
 			break;
 		case 0xEE: // - RET Return from a subroutine.
 			rgs.pc = stackpop();

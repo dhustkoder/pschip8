@@ -14,9 +14,9 @@ u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
 
-bool sys_chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH]; // the buffer filled by chip8.c
-static bool chip8_gfx_last[CHIP8_HEIGHT][CHIP8_WIDTH]; // save the last drawn buffer
-static uint16_t chip8_disp_buffer[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH]; // the scaled display buffer for chip8 gfx
+extern bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH]; // the buffer filled by chip8.c
+extern bool chip8_draw_flag;
+
 
 
 uint16_t sys_paddata;
@@ -26,18 +26,47 @@ uint32_t sys_usec_timer;
 static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
 
+static uint16_t scaled_chip8_gfx[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH];
 static uint8_t buffer_idx;
 static DISPENV dispenv[2];
 static DRAWENV drawenv[2];
 
 
-void init_systems(void)
+static inline void update_pads(void)
 {
+	extern uint16_t sys_paddata;
+	sys_paddata = PadRead(0);
+}
+
+static void vsync_callback(void)
+{
+	update_pads();
+	update_timers();
+}
+
+
+void init_system(void)
+{
+	loginfo("INIT SYSTEM\n");
+
 	ResetCallback();
 
+	// wait ps logo music fade out
+	reset_timers();
+	while (sys_msec_timer < 8000)
+		update_timers();
 
-	// VIDEO SYSTEM
 	ResetGraph(0);
+
+	// wait gpu warm after ResetGraph
+	reset_timers();
+	while (sys_msec_timer < 2000)
+		update_timers();
+
+	// clears the whole framebuffer 
+	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 50, 50, 50);
+	DrawSync(0);
+
 	#ifdef DISPLAY_TYPE_PAL
 	SetVideoMode(MODE_PAL);
 	#else
@@ -65,16 +94,13 @@ void init_systems(void)
 
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
-
 	SetDispMask(1);
 	
-	// INPUT SYSTEM
+
 	PadInit(0);
 	sys_paddata = 0;
 
-	// TIMER SYSTEM
-	reset_timers();
-	VSyncCallback(update_timers);
+	VSyncCallback(vsync_callback);
 }
 
 void update_display(const bool vsync)
@@ -92,26 +118,25 @@ void update_display(const bool vsync)
 	uint32_t px, py;
 	int16_t i, j;
 	
-	if (memcmp(sys_chip8_gfx, chip8_gfx_last, sizeof chip8_gfx_last) != 0) {
+	if (chip8_draw_flag) {
 		// scale chip8 graphics
 		for (i = 0; i < CHIP8_SCALED_HEIGHT; ++i) {
 			py = (i * yratio)>>16;
 			for (j = 0; j < CHIP8_SCALED_WIDTH; ++j) {
 				px = (j * xratio)>>16;
-				chip8_disp_buffer[i][j] = sys_chip8_gfx[py][px] ? ~0 : 0;
+				scaled_chip8_gfx[i][j] = chip8_gfx[py][px] ? ~0 : 0;
 			}
 		}
 
 		chip8_rect.x += drawenv[buffer_idx].clip.x;
 		chip8_rect.y += drawenv[buffer_idx].clip.y;
 
-		LoadImage(&chip8_rect, (void*)chip8_disp_buffer);
-		memcpy(chip8_gfx_last, sys_chip8_gfx, sizeof chip8_gfx_last);
 		DrawSync(0);
-
 		if (vsync)
 			VSync(0);
 
+		LoadImage(&chip8_rect, (void*)scaled_chip8_gfx);
+		chip8_draw_flag = 0;
 		ResetGraph(1);
 		buffer_idx = 1 - buffer_idx;
 		PutDispEnv(&dispenv[buffer_idx]);

@@ -15,8 +15,18 @@ PSYQ_DIR=C:\PSYQ
 # Set this to the project's directory
 PROJ_DIR=C:\PSYQ\PROJECTS\$(PROJNAME)
 
-# set to PAL, NTSC_U, NTSC_J
+# Set to PAL, NTSC_U, NTSC_J
 DISPLAY_TYPE=NTSC_U
+
+# Set to Release or Debug
+BUILD_TYPE=Release
+
+CFLAGS=-Wall -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE)
+CFLAGS_DEBUG=-O1 -G2 -DDEBUG
+CFLAGS_RELEASE=-O2 -G0 -mgpopt -DNDEBUG
+LIBS=
+SRC=src/*.c
+
 
 ifeq ($(DISPLAY_TYPE), PAL)
 	LICENSEFILE=$(PSYQ_DIR)\CDGEN\LCNSFILE\LICENSEE.DAT
@@ -35,36 +45,37 @@ else
 	CPE2X_FLAGS=/ca
 endif
 
+ifeq ($(BUILD_TYPE),RELEASE)
+        CFLAGS+=$(CFLAGS_RELEASE)
+else
+        CFLAGS+=$(CFLAGS_DEBUG)
+endif
 
 
-LIBS=
-
-CFLAGS=-Wall -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE)
-CFLAGS_DEBUG=-O0 -G2 -DDEBUG
-CFLAGS_RELEASE=-O2 -G0 -mgpopt -DNDEBUG 
-CFLAGS+=$(CFLAGS_RELEASE)
-
-.PHONY all: clean main cdiso
-
+.PHONY all: clean main iso
 .PHONY clean:
 	del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI
 
 
-main: %.CPE
+main: MAIN.EXE
+iso: $(PROJNAME).ISO
+
+MAIN.EXE: MAIN.CPE
 	cpe2x $(CPE2X_FLAGS) MAIN.CPE
 
-%.CPE:
-	ccpsx $(CFLAGS) $(LIBS) src/*.c -oMAIN.CPE,MAIN.SYM,MAIN.MAP
+MAIN.CPE:
+	ccpsx $(CFLAGS) $(LIBS) $(SRC) -oMAIN.CPE,MAIN.SYM,MAIN.MAP
 
-cdiso: %.IMG
+
+$(PROJNAME).ISO: $(PROJNAME).IMG
 	stripiso s 2352 $(PROJNAME).IMG $(PROJNAME).ISO
-	psxlicense $(PSXLICENSE_FLAGS) /i $(PROJNAME).IMG
+	psxlicense $(PSXLICENSE_FLAGS) /i $(PROJNAME).ISO
 
-%.IMG: %.CTI
+$(PROJNAME).IMG: $(PROJNAME).CTI
 	buildcd -l -i$(PROJNAME).IMG $(PROJNAME).CTI
 
-%.CTI: %.CNF
-	del *.CTI
+$(PROJNAME).CTI: $(PROJNAME).CNF
+	@del *.CTI
 	echo Define ProjectPath $(PROJ_DIR)\ >> $(PROJNAME).CTI
 	echo Define LicenseFile $(LICENSEFILE) >> $(PROJNAME).CTI
 	echo Disc CDROMXA_PSX ;the disk format >> $(PROJNAME).CTI
@@ -123,8 +134,8 @@ cdiso: %.IMG
 	echo 	EndTrack >> $(PROJNAME).CTI
 	echo EndDisc >> $(PROJNAME).CTI
 
-%.CNF:
-	del *.CNF
+$(PROJNAME).CNF:
+	@del *.CNF
 	echo BOOT=cdrom:\MAIN.EXE;1 >> SYSTEM.CNF
 	echo TCB=4 >> SYSTEM.CNF
 	echo EVENT=10 >> SYSTEM.CNF
