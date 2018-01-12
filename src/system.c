@@ -107,16 +107,13 @@ void init_system(void)
 
 void update_display(const bool vsync)
 {
-	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
-	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
-
-	RECT chip8_rect = {
-		.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
-		.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
+	static RECT chip8_rect = {
 		.w = CHIP8_SCALED_WIDTH,
 		.h = CHIP8_SCALED_HEIGHT
 	};
 
+	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
+	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
 	uint32_t px, py;
 	int16_t i, j;
 	
@@ -130,22 +127,22 @@ void update_display(const bool vsync)
 			}
 		}
 
+		chip8_rect.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2); 
 		chip8_rect.x += drawenv[buffer_idx].clip.x;
+		chip8_rect.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2);
 		chip8_rect.y += drawenv[buffer_idx].clip.y;
 
 		DrawSync(0);
-		if (vsync)
-			VSync(0);
-
 		LoadImage(&chip8_rect, (void*)scaled_chip8_gfx);
 		chip8_draw_flag = 0;
 		ResetGraph(1);
 		buffer_idx = 1 - buffer_idx;
 		PutDispEnv(&dispenv[buffer_idx]);
 		PutDrawEnv(&drawenv[buffer_idx]);
-	} else if (vsync) {
-		VSync(0);
 	}
+
+	if (vsync)
+		VSync(0);
 }
 
 void update_timers(void)
