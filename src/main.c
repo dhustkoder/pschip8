@@ -18,9 +18,9 @@ int main(void)
 	uint32_t timer = 0;
 	uint32_t step_last = 0;
 	uint32_t fps_last = 0;
-	short freq = CHIP8_FREQ;
-	short fps = 0;
-	short steps = 0;
+	int freq = CHIP8_FREQ;
+	int fps = 0;
+	int steps = 0;
 	unsigned int usecs_per_step = (1000000u / freq);
 
 	init_systems();
@@ -59,7 +59,7 @@ int main(void)
 			        "Frames per second: %d\n\n"
 			        "Steps per second: %d\n\n"
 			        "UP and DOWN to control Chip8 Hz: %d.",
-				fps, steps, freq);
+			        fps, steps, freq);
 			fps = 0;
 			steps = 0;
 			fps_last = timer;
