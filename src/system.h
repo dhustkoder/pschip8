@@ -6,11 +6,11 @@
 #include "log.h"
 #include "ints.h"
 
-#define SCREEN_WIDTH  320
+#define SCREEN_WIDTH  (320)
 #ifdef DISPLAY_TYPE_PAL
-#define SCREEN_HEIGHT 256
+#define SCREEN_HEIGHT (256)
 #else
-#define SCREEN_HEIGHT 240
+#define SCREEN_HEIGHT (240)
 #endif
 
 #define fatal_failure(...) logerror("FATAL FAILURE: " __VA_ARGS__); \

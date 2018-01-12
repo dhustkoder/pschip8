@@ -33,8 +33,6 @@ static DRAWENV drawenv[2];
 
 void init_systems(void)
 {
-	int i;
-
 	// VIDEO SYSTEM
 	ResetCallback();
 	ResetGraph(0);
@@ -58,15 +56,13 @@ void init_systems(void)
 	SetDefDrawEnv(&drawenv[1], 0, 0,
 	              SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	for (i = 0; i < 2; ++i) {
-		drawenv[i].r0 = 50;
-		drawenv[i].g0 = 50;
-		drawenv[i].b0 = 50;
-		drawenv[i].isbg = 1;
-	}
-
+    ClearImage(&dispenv[0].disp, 50, 50, 50);
+    ClearImage(&drawenv[0].clip, 50, 50, 50);
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
+
+	FntLoad(SCREEN_WIDTH, 0);
+	SetDumpFnt(FntOpen(0, 16, 128, 64, 1, 128));
 
 	SetDispMask(1);
 

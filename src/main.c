@@ -1,6 +1,9 @@
 #include <stdlib.h>
 #include <stdio.h>
 #include <libmath.h>
+#include <libgte.h>
+#include <libapi.h>
+#include <libgpu.h>
 #include "log.h"
 #include "system.h"
 #include "chip8.h"
@@ -31,8 +34,9 @@ int main(void)
 
 		++fps;
 		if ((timer - fps_last) >= 1000000u) {
-			loginfo("FPS: %d\n", fps);
-			loginfo("STEPS: %d\n", steps);
+			FntPrint("FPS: %d\n\n\n", fps);
+			FntPrint("STEPS: %d", steps);
+			FntFlush(-1);
 			fps = 0;
 			steps = 0;
 			fps_last = timer;
