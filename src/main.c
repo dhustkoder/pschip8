@@ -25,12 +25,12 @@ int main(void)
 
 	init_system();
 
+	FntLoad(SCREEN_WIDTH, 0);
+	SetDumpFnt(FntOpen(0, 12, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 256));
+
 	chip8_loadrom("\\BRIX.CH8;1");
 	chip8_reset();
 	reset_timers();
-
-	FntLoad(SCREEN_WIDTH, 0);
-	SetDumpFnt(FntOpen(0, 0, SCREEN_WIDTH, 64, 0, 256));
 
 	for (;;) {
 		timer = get_usec();
@@ -47,6 +47,8 @@ int main(void)
 		} else if (paddata&BUTTON_DOWN && freq > 10) {
 			--freq;
 			usecs_per_step = (1000000u / freq);
+		} else if (paddata&BUTTON_START && paddata&BUTTON_SELECT) {
+			chip8_reset();
 		}
 
 		update_display(false);
@@ -56,10 +58,11 @@ int main(void)
 		++fps;
 		if ((timer - fps_last) >= 1000000u) {
 			sprintf(fntbuff, 
-			        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
-			        "Frames per second: %d\n\n"
-			        "Steps per second: %d\n\n"
-			        "UP and DOWN to control Chip8 Hz: %d",
+                                "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
+			        "Frames per second: %d\n"
+			        "Steps per second: %d\n"
+                                "UP and DOWN to control Chip8 Hz: %d\n"
+                                "Press START & SELECT to reset",
 			        fps, steps, freq);
 			fps = 0;
 			steps = 0;
