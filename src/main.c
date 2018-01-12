@@ -9,6 +9,9 @@
 #include "chip8.h"
 
 
+static char fntbuff[256] = { '\0' };
+
+
 int main(void)
 {
 	extern uint16_t sys_paddata;
@@ -26,7 +29,7 @@ int main(void)
 	reset_timers();
 
 	FntLoad(SCREEN_WIDTH, 0);
-	SetDumpFnt(FntOpen(0, 0, SCREEN_WIDTH, 64, 1, 256));
+	SetDumpFnt(FntOpen(0, 0, SCREEN_WIDTH, 64, 0, 256));
 
 	for (;;) {
 		timer = get_usec_now();
@@ -46,14 +49,17 @@ int main(void)
 		}
 
 		update_display(true);
+		FntPrint(fntbuff);
+		FntFlush(-1);
 
 		++fps;
 		if ((timer - fps_last) >= 1000000u) {
-			FntPrint("PSCHIP8 - Chip8 Interpreter for PS1!\n\n");
-			FntPrint("Frames per second: %d\n\n", fps);
-			FntPrint("Steps per second: %d\n\n", steps);
-			FntPrint("UP and DOWN to control Chip8 Hz: %d.", freq);
-			FntFlush(-1);
+			sprintf(fntbuff, 
+			        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
+			        "Frames per second: %d\n\n"
+			        "Steps per second: %d\n\n"
+			        "UP and DOWN to control Chip8 Hz: %d.",
+				fps, steps, freq);
 			fps = 0;
 			steps = 0;
 			fps_last = timer;

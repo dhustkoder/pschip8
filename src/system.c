@@ -58,10 +58,10 @@ void init_systems(void)
 	SetDefDrawEnv(&drawenv[1], 0, 0,
 	              SCREEN_WIDTH, SCREEN_HEIGHT);
 
-	ClearImage(&dispenv[0].disp, 50, 50, 50);
-	DrawSync(0);
-	ClearImage(&drawenv[0].clip, 50, 50, 50);
-	DrawSync(0);
+	drawenv[0].isbg = drawenv[1].isbg = 1;
+	drawenv[0].r0 = drawenv[1].r0 = 50;
+	drawenv[0].g0 = drawenv[1].g0 = 50;
+	drawenv[0].b0 = drawenv[1].b0 = 50;
 
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
@@ -112,6 +112,7 @@ void update_display(const bool vsync)
 		if (vsync)
 			VSync(0);
 
+		ResetGraph(1);
 		buffer_idx = 1 - buffer_idx;
 		PutDispEnv(&dispenv[buffer_idx]);
 		PutDrawEnv(&drawenv[buffer_idx]);
