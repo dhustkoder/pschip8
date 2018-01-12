@@ -6,8 +6,10 @@
 # This Makefile should run on Windows XP (or less).
 # This Makefile can also run on Linux with wine and dosbox installed.
 
-# Set this to the project name
+
 PROJNAME=PSCHIP8
+DEVELOPER=Dhust
+PUBLISHER=DEVine
 
 # Set this to the PSYQ directory
 PSYQ_DIR=C:\PSYQ
@@ -25,7 +27,6 @@ CFLAGS=-Wall -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE)
 CFLAGS_DEBUG=-O1 -G2 -DDEBUG
 CFLAGS_RELEASE=-O2 -G0 -mgpopt -DNDEBUG
 LIBS=
-SRC=src/*.c
 
 
 ifeq ($(DISPLAY_TYPE), PAL)
@@ -54,21 +55,18 @@ endif
 
 .PHONY all: clean main iso
 .PHONY clean:
-	@del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI ASM\*.ASM
+	@del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI
 
 
 main: MAIN.EXE
-asm: make_asm_dir $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
+asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 iso: $(PROJNAME).ISO
 
 MAIN.EXE: MAIN.CPE
 	cpe2x $(CPE2X_FLAGS) MAIN.CPE
 
 MAIN.CPE:
-	ccpsx $(CFLAGS) $(LIBS) $(SRC) -oMAIN.CPE,MAIN.SYM,MAIN.MAP
-
-make_asm_dir:
-	@mkdir asm
+	ccpsx $(CFLAGS) $(LIBS) src/*.c -oMAIN.CPE,MAIN.SYM,MAIN.MAP
 
 asm/%.asm: src/%.c
 	ccpsx $(CFLAGS) -S $< -o$@
@@ -96,11 +94,11 @@ $(PROJNAME).CTI: $(PROJNAME).CNF
 	echo 			SystemArea [LicenseFile] >> $(PROJNAME).CTI
 	echo 			PrimaryVolume ;start point of primary volume >> $(PROJNAME).CTI
 	echo 				SystemIdentifier "PLAYSTATION" ;required indetifier (do not change) >> $(PROJNAME).CTI
+	echo 				ApplicationIdentifier "PLAYSTATION" >> $(PROJNAME).CTI
 	echo 				VolumeIdentifier "$(PROJNAME)" ;app specific identifiers (changeable) >> $(PROJNAME).CTI
 	echo 				VolumeSetIdentifier "$(PROJNAME)" >> $(PROJNAME).CTI
-	echo 				PublisherIdentifier "SCEE" >> $(PROJNAME).CTI
-	echo 				DataPreparerIdentifier "SONY" >> $(PROJNAME).CTI
-	echo 				ApplicationIdentifier "PLAYSTATION" >> $(PROJNAME).CTI
+	echo 				PublisherIdentifier "$(PUBLISHER)" >> $(PROJNAME).CTI
+	echo 				DataPreparerIdentifier "$(DEVELOPER)" >> $(PROJNAME).CTI
 	echo 				LPath ;path tables as specified for PlayStation >> $(PROJNAME).CTI
 	echo 				OptionalLpath >> $(PROJNAME).CTI
 	echo 				MPath >> $(PROJNAME).CTI
