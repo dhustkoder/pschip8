@@ -45,7 +45,7 @@ else
 	CPE2X_FLAGS=/ca
 endif
 
-ifeq ($(BUILD_TYPE),RELEASE)
+ifeq ($(BUILD_TYPE),Release)
         CFLAGS+=$(CFLAGS_RELEASE)
 else
         CFLAGS+=$(CFLAGS_DEBUG)
@@ -54,10 +54,11 @@ endif
 
 .PHONY all: clean main iso
 .PHONY clean:
-	del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI
+	@del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI ASM\*.ASM
 
 
 main: MAIN.EXE
+asm: make_asm_dir $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 iso: $(PROJNAME).ISO
 
 MAIN.EXE: MAIN.CPE
@@ -66,6 +67,11 @@ MAIN.EXE: MAIN.CPE
 MAIN.CPE:
 	ccpsx $(CFLAGS) $(LIBS) $(SRC) -oMAIN.CPE,MAIN.SYM,MAIN.MAP
 
+make_asm_dir:
+	@mkdir asm
+
+asm/%.asm: src/%.c
+	ccpsx $(CFLAGS) -S $< -o$@
 
 $(PROJNAME).ISO: $(PROJNAME).IMG
 	stripiso s 2352 $(PROJNAME).IMG $(PROJNAME).ISO

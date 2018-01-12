@@ -7,6 +7,8 @@
 *.img
 *.cnf
 *.cti
+*.asm
+ASM/
 
 *.EXE
 *.SYM
@@ -17,4 +19,6 @@
 *.IMG
 *.CNF
 *.CTI
+*.ASM
+ASM/
 
