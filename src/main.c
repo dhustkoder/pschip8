@@ -22,6 +22,9 @@ int main(void)
 	chip8_reset();
 	reset_timers();
 
+	FntLoad(SCREEN_WIDTH, 0);
+	SetDumpFnt(FntOpen(0, 12, SCREEN_WIDTH, 48, 1, 256));
+
 	for (;;) {
 		timer = get_usec_now();
 		while ((timer - step_last) > (1000000u / CHIP8_FREQ)) {
@@ -34,8 +37,9 @@ int main(void)
 
 		++fps;
 		if ((timer - fps_last) >= 1000000u) {
-			FntPrint("FPS: %d\n\n\n", fps);
-			FntPrint("STEPS: %d", steps);
+			FntPrint("PSCHIP8 - Chip8 Interpreter for PS1!\n\n");
+			FntPrint("Frames per second: %d\n\n", fps);
+			FntPrint("Steps per second: %d", steps);
 			FntFlush(-1);
 			fps = 0;
 			steps = 0;

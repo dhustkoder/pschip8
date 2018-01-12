@@ -33,16 +33,16 @@ static DRAWENV drawenv[2];
 
 void init_systems(void)
 {
-	// VIDEO SYSTEM
 	ResetCallback();
+
+
+	// VIDEO SYSTEM
 	ResetGraph(0);
 	#ifdef DISPLAY_TYPE_PAL
 	SetVideoMode(MODE_PAL);
 	#else
 	SetVideoMode(MODE_NTSC);
 	#endif
-
-	SetDispMask(1);
 
 	buffer_idx = 0;
 
@@ -66,10 +66,8 @@ void init_systems(void)
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
 
-	FntLoad(SCREEN_WIDTH, 0);
-	SetDumpFnt(FntOpen(0, 16, 128, 64, 0, 128));
-
-
+	SetDispMask(1);
+	
 	// INPUT SYSTEM
 	PadInit(0);
 	sys_paddata = 0;
@@ -167,7 +165,7 @@ void open_cd_files(const char* const* const filenames,
 	for (i = 0; i < nfiles; ++i) {
 		strcpy(namebuff, filenames[i]);
 		loginfo("LOADING %s...\n", namebuff);
-		for (j=0; j < 10; j++) {
+		for (j = 0; j < 10; j++) {
 			if (!CdSearchFile(&fp, namebuff))
 				continue;
 
