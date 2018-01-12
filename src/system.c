@@ -5,6 +5,7 @@
 #include <libgpu.h>
 #include <libetc.h>
 #include <libcd.h>
+#include <libspu.h>
 #include "chip8.h"
 #include "log.h"
 #include "system.h"
@@ -47,31 +48,38 @@ static void vsync_callback(void)
 
 void init_system(void)
 {
-	loginfo("INIT SYSTEM\n");
+	int i;
 
+	StopCallback();
 	ResetCallback();
+	RestartCallback();
 
 	// wait ps logo music fade out
-	reset_timers();
-	while (sys_msec_timer < 8000)
-		update_timers();
+	i = VSync(-1);
+	while ((VSync(-1) - i) < 8 * 60)
+		;
 
 	ResetGraph(0);
-
-	// wait gpu warm after ResetGraph
+	SpuInit();
+	PadInit(0);
+	sys_paddata = 0;
 	reset_timers();
-	while (sys_msec_timer < 2000)
-		update_timers();
+	VSyncCallback(vsync_callback);
 
-	// clears the whole framebuffer 
-	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 50, 50, 50);
-	DrawSync(0);
+	// wait  gpu warm up
+	i = VSync(-1);
+	while ((VSync(-1) - i) < 2 * 60)
+		;
 
 	#ifdef DISPLAY_TYPE_PAL
 	SetVideoMode(MODE_PAL);
 	#else
 	SetVideoMode(MODE_NTSC);
 	#endif
+
+	// clears the whole framebuffer 
+	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 50, 50, 50);
+	DrawSync(0);
 
 	buffer_idx = 0;
 
@@ -95,12 +103,6 @@ void init_system(void)
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
 	SetDispMask(1);
-	
-
-	PadInit(0);
-	sys_paddata = 0;
-
-	VSyncCallback(vsync_callback);
 }
 
 void update_display(const bool vsync)
