@@ -19,13 +19,13 @@ PROJ_DIR=C:\PSYQ\PROJECTS\$(PROJNAME)
 DISPLAY_TYPE=NTSC_U
 
 ifeq ($(DISPLAY_TYPE), PAL)
-	LICENSEFILE=LICENSEE.DAT
+	LICENSEFILE=$(PSYQ_DIR)\CDGEN\LCNSFILE\LICENSEE.DAT
 	PSXLICENSE_FLAGS=/eu
 else ifeq ($(DISPLAY_TYPE), NTSC_U)
-	LICENSEFILE=LICENSEA.DAT
+	LICENSEFILE=$(PSYQ_DIR)\CDGEN\LCNSFILE\LICENSEA.DAT
 	PSXLICENSE_FLAGS=/us
 else
-	LICENSEFILE=LICENSEJ.DAT
+	LICENSEFILE=$(PSYQ_DIR)\CDGEN\LCNSFILE\LICENSEJ.DAT
 	PSXLICENSE_FLAGS=/jp
 endif
 
@@ -66,7 +66,6 @@ cdiso: %.IMG
 %.CTI: %.CNF
 	del *.CTI
 	echo Define ProjectPath $(PROJ_DIR)\ >> $(PROJNAME).CTI
-	echo Define LicensePath $(PSYQ_DIR)\CDGEN\LCNSFILE\ >> $(PROJNAME).CTI
 	echo Define LicenseFile $(LICENSEFILE) >> $(PROJNAME).CTI
 	echo Disc CDROMXA_PSX ;the disk format >> $(PROJNAME).CTI
 	echo 	CatalogNumber 0000000000000 >> $(PROJNAME).CTI
@@ -77,7 +76,7 @@ cdiso: %.IMG
 	echo 	Track XA ;start of the XA (data) track >> $(PROJNAME).CTI
 	echo 		Pause 150 ;required pause in first track after the lead in >> $(PROJNAME).CTI
 	echo 		Volume ISO9660 ;define ISO 9660 volume >> $(PROJNAME).CTI
-	echo 			SystemArea [LicensePath][LicenseFile] >> $(PROJNAME).CTI
+	echo 			SystemArea [LicenseFile] >> $(PROJNAME).CTI
 	echo 			PrimaryVolume ;start point of primary volume >> $(PROJNAME).CTI
 	echo 				SystemIdentifier "PLAYSTATION" ;required indetifier (do not change) >> $(PROJNAME).CTI
 	echo 				VolumeIdentifier "$(PROJNAME)" ;app specific identifiers (changeable) >> $(PROJNAME).CTI
