@@ -8,7 +8,6 @@
 #include <libspu.h>
 #include <libapi.h>
 #include "chip8.h"
-#include "log.h"
 #include "system.h"
 
 

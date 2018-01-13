@@ -1,10 +1,6 @@
-#include <stdlib.h>
-#include <stdio.h>
-#include <libmath.h>
+#include <sys/types.h>
 #include <libgte.h>
-#include <libapi.h>
 #include <libgpu.h>
-#include "log.h"
 #include "system.h"
 #include "chip8.h"
 
@@ -38,9 +34,6 @@ static const char* game_select_menu(void)
 		for (i = 0; i < ngames; ++i)
 			FntPrint("%c %s\n\n", cursor == i ? '>' : ' ', games[i].name);
 
-		FntFlush(-1);
-		update_display(DISP_FLAG_DRAW_SYNC|DISP_FLAG_VSYNC|DISP_FLAG_SWAP_BUFFERS);
-
 		pad = get_paddata();
 
 		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN))
@@ -49,6 +42,9 @@ static const char* game_select_menu(void)
 			--cursor;
 
 		pad_old = pad;
+
+		FntFlush(-1);
+		update_display(DISP_FLAG_DRAW_SYNC|DISP_FLAG_VSYNC|DISP_FLAG_SWAP_BUFFERS);
 	}
 
 	return games[cursor].cdpath;

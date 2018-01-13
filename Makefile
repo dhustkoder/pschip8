@@ -56,7 +56,7 @@ else
 endif
 
 
-all: cdrom/$(PROJNAME)_$(DISPLAY_TYPE).ISO
+all: cdrom/$(DISPLAY_TYPE).ISO
 main: $(DISPLAY_TYPE).EXE
 asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 

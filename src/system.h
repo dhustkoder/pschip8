@@ -1,11 +1,23 @@
 #ifndef PSCHIP8_SYSTEM_H_
 #define PSCHIP8_SYSTEM_H_
-#include <libetc.h>
-#include <libapi.h>
 #include <sys/errno.h>
+#include <sys/types.h>
+#include <stdio.h>
 #include <assert.h>
-#include "log.h"
-#include "ints.h"
+#include <libapi.h>
+#include <limits.h>
+
+typedef unsigned char uint8_t;
+typedef unsigned short uint16_t;
+typedef unsigned int uint32_t;
+
+typedef signed char int8_t;
+typedef signed short int16_t;
+typedef signed int int32_t;
+
+typedef uint8_t bool;
+#define false ((bool)0)
+#define true  ((bool)1)
 
 #define SCREEN_WIDTH  (320)
 #ifdef DISPLAY_TYPE_PAL
@@ -14,20 +26,31 @@
 #define SCREEN_HEIGHT (240)
 #endif
 
-#define fatal_failure(...) {                 \
+#define loginfo(...)  printf("INFO: " __VA_ARGS__)
+#define logerror(...) printf("ERROR: " __VA_ARGS__)
+
+#define fatal_failure(...) {                     \
 	logerror("FATAL FAILURE: " __VA_ARGS__); \
 	logerror("\n");                          \
 	SystemError(_get_errno(), _get_errno()); \
 }
 
 #ifdef DEBUG
-#define assert_msg(cond, ...) {      \
-	if (!(cond))                     \
+
+#define logdebug(...) printf("DEBUG: " __VA_ARGS__)
+
+#define assert_msg(cond, ...) {              \
+	if (!(cond))                         \
 		fatal_failure(__VA_ARGS__);  \
 }
+
 #else
+
+#define logdebug(...)   ((void)0)
 #define assert_msg(...) ((void)0)
+
 #endif
+
 
 typedef uint16_t Button;
 enum Button {

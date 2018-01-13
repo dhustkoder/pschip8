@@ -1,7 +1,5 @@
 #include <stdlib.h>
 #include <rand.h>
-#include "ints.h"
-#include "log.h"
 #include "system.h"
 #include "chip8.h"
 
@@ -147,6 +145,7 @@ void chip8_reset(void)
 	pressed_key = 0xFF;
 	waiting_keypress = false;
 	chip8_draw_flag = true;
+	srand(get_usec_now());
 }
 
 void chip8_step(void)
