@@ -58,11 +58,11 @@ int main(void)
 		++fps;
 		if ((timer - fps_last) >= 1000000u) {
 			sprintf(fntbuff, 
-                                "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
+			        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
 			        "Frames per second: %d\n"
 			        "Steps per second: %d\n"
-                                "UP and DOWN to control Chip8 Hz: %d\n"
-                                "Press START & SELECT to reset",
+			        "UP and DOWN to control Chip8 Hz: %d\n"
+			        "Press START & SELECT to reset",
 			        fps, steps, freq);
 			fps = 0;
 			steps = 0;

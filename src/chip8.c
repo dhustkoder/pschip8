@@ -119,8 +119,8 @@ static void update_dt_st(void)
 	static uint32_t msec_last = 0;
 	const uint32_t timer = get_usec_now();
 
-	while ((timer - msec_last) >= (1000000 / CHIP8_DELAY_FREQ)) {
-		msec_last += (1000000 / CHIP8_DELAY_FREQ);
+	while ((timer - msec_last) >= (1000000u / CHIP8_DELAY_FREQ)) {
+		msec_last += (1000000u / CHIP8_DELAY_FREQ);
 		if (rgs.dt > 0)
 			--rgs.dt;
 		if (rgs.st > 0)
