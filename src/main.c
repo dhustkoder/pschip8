@@ -9,26 +9,100 @@
 #include "chip8.h"
 
 
+extern bool chip8_draw_flag;
+
 static char fntbuff[256] = { '\0' };
 
+static const struct GameInfo {
+	const char* const name;
+	const char* const cdpath;
+} games[] = {
+	{"BRIX", "\\BRIX.CH8;1" },
+	{"BLITZ", "\\BLITZ.CH8;1" },
+	{"INVADERS", "\\INVADERS.CH8;1" },
+	{"MISSILE", "\\MISSILE.CH8;1" },
+	{"PONG", "\\PONG.CH8;1" },
+	{"TETRIS", "\\TETRIS.CH8;1" },
+};
 
-int main(void)
+
+static const char* game_select_menu(void)
 {
+	const int8_t ngames = sizeof(games) / sizeof(games[0]);
+	int8_t cursor = 0;
+	uint16_t pad_old = 0;
+	uint16_t pad = 0;
+	int8_t i;
+
+	while (!(pad&BUTTON_CIRCLE)) {
+		for (i = 0; i < ngames; ++i)
+			FntPrint("%c %s\n\n", cursor == i ? '>' : ' ', games[i].name);
+
+		FntFlush(-1);
+		update_display(DISP_FLAG_DRAW_SYNC|DISP_FLAG_VSYNC|DISP_FLAG_SWAP_BUFFERS);
+
+		pad = get_paddata();
+
+		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN))
+			++cursor;
+		else if (cursor > 0 && (pad&BUTTON_UP) && !(pad_old&BUTTON_UP))
+			--cursor;
+
+		pad_old = pad;
+	}
+
+	return games[cursor].cdpath;
+}
+
+static void draw_chip8_gfx(void)
+{
+	extern bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+
+	static uint16_t scaled_chip8_gfx[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH];
+
+	static RECT chip8_rect = {
+		.w = CHIP8_SCALED_WIDTH,
+		.h = CHIP8_SCALED_HEIGHT
+	};
+	
+	DRAWENV drawenv;
+
+	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
+	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
+	uint32_t px, py;
+	int16_t i, j;
+
+	// scale chip8 graphics
+	for (i = 0; i < CHIP8_SCALED_HEIGHT; ++i) {
+		py = (i * yratio)>>16;
+		for (j = 0; j < CHIP8_SCALED_WIDTH; ++j) {
+			px = (j * xratio)>>16;
+			scaled_chip8_gfx[i][j] = chip8_gfx[py][px] ? ~0 : 0;
+		}
+	}
+
+	GetDrawEnv(&drawenv);
+	chip8_rect.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2); 
+	chip8_rect.x += drawenv.clip.x;
+	chip8_rect.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2);
+	chip8_rect.y += drawenv.clip.y;
+
+	LoadImage(&chip8_rect, (void*)scaled_chip8_gfx);
+}
+
+static void run_game(const char* const gamepath)
+{
+	const uint32_t usecs_per_step = (1000000u / CHIP8_FREQ);
+
 	uint32_t timer = 0;
 	uint32_t step_last = 0;
 	uint32_t fps_last = 0;
-	int freq = CHIP8_FREQ;
 	int fps = 0;
 	int steps = 0;
-	unsigned int usecs_per_step = (1000000u / freq);
-	uint16_t paddata;
+	DispFlag dispflags = 0;
+	uint16_t pad;
 
-	init_system();
-
-	FntLoad(SCREEN_WIDTH, 0);
-	SetDumpFnt(FntOpen(0, 12, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 256));
-
-	chip8_loadrom("\\BRIX.CH8;1");
+	chip8_loadrom(gamepath);
 	chip8_reset();
 	reset_timers();
 
@@ -40,20 +114,22 @@ int main(void)
 			step_last += usecs_per_step;
 		}
 
-		paddata = get_paddata();
-		if (paddata&BUTTON_UP && freq < 1000) {
-			++freq;
-			usecs_per_step = (1000000u / freq);
-		} else if (paddata&BUTTON_DOWN && freq > 10) {
-			--freq;
-			usecs_per_step = (1000000u / freq);
-		} else if (paddata&BUTTON_START && paddata&BUTTON_SELECT) {
-			chip8_reset();
+		pad = get_paddata();
+		if ((pad&BUTTON_START) && (pad&BUTTON_SELECT)) {
+			break;
 		}
 
-		update_display(false);
+		if (chip8_draw_flag) {
+			draw_chip8_gfx();
+			dispflags = DISP_FLAG_DRAW_SYNC|DISP_FLAG_SWAP_BUFFERS;
+			chip8_draw_flag = 0;
+		} else {
+			dispflags = DISP_FLAG_DRAW_SYNC;
+		}
+
 		FntPrint(fntbuff);
 		FntFlush(-1);
+		update_display(dispflags);
 
 		++fps;
 		if ((timer - fps_last) >= 1000000u) {
@@ -61,13 +137,30 @@ int main(void)
 			        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
 			        "Frames per second: %d\n"
 			        "Steps per second: %d\n"
-			        "UP and DOWN to control Chip8 Hz: %d\n"
 			        "Press START & SELECT to reset",
-			        fps, steps, freq);
+			        fps, steps);
 			fps = 0;
 			steps = 0;
 			fps_last = timer;
 		}
 	}
 }
+
+
+int main(void)
+{
+	const char* gamepath;
+
+	init_system();
+
+	FntLoad(SCREEN_WIDTH, 0);
+	SetDumpFnt(FntOpen(0, 12, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 256));
+
+	for (;;) {
+		gamepath = game_select_menu();
+		run_game(gamepath);
+	}
+	
+}
+
 

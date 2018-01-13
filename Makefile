@@ -24,6 +24,8 @@ DISPLAY_TYPE=NTSC_U
 BUILD_TYPE=Release
 
 
+DATA_FILES=$(patsubst data/%, %, $(wildcard data/*))
+
 CFLAGS=-Wall -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE)
 CFLAGS_DEBUG=-O1 -G2 -DDEBUG
 CFLAGS_RELEASE=-O2 -G0 -mgpopt -DNDEBUG
@@ -56,11 +58,10 @@ endif
 
 all: cdrom/$(PROJNAME)_$(DISPLAY_TYPE).ISO
 main: $(DISPLAY_TYPE).EXE
-
-
 asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
+
 %.asm: %.c
-	ccpsx $(CFLAGS) -S $< -o$@
+	ccpsx $(CFLAGS) -S $^ -o$@
 
 
 %.ISO: $(DISPLAY_TYPE).IMG
@@ -105,19 +106,14 @@ asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 	@echo 						XAFileAttributes Form1 Data >> $@
 	@echo 						Source [ProjectPath]$(DISPLAY_TYPE).EXE >> $@
 	@echo 					EndFile >> $@
-	@echo					File BRIX.CH8 >> $@
-	@echo						XAFileAttributes Form1 Data >> $@
-	@echo						Source [ProjectPath]data\BRIX.CH8 >> $@
-	@echo					EndFile >> $@
-	@echo					File BLINKY.CH8 >> $@
-	@echo						XAFileAttributes Form1 Data >> $@
-	@echo						Source [ProjectPath]data\BLINKY.CH8 >> $@
-	@echo					EndFile >> $@
-	@echo					File BKG.TIM >> $@
-	@echo						XAFileAttributes Form1 Data >> $@
-	@echo						Source [ProjectPath]data\BKG.TIM >> $@
-	@echo					EndFile >> $@
-	@echo				EndHierarchy ;ends the root directory definition >> $@
+
+	$(foreach i, $(DATA_FILES), \
+	@echo 					File $(i) >> $@ & \
+	@echo 						XAFileAttributes Form1 Data >> $@ & \
+	@echo 						Source [ProjectPath]data\$(i) >> $@ & \
+	@echo 					EndFile >> $@ &)
+
+	@echo 				EndHierarchy ;ends the root directory definition >> $@
 	@echo 			EndPrimaryVolume ;ends the primary volume definition >> $@
 	@echo 		EndVolume ;ends the ISO 9660 definition >> $@
 	@echo 		Empty 300 >> $@
@@ -143,7 +139,6 @@ asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 
 %.CPE: src/*.c src/*.h
 	ccpsx $(CFLAGS) $(LIBS) src/*.c -o$@
-
 
 .PHONY clean:
 	@del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI

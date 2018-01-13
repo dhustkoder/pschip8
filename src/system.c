@@ -6,6 +6,7 @@
 #include <libetc.h>
 #include <libcd.h>
 #include <libspu.h>
+#include <libapi.h>
 #include "chip8.h"
 #include "log.h"
 #include "system.h"
@@ -15,19 +16,14 @@ u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
 
-extern bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH]; // the buffer filled by chip8.c
-extern bool chip8_draw_flag;
-
-
-
 uint16_t sys_paddata;
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
 
+
 static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
 
-static uint16_t scaled_chip8_gfx[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH];
 static uint8_t buffer_idx;
 static DISPENV dispenv[2];
 static DRAWENV drawenv[2];
@@ -105,44 +101,20 @@ void init_system(void)
 	SetDispMask(1);
 }
 
-void update_display(const bool vsync)
+void update_display(const DispFlag flags)
 {
-	static RECT chip8_rect = {
-		.w = CHIP8_SCALED_WIDTH,
-		.h = CHIP8_SCALED_HEIGHT
-	};
-
-	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
-	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
-	uint32_t px, py;
-	int16_t i, j;
-	
-	if (chip8_draw_flag) {
-		// scale chip8 graphics
-		for (i = 0; i < CHIP8_SCALED_HEIGHT; ++i) {
-			py = (i * yratio)>>16;
-			for (j = 0; j < CHIP8_SCALED_WIDTH; ++j) {
-				px = (j * xratio)>>16;
-				scaled_chip8_gfx[i][j] = chip8_gfx[py][px] ? ~0 : 0;
-			}
-		}
-
-		chip8_rect.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2); 
-		chip8_rect.x += drawenv[buffer_idx].clip.x;
-		chip8_rect.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2);
-		chip8_rect.y += drawenv[buffer_idx].clip.y;
-
+	if (flags&DISP_FLAG_DRAW_SYNC)
 		DrawSync(0);
-		LoadImage(&chip8_rect, (void*)scaled_chip8_gfx);
-		chip8_draw_flag = 0;
+
+	if (flags&DISP_FLAG_VSYNC)
+		VSync(0);
+
+	if (flags&DISP_FLAG_SWAP_BUFFERS) {
 		ResetGraph(1);
 		buffer_idx = 1 - buffer_idx;
 		PutDispEnv(&dispenv[buffer_idx]);
 		PutDrawEnv(&drawenv[buffer_idx]);
 	}
-
-	if (vsync)
-		VSync(0);
 }
 
 void update_timers(void)
@@ -166,14 +138,16 @@ void update_timers(void)
 
 void reset_timers(void)
 {
+	EnterCriticalSection();
 	rcnt1_last = 0;
 	sys_usec_timer = 0;
 	sys_msec_timer = 0;
 	usec_timer_last = 0;
 	StopRCnt(RCntCNT1);
 	SetRCnt(RCntCNT1, 0xFFFF, RCntMdNOINTR);
-	StartRCnt(RCntCNT1);
 	ResetRCnt(RCntCNT1);
+	StartRCnt(RCntCNT1);
+	ExitCriticalSection();
 }
 
 

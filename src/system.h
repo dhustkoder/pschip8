@@ -47,10 +47,15 @@ enum Button {
 	BUTTON_L2       = 0x0001
 };
 
-
+typedef uint8_t DispFlag;
+enum DispFlag {
+	DISP_FLAG_VSYNC        = 0x01,
+	DISP_FLAG_SWAP_BUFFERS = 0x02,
+	DISP_FLAG_DRAW_SYNC    = 0x04
+};
 
 void init_system(void);
-void update_display(bool vsync);
+void update_display(DispFlag flags);
 void update_timers(void);
 void reset_timers(void);
 void open_cd_files(const char* const * filenames,
