@@ -199,7 +199,7 @@ void load_files(const char* const* const filenames,
                 const int nfiles)
 {
 	CdlFILE fp;
-	int i, j, nsector, mode;
+	int i, j, cnt;
 	char namebuff[16];
 
 	CdInit();
@@ -207,29 +207,27 @@ void load_files(const char* const* const filenames,
 	for (i = 0; i < nfiles; ++i) {
 		strcpy(namebuff, filenames[i]);
 		loginfo("LOADING %s...\n", namebuff);
+
 		for (j = 0; j < 10; j++) {
 			if (!CdSearchFile(&fp, namebuff))
 				continue;
-
-			CdControl(CdlSetloc, (void*)&fp.pos, NULL);
-			nsector = (fp.size / 2048) + 1;
-
-			mode = CdlModeSpeed;
-			CdControlB(CdlSetmode, (void*)&mode, 0);
-			VSync(3);
-
-			CdRead(nsector, dsts[i], mode);
-
-			while (CdReadSync(1, 0) > 0)
-				VSync(0);
-
-			break;
 		}
 
-		if (j == 10) {
-			fatal_failure("Couldn't read file %s from CDROM\n",
-			              namebuff);
+		if (j == 10)
+			fatal_failure("Couldn't read file %s from CDROM\n", namebuff);
+
+		for (j = 0; j < 10; ++j) {
+			CdReadFile(namebuff, (void*)dsts[i], fp.size);
+
+			while ((cnt = CdReadSync(1, NULL)) > 0)
+					VSync(0);
+				
+			if (cnt == 0)
+				break;
 		}
+
+		if (j == 10)
+			fatal_failure("Couldn't read file %s from CDROM\n", namebuff);
 	}
 
 	CdStop();
