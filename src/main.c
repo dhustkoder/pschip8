@@ -18,7 +18,7 @@ static const struct GameInfo {
 };
 
 static char fntbuff[256] = { '\0' };
-static uint8_t timbuffer[1024];
+static uint8_t timbuffer[2048];
 
 static const char* game_select_menu(void)
 {
@@ -29,8 +29,7 @@ static const char* game_select_menu(void)
 	int8_t i;
 
 	load_files((void*)&(struct{const char*f;}){"\\ARROW.TIM;1"},
-	           (void*)&(struct{void*p;}){timbuffer},
-		   1);
+	           (void*)&(struct{void*p;}){timbuffer}, 1);
 
 	make_sprite_sheet((void*)&(struct{void*p;}){timbuffer}, 1);
 	set_sprite_pos(0, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);

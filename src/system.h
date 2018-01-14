@@ -31,7 +31,7 @@ typedef uint8_t bool;
 #define loginfo(...)  printf("INFO: " __VA_ARGS__)
 #define logerror(...) printf("ERROR: " __VA_ARGS__)
 
-#define fatal_failure(...) {                     \
+#define fatal_failure(...) {                 \
 	logerror("FATAL FAILURE: " __VA_ARGS__); \
 	logerror("\n");                          \
 	SystemError(_get_errno(), _get_errno()); \
@@ -41,8 +41,8 @@ typedef uint8_t bool;
 
 #define logdebug(...) printf("DEBUG: " __VA_ARGS__)
 
-#define assert_msg(cond, ...) {              \
-	if (!(cond))                         \
+#define assert_msg(cond, ...) {      \
+	if (!(cond))                     \
 		fatal_failure(__VA_ARGS__);  \
 }
 
@@ -98,11 +98,11 @@ static inline void draw_ram_buffer(void* pixels,
                                    const short width,
                                    const short height)
 {
-	extern const DRAWENV* sys_drawenv;
+	extern const DRAWENV* sys_curr_drawenv;
 
 	RECT rect = { 
-		.x = screen_x + sys_drawenv->clip.x,
-		.y = screen_y + sys_drawenv->clip.y,
+		.x = screen_x + sys_curr_drawenv->clip.x,
+		.y = screen_y + sys_curr_drawenv->clip.y,
 		.w = width,
 		.h = height
 	};

@@ -18,8 +18,8 @@ u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 uint16_t sys_paddata;
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
-const DISPENV* sys_dispenv;
-const DRAWENV* sys_drawenv;
+const DISPENV* sys_curr_dispenv;
+const DRAWENV* sys_curr_drawenv;
 
 static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
@@ -49,8 +49,8 @@ static void swap_buffers(void)
 {
 	ResetGraph(1);
 	buffer_idx = 1 - buffer_idx;
-	sys_dispenv = &dispenv[buffer_idx];
-	sys_drawenv = &drawenv[buffer_idx];
+	sys_curr_dispenv = &dispenv[buffer_idx];
+	sys_curr_drawenv = &drawenv[buffer_idx];
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
 }
@@ -187,11 +187,10 @@ void draw_sprites(void)
 	for (i = 0; i < sprites_loaded; ++i) {
 		rect.w = sprites_info[i].w;
 		rect.h = sprites_info[i].h;
-		rect.x = drawenv->clip.x + sprites_info[i].x;
-		rect.y = drawenv->clip.y + sprites_info[i].y;
-		LoadImage2(&rect, (void*)&sprites_img_data[i][0]);
+		rect.x = sys_curr_drawenv->clip.x + sprites_info[i].x;
+		rect.y = sys_curr_drawenv->clip.y + sprites_info[i].y;
+		LoadImage(&rect, (void*)&sprites_img_data[i][0]);
 	}
-	DrawSync(0);
 }
 
 void load_files(const char* const* const filenames, 
@@ -215,6 +214,8 @@ void load_files(const char* const* const filenames,
 
 		if (j == 10)
 			fatal_failure("Couldn't find file %s in CDROM\n", namebuff);
+		
+		loginfo("Found file %s with size: %lu\n", namebuff, fp.size);
 
 		for (j = 0; j < 10; ++j) {
 			CdReadFile(namebuff, (void*)dsts[i], fp.size);
