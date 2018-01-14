@@ -1,13 +1,9 @@
-#include <sys/types.h>
-#include <libgte.h>
-#include <libgpu.h>
 #include "system.h"
 #include "chip8.h"
 
 
 extern bool chip8_draw_flag;
 
-static char fntbuff[256] = { '\0' };
 
 static const struct GameInfo {
 	const char* const name;
@@ -21,6 +17,8 @@ static const struct GameInfo {
 	{"TETRIS", "\\TETRIS.CH8;1" },
 };
 
+static char fntbuff[256] = { '\0' };
+static uint8_t timbuffer[1024];
 
 static const char* game_select_menu(void)
 {
@@ -29,6 +27,13 @@ static const char* game_select_menu(void)
 	uint16_t pad_old = 0;
 	uint16_t pad = 0;
 	int8_t i;
+
+	load_files((void*)&(struct{const char*f;}){"\\ARROW.TIM;1"},
+	           (void*)&(struct{void*p;}){timbuffer},
+		   1);
+
+	make_sprite_sheet((void*)&(struct{void*p;}){timbuffer}, 1);
+	set_sprite_pos(0, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 
 	while (!(pad&BUTTON_CIRCLE)) {
 		for (i = 0; i < ngames; ++i)
@@ -43,6 +48,7 @@ static const char* game_select_menu(void)
 
 		pad_old = pad;
 
+		draw_sprites();
 		FntFlush(-1);
 		update_display(DISP_FLAG_DRAW_SYNC|DISP_FLAG_VSYNC|DISP_FLAG_SWAP_BUFFERS);
 	}
@@ -56,17 +62,10 @@ static void draw_chip8_gfx(void)
 
 	static uint16_t scaled_chip8_gfx[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH];
 
-	static RECT chip8_rect = {
-		.w = CHIP8_SCALED_WIDTH,
-		.h = CHIP8_SCALED_HEIGHT
-	};
-	
-	DRAWENV drawenv;
-
 	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
 	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
 	uint32_t px, py;
-	int16_t i, j;
+	short i, j;
 
 	// scale chip8 graphics
 	for (i = 0; i < CHIP8_SCALED_HEIGHT; ++i) {
@@ -76,14 +75,11 @@ static void draw_chip8_gfx(void)
 			scaled_chip8_gfx[i][j] = chip8_gfx[py][px] ? ~0 : 0;
 		}
 	}
-
-	GetDrawEnv(&drawenv);
-	chip8_rect.x = (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2); 
-	chip8_rect.x += drawenv.clip.x;
-	chip8_rect.y = (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2);
-	chip8_rect.y += drawenv.clip.y;
-
-	LoadImage(&chip8_rect, (void*)scaled_chip8_gfx);
+	
+	draw_ram_buffer(scaled_chip8_gfx,
+	               (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
+	               (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
+	               CHIP8_SCALED_WIDTH, CHIP8_SCALED_HEIGHT);
 }
 
 static void run_game(const char* const gamepath)

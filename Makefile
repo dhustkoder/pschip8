@@ -138,7 +138,7 @@ asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 	@del MAIN.EXE
 
 %.CPE: src/*.c src/*.h
-	ccpsx $(CFLAGS) $(LIBS) src/*.c -o$@
+	ccpsx $(CFLAGS) $(LIBS) src/*.c -o$@,$(patsubst %.CPE,%.MAP,$@),$(patsubst %.CPE,%.SYM,$@)
 
 .PHONY clean:
 	@del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI

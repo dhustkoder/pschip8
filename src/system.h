@@ -3,9 +3,11 @@
 #include <sys/errno.h>
 #include <sys/types.h>
 #include <stdio.h>
+#include <limits.h>
 #include <assert.h>
 #include <libapi.h>
-#include <limits.h>
+#include <libgte.h>
+#include <libgpu.h>
 
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
@@ -81,10 +83,32 @@ void init_system(void);
 void update_display(DispFlag flags);
 void update_timers(void);
 void reset_timers(void);
-void open_cd_files(const char* const * filenames,
-                   uint8_t* const * dsts,
-                   int nfiles);
+void load_files(const char* const * filenames,
+                void* const * dsts,
+                int nfiles);
 
+void make_sprite_sheet(void* const* tim_buffers, const short size);
+void set_sprite_pos(short sprite_id, short x, short y);
+void draw_sprites(void);
+
+
+static inline void draw_ram_buffer(void* pixels,
+                                   const short screen_x,
+                                   const short screen_y,
+                                   const short width,
+                                   const short height)
+{
+	extern const DRAWENV* sys_drawenv;
+
+	RECT rect = { 
+		.x = screen_x + sys_drawenv->clip.x,
+		.y = screen_y + sys_drawenv->clip.y,
+		.w = width,
+		.h = height
+	};
+
+	LoadImage(&rect, pixels);
+}
 
 static inline uint16_t get_paddata(void)
 {
@@ -122,7 +146,6 @@ static inline uint32_t get_usec_now(void)
 	update_timers();
 	return get_usec();
 }
-
 
 
 #endif

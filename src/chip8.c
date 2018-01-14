@@ -129,8 +129,8 @@ static void update_dt_st(void)
 
 void chip8_loadrom(const char* const fname)
 {
-	uint8_t* const p = &ram[0x200];
-	open_cd_files(&fname, &p, 1);
+	void* const p = &ram[0x200];
+	load_files(&fname, &p, 1);
 }
 
 void chip8_reset(void)
