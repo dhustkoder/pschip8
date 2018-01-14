@@ -1,4 +1,5 @@
 #include "system.h"
+#include "sprite.h"
 #include "chip8.h"
 
 
@@ -17,15 +18,33 @@ static const struct GameInfo {
 	{"TETRIS", "\\TETRIS.CH8;1" },
 };
 
-static char fntbuff[256] = { '\0' };
-
 static const char* game_select_menu(void)
 {
+	static uint8_t spritesheet[2048];
+
+	static Sprite sprites[1] = {
+		// ARROW
+		{ 
+			.sheetpos = { .x = 0, .y = 0 },
+			.scrpos = { .x = -1, .y = -1 },
+			.size = { .w = 22, .h = 21 }
+		}
+	};
+
 	const int8_t ngames = sizeof(games) / sizeof(games[0]);
 	int8_t cursor = 0;
 	uint16_t pad_old = 0;
 	uint16_t pad = 0;
 	int8_t i;
+
+	load_files((void*)&(struct{const char*p;}){.p="\\ARROW.TIM"},
+	           (void*)&(struct{void*p;}){.p=spritesheet},
+		   1);
+	
+	load_sprite_sheet(spritesheet);
+
+	sprites[0].scrpos.x = (SCREEN_WIDTH / 2) - (sprites[0].size.w / 2);
+	sprites[0].scrpos.y = (SCREEN_HEIGHT / 2) - (sprites[0].size.h / 2);
 
 	while (!(pad&BUTTON_CIRCLE)) {
 		for (i = 0; i < ngames; ++i)
@@ -41,6 +60,7 @@ static const char* game_select_menu(void)
 		pad_old = pad;
 
 		FntFlush(-1);
+		draw_sprites(sprites, 1);
 		update_display(DISP_FLAG_DRAW_SYNC|DISP_FLAG_VSYNC|DISP_FLAG_SWAP_BUFFERS);
 	}
 
@@ -75,6 +95,8 @@ static void draw_chip8_gfx(void)
 
 static void run_game(const char* const gamepath)
 {
+	static char fntbuff[256];
+
 	const uint32_t usecs_per_step = (1000000u / CHIP8_FREQ);
 
 	uint32_t timer = 0;
@@ -85,6 +107,7 @@ static void run_game(const char* const gamepath)
 	DispFlag dispflags = 0;
 	uint16_t pad;
 
+	fntbuff[0] = '\0';
 	chip8_loadrom(gamepath);
 	chip8_reset();
 	reset_timers();
@@ -136,7 +159,7 @@ int main(void)
 
 	init_system();
 
-	FntLoad(SCREEN_WIDTH, 0);
+	FntLoad(SCREEN_WIDTH, SCREEN_HEIGHT);
 	SetDumpFnt(FntOpen(0, 12, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 256));
 
 	for (;;) {
