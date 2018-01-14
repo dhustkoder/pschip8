@@ -18,7 +18,6 @@ static const struct GameInfo {
 };
 
 static char fntbuff[256] = { '\0' };
-static uint8_t timbuffer[2048];
 
 static const char* game_select_menu(void)
 {
@@ -27,12 +26,6 @@ static const char* game_select_menu(void)
 	uint16_t pad_old = 0;
 	uint16_t pad = 0;
 	int8_t i;
-
-	load_files((void*)&(struct{const char*f;}){"\\ARROW.TIM;1"},
-	           (void*)&(struct{void*p;}){timbuffer}, 1);
-
-	make_sprite_sheet((void*)&(struct{void*p;}){timbuffer}, 1);
-	set_sprite_pos(0, SCREEN_WIDTH / 2, SCREEN_HEIGHT / 2);
 
 	while (!(pad&BUTTON_CIRCLE)) {
 		for (i = 0; i < ngames; ++i)
@@ -47,7 +40,6 @@ static const char* game_select_menu(void)
 
 		pad_old = pad;
 
-		draw_sprites();
 		FntFlush(-1);
 		update_display(DISP_FLAG_DRAW_SYNC|DISP_FLAG_VSYNC|DISP_FLAG_SWAP_BUFFERS);
 	}

@@ -87,10 +87,6 @@ void load_files(const char* const * filenames,
                 void* const * dsts,
                 int nfiles);
 
-void make_sprite_sheet(void* const* tim_buffers, const short size);
-void set_sprite_pos(short sprite_id, short x, short y);
-void draw_sprites(void);
-
 
 static inline void draw_ram_buffer(void* pixels,
                                    const short screen_x,

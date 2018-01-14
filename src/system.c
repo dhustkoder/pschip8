@@ -24,13 +24,8 @@ const DRAWENV* sys_curr_drawenv;
 static uint32_t usec_timer_last;
 static uint16_t rcnt1_last;
 
-static uint8_t buffer_idx;
 static DISPENV dispenv[2];
 static DRAWENV drawenv[2];
-
-static short sprites_loaded;
-static uint8_t sprites_img_data[64][1024];
-static RECT sprites_info[64];
 
 
 static inline void update_pads(void)
@@ -47,6 +42,8 @@ static void vsync_callback(void)
 
 static void swap_buffers(void)
 {
+	static uint8_t buffer_idx = 1;
+
 	ResetGraph(1);
 	buffer_idx = 1 - buffer_idx;
 	sys_curr_dispenv = &dispenv[buffer_idx];
@@ -107,8 +104,6 @@ void init_system(void)
 	drawenv[0].g0 = drawenv[1].g0 = 50;
 	drawenv[0].b0 = drawenv[1].b0 = 50;
 
-	buffer_idx = 0;
-	sprites_loaded = 0;
 	swap_buffers();
 	SetDispMask(1);
 }
@@ -156,41 +151,6 @@ void reset_timers(void)
 	ResetRCnt(RCntCNT1);
 	StartRCnt(RCntCNT1);
 	ExitCriticalSection();
-}
-
-void make_sprite_sheet(void* const* timbuffers, const short size)
-{
-	short i;
-	for (i = 0; i < size; ++i) {
-		sprites_info[i].w = ((uint16_t*)timbuffers[i])[0];
-		sprites_info[i].h = ((uint16_t*)timbuffers[i])[1];
-		sprites_info[i].x = 0;
-		sprites_info[i].y = 0;
-		memcpy(&sprites_img_data[i][0],
-		      ((uint8_t*)timbuffers[i]) + sizeof(uint32_t),
-		      sprites_info[i].w * sprites_info[i].h * sizeof(uint16_t));
-	}
-
-	sprites_loaded = size;
-}
-
-void set_sprite_pos(short sprite_id, short x, short y)
-{
-	sprites_info[sprite_id].x = x;
-	sprites_info[sprite_id].y = y;
-}
-
-void draw_sprites(void)
-{
-	short i;
-	RECT rect;
-	for (i = 0; i < sprites_loaded; ++i) {
-		rect.w = sprites_info[i].w;
-		rect.h = sprites_info[i].h;
-		rect.x = sys_curr_drawenv->clip.x + sprites_info[i].x;
-		rect.y = sys_curr_drawenv->clip.y + sprites_info[i].y;
-		LoadImage(&rect, (void*)&sprites_img_data[i][0]);
-	}
 }
 
 void load_files(const char* const* const filenames, 
