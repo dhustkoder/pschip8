@@ -208,13 +208,13 @@ void load_files(const char* const* const filenames,
 		strcpy(namebuff, filenames[i]);
 		loginfo("LOADING %s...\n", namebuff);
 
-		for (j = 0; j < 10; j++) {
-			if (!CdSearchFile(&fp, namebuff))
-				continue;
+		for (j = 0; j < 10; ++j) {
+			if (CdSearchFile(&fp, namebuff) != 0)
+				break;
 		}
 
 		if (j == 10)
-			fatal_failure("Couldn't read file %s from CDROM\n", namebuff);
+			fatal_failure("Couldn't find file %s in CDROM\n", namebuff);
 
 		for (j = 0; j < 10; ++j) {
 			CdReadFile(namebuff, (void*)dsts[i], fp.size);
