@@ -25,9 +25,9 @@ static const char* game_select_menu(void)
 	static Sprite sprites[1] = {
 		// ARROW
 		{ 
-			.sheetpos = { .x = 0, .y = 0 },
-			.scrpos = { .x = -1, .y = -1 },
-			.size = { .w = 22, .h = 21 }
+			.sheetpos = { .x = 0, .y = 0   },
+			.scrpos   = { .x = -1, .y = -1 },
+			.size     = { .w = 22, .h = 21 }
 		}
 	};
 
@@ -37,7 +37,7 @@ static const char* game_select_menu(void)
 	uint16_t pad = 0;
 	int8_t i;
 
-	load_files((void*)&(struct{const char*p;}){.p="\\ARROW.TIM"},
+	load_files((void*)&(struct{const char*p;}){.p="\\ARROW.TIM;1"},
 	           (void*)&(struct{void*p;}){.p=spritesheet},
 		   1);
 	
@@ -159,7 +159,7 @@ int main(void)
 
 	init_system();
 
-	FntLoad(SCREEN_WIDTH, SCREEN_HEIGHT);
+	FntLoad(960, 0);
 	SetDumpFnt(FntOpen(0, 12, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 256));
 
 	for (;;) {
