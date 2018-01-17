@@ -132,7 +132,6 @@ void load_bkg_image(const char* const cdpath)
 	};
 
 	LoadImage2(&bkg_rect, p);
-
 	bkg_img_loaded = true;
 
 	free(p);
