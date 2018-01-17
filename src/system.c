@@ -89,6 +89,11 @@ void init_system(void)
 
 	dispenv[0].screen.w = dispenv[1].screen.w = SCREEN_WIDTH;
 	dispenv[0].screen.h = dispenv[1].screen.h = SCREEN_HEIGHT;
+
+	#ifdef DISPLAY_TYPE_PAL
+	dispenv[0].screen.y = dispenv[1].screen.y = 8;
+	#endif
+
 	drawenv[0].isbg = drawenv[1].isbg = 1;
 	drawenv[0].r0 = drawenv[1].r0 = 50;
 	drawenv[0].g0 = drawenv[1].g0 = 50;
@@ -131,7 +136,7 @@ void load_bkg_image(const char* const cdpath)
 		.h = ((uint16_t*)p)[1]
 	};
 
-	LoadImage2(&bkg_rect, ((uint32_t*)p) + 1);
+	LoadImage2(&bkg_rect, (void*)(((uint32_t*)p) + 1));
 	bkg_img_loaded = true;
 
 	free(p);
