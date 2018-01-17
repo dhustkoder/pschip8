@@ -52,9 +52,9 @@ static void swap_buffers(void)
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
 	if (bkg_img_loaded) {
-		MoveImage2(&bkg_rect,
+		MoveImage(&bkg_rect,
 		          sys_curr_drawenv->clip.x,
-			  sys_curr_drawenv->clip.y);
+		          sys_curr_drawenv->clip.y);
 	}
 }
 
@@ -95,7 +95,7 @@ void init_system(void)
 	drawenv[0].b0 = drawenv[1].b0 = 127;
 
 	// clears the whole framebuffer 
-	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 0, 0, 0);
+	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 255, 0, 255);
 
 	#ifdef DEBUG
 	SetGraphDebug(1);
@@ -131,7 +131,7 @@ void load_bkg_image(const char* const cdpath)
 		.h = ((uint16_t*)p)[1]
 	};
 
-	LoadImage2(&bkg_rect, p);
+	LoadImage2(&bkg_rect, ((uint32_t*)p) + 1);
 	bkg_img_loaded = true;
 
 	free(p);
