@@ -89,7 +89,6 @@ void init_system(void)
 
 	dispenv[0].screen.w = dispenv[1].screen.w = SCREEN_WIDTH;
 	dispenv[0].screen.h = dispenv[1].screen.h = SCREEN_HEIGHT;
-
 	#ifdef DISPLAY_TYPE_PAL
 	dispenv[0].screen.y = dispenv[1].screen.y = 8;
 	#endif
