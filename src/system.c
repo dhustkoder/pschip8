@@ -32,6 +32,8 @@ static SPRT sprt_prims[32];
 static unsigned long ot[64];
 static unsigned long tpage_id;
 static RECT spritesheet_rect;
+static RECT bkg_rect;
+static bool bkg_img_loaded;
 
 static inline void update_pads(void)
 {
@@ -49,6 +51,11 @@ static void swap_buffers(void)
 	sys_curr_drawenv = &drawenv[buffer_idx];
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
+	if (bkg_img_loaded) {
+		MoveImage2(&bkg_rect,
+		          sys_curr_drawenv->clip.x,
+			  sys_curr_drawenv->clip.y);
+	}
 }
 
 static void vsync_callback(void)
@@ -71,7 +78,9 @@ void init_system(void)
 
 	SpuInit();
 	PadInit(0);
+
 	sys_paddata = 0;
+	bkg_img_loaded = false;
 
 	SetDefDispEnv(&dispenv[0], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SetDefDrawEnv(&drawenv[0], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
@@ -110,11 +119,29 @@ void update_display(const DispFlag flags)
 		swap_buffers();
 }
 
+void load_bkg_image(const char* const cdpath)
+{
+	void* const p = malloc((2048 * 114) + 2048);
+	load_files(&cdpath, &p, 1);
+
+	bkg_rect = (RECT) {
+		.x = SCREEN_WIDTH,
+		.y = SCREEN_HEIGHT,
+		.w = ((uint16_t*)p)[0],
+		.h = ((uint16_t*)p)[1]
+	};
+
+	LoadImage2(&bkg_rect, p);
+
+	bkg_img_loaded = true;
+
+	free(p);
+}
 
 void load_sprite_sheet(const char* const cdpath)
 {
 	short i;
-	void* const p = malloc((1024 * 228) + 2048);
+	void* const p = malloc((2048 * 114) + 2048);
 
 	load_files(&cdpath, &p, 1);
 

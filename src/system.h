@@ -90,6 +90,7 @@ typedef struct Sprite {
 
 void init_system(void);
 void update_display(DispFlag flags); // shall be called once every frame.
+void load_bkg_image(const char* cdpath);
 void load_sprite_sheet(const char* cdpath);
 void draw_sprites(const Sprite* sprites, short size);
 void update_timers(void);

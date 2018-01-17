@@ -184,6 +184,7 @@ int main(void)
 	#endif
 
 	load_sprite_sheet("\\HAND.TIM;1");
+	load_bkg_image("\\BKG.TIM;1");
 
 	FntLoad(960, 0);
 
