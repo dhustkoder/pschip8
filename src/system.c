@@ -33,7 +33,7 @@ static uint16_t rcnt1_last;
 static Vec2 drawvec[2];
 static Vec2 dispvec[2];
 
-static GsOT* current_oth;
+static GsOT *curr_drawot, *curr_dispot;
 static GsOT oth[2];
 static GsOT_TAG otu[2][1<<10];
 static PACKET gpu_pckt_buff[2][64 * 1000];
@@ -107,8 +107,12 @@ void init_system(void)
 	oth[1].org = otu[1];
 	GsClearOt(0, 0, &oth[0]);
 	GsClearOt(0, 0, &oth[1]);
-	current_oth = &oth[GsGetActiveBuff()];
-	GsSetWorkBase(gpu_pckt_buff[GsGetActiveBuff()]);
+	i = GsGetActiveBuff();
+	curr_dispot = &oth[i];
+	curr_drawot = &oth[1 - i];
+	sys_curr_dispvec = &dispvec[i];
+	sys_curr_drawvec = &drawvec[1 - i];
+	GsSetWorkBase(gpu_pckt_buff[1 - i]);
 
 	InitHeap3((void*)0x8003A000, ((0x801E9CE6 - 0x8003A000) / 8u) * 8u);
 
@@ -133,24 +137,23 @@ void update_display(const DispFlag flags)
 		if (flags&DISPFLAG_VSYNC)
 			VSync(0);
 
-		GsSwapDispBuff();
-		GsDrawOt(current_oth);
+		GsDrawOt(curr_drawot);
 
+		GsSwapDispBuff();
 		// begin new frame
 		buffer_id = GsGetActiveBuff();
-		current_oth = &oth[buffer_id];
-		sys_curr_drawvec = &drawvec[buffer_id];
+		curr_drawot = &oth[1 - buffer_id];
+		curr_dispot = &oth[buffer_id];
+		sys_curr_drawvec = &drawvec[1 - buffer_id];
 		sys_curr_dispvec = &dispvec[buffer_id];
-		GsSetWorkBase(gpu_pckt_buff[buffer_id]);
-		GsClearOt(0, 0, current_oth);
-
+		GsSetWorkBase(gpu_pckt_buff[1 - buffer_id]);
+		GsClearOt(0, 0, curr_drawot);
 		if (bkg_loaded) {
 			draw_vram_buffer(0, 0, bkg_rect.x, bkg_rect.y,
-			                 bkg_rect.w, bkg_rect.h);
+		                     bkg_rect.w, bkg_rect.h);
 		} else {
-			GsSortClear(50, 50, 128, current_oth);
+			GsSortClear(50, 50, 128, curr_drawot);
 		}
-
 	} else if (flags&DISPFLAG_VSYNC) {
 		VSync(0);
 	}
@@ -211,7 +214,7 @@ void draw_sprites(const Sprite* const sprites, const short nsprites)
 		gs_sprites[i].h = sprites[i].size.h;
 		gs_sprites[i].u = sprites[i].tpos.u;
 		gs_sprites[i].v = sprites[i].tpos.v;
-		GsSortFastSprite(&gs_sprites[i], current_oth, OTENTRY_SPRITE);
+		GsSortFastSprite(&gs_sprites[i], curr_drawot, OTENTRY_SPRITE);
 	}
 }
 
