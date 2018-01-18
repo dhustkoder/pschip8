@@ -111,6 +111,15 @@ static void update_chip8_gfx(void)
 static void run_game(const char* const gamepath)
 {
 	extern bool chip8_draw_flag;
+	extern Chip8Key chip8_keys;
+
+	static const Button button_tbl[] = {
+		BUTTON_DOWN, BUTTON_L1, BUTTON_UP, BUTTON_R1,
+		BUTTON_LEFT, BUTTON_CROSS, BUTTON_RIGHT,
+		BUTTON_L2, BUTTON_DOWN, BUTTON_R2,
+		BUTTON_START, BUTTON_SELECT, BUTTON_SQUARE,
+		BUTTON_CIRCLE, BUTTON_TRIANGLE
+	};
 
 	static char fntbuff[256];
 
@@ -121,8 +130,10 @@ static void run_game(const char* const gamepath)
 	uint32_t fps_last = 0;
 	int fps = 0;
 	int steps = 0;
-	uint16_t pad;
+	Button pad_old = 0;
+	Button pad;
 	DispFlag dispflags;
+	int i;
 
 	fntbuff[0] = '\0';
 	SetDumpFnt(run_game_fnt_stream);
@@ -132,8 +143,19 @@ static void run_game(const char* const gamepath)
 
 	for (;;) {
 		pad = get_paddata();
-		if ((pad&BUTTON_START) && (pad&BUTTON_SELECT))
-			break;
+		if (pad != pad_old) {
+			if ((pad&BUTTON_START) && (pad&BUTTON_SELECT))
+				break;
+
+			for (i = 0; i < sizeof(button_tbl)/sizeof(button_tbl[0]); ++i) {
+				if (pad&button_tbl[i])
+					chip8_keys |= 0x1<<i;
+				else
+					chip8_keys &= ~(0x01<<i);
+			}
+
+			pad_old = pad;
+		}
 
 
 		timer = get_usec();

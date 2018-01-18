@@ -4,8 +4,9 @@
 #include "chip8.h"
 
 
-bool chip8_draw_flag;
 bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+bool chip8_draw_flag;
+Chip8Key chip8_keys;
 
 
 static struct {
@@ -77,41 +78,6 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 	}
 }
 
-static void update_keys(void)
-{
-	static const uint8_t keytable[14] = {
-		0x2, 0x8, 0x4, 0x6,
-		0x5, 0x1, 0x3, 0x7,
-		0xf, 0xa, 0xa, 0x0,
-		0xb, 0xc
-	};
-
-	static const uint16_t padtable[14] = {
-		BUTTON_UP, BUTTON_DOWN, BUTTON_LEFT, BUTTON_RIGHT,
-		BUTTON_CIRCLE, BUTTON_CROSS, BUTTON_SQUARE, BUTTON_TRIANGLE,
-		BUTTON_START, BUTTON_SELECT, BUTTON_R1, BUTTON_R2,
-		BUTTON_L1, BUTTON_L2
-	};
-
-	uint16_t paddata;
-	uint8_t i;
-	bool paddata_change;
-
-	paddata = get_paddata();
-	paddata_change = paddata != paddata_old;
-
-	if (paddata_change) {
-		pressed_key = 0xFF;
-		for (i = 0; i < 14; ++i) {
-			if (paddata&padtable[i]) {
-				pressed_key = keytable[i];
-				break;
-			}
-		}
-		paddata_old = paddata;
-	}
-}
-
 static void update_dt_st(void)
 {
 	static uint32_t msec_last = 0;
@@ -158,15 +124,11 @@ void chip8_step(void)
 	uint16_t opcode;
 
 	update_dt_st();
-	update_keys();
 
-	if (waiting_keypress) {
-		if (pressed_key == 0xFF) {
-			return;
-		} else {
-			waiting_keypress = false;
-		}
-	}
+	if (waiting_keypress && !chip8_keys)
+		return;
+	else if (waiting_keypress)
+		waiting_keypress = false;
 
 	assert_msg(rgs.pc <= 0x0FFF, "Chip8 PC Register out of range");
 	ophi = ram[rgs.pc++];
@@ -272,10 +234,10 @@ void chip8_step(void)
 		break;
 	case 0x0E:
 		if (oplo == 0x9E) { // Ex9E - SKP Vx Skip next instruction if key with the value of Vx is pressed.
-			if (pressed_key == rgs.v[x])
+			if ((0x1<<rgs.v[x])&chip8_keys)
 				rgs.pc += 2;
 		} else if (oplo == 0xA1) { // ExA1 - SKNP Vx Skip next instruction if key with the value of Vx is not pressed.
-			if (pressed_key != rgs.v[x])
+			if (!((0x1<<rgs.v[x])&chip8_keys))
 				rgs.pc += 2;
 		}
 		break;
@@ -286,8 +248,7 @@ void chip8_step(void)
 			rgs.v[x] = rgs.dt;
 			break;
 		case 0x0A: // Fx0A - LD Vx, K Wait for a key press, store the value of the key in Vx.
-			paddata_old = 0x0000;
-			pressed_key = 0xFF;
+			chip8_keys = 0x0000;
 			waiting_keypress = true;
 			break;
 		case 0x15: // Fx15 - LD DT, Vx Set delay timer = Vx.
