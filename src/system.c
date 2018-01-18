@@ -76,6 +76,7 @@ void init_system(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
+	InitHeap3((void*)0x00030000, ((0x001FFFFF - 0x00030000) / 8u) * 8u);
 	SpuInit();
 	PadInit(0);
 
@@ -125,7 +126,7 @@ void update_display(const DispFlag flags)
 
 void load_bkg_image(const char* const cdpath)
 {
-	void* const p = malloc((2048 * 114) + 2048);
+	void* const p = malloc3((2048 * 114) + 2048);
 	load_files(&cdpath, &p, 1);
 
 	bkg_rect = (RECT) {
@@ -138,13 +139,13 @@ void load_bkg_image(const char* const cdpath)
 	LoadImage2(&bkg_rect, (void*)(((uint32_t*)p) + 1));
 	bkg_img_loaded = true;
 
-	free(p);
+	free3(p);
 }
 
 void load_sprite_sheet(const char* const cdpath)
 {
 	short i;
-	void* const p = malloc((2048 * 114) + 2048);
+	void* const p = malloc3((2048 * 114) + 2048);
 
 	load_files(&cdpath, &p, 1);
 
@@ -166,7 +167,7 @@ void load_sprite_sheet(const char* const cdpath)
 	                     spritesheet_rect.w, spritesheet_rect.h);
 
 	DrawSync(0);
-	free(p);
+	free3(p);
 }
 
 void draw_sprites(const Sprite* const sprites, const short size)
