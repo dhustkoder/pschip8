@@ -22,11 +22,10 @@ typedef uint8_t bool;
 #define true  ((bool)1)
 
 #define SCREEN_WIDTH   (320)
+#define SCREEN_HEIGHT  (240)
 #ifdef DISPLAY_TYPE_PAL
-#define SCREEN_HEIGHT  (256)
 #define NSEC_PER_HSYNC (64000u)
 #else
-#define SCREEN_HEIGHT  (240)
 #define NSEC_PER_HSYNC (63560u)
 #endif
 

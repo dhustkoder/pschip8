@@ -76,7 +76,7 @@ void init_system(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
-	InitHeap3((void*)0x00030000, ((0x001FFFFF - 0x00030000) / 8u) * 8u);
+	InitHeap3((void*)0x80030000, ((0x801FFFFF - 0x80030000) / 8u) * 8u);
 	SpuInit();
 	PadInit(0);
 
