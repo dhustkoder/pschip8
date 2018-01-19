@@ -70,13 +70,7 @@ void init_system(void)
 	ResetCallback();
 	ResetGraph(0);
 
-	#ifdef DISPLAY_TYPE_PAL
-	SetVideoMode(MODE_PAL);
-	#else
-	SetVideoMode(MODE_NTSC);
-	#endif
-
-	InitHeap3((void*)0x80030000, ((0x801FFFFF - 0x80030000) / 8u) * 8u);
+	InitHeap3((void*)0x80030000, ((0x801E9CE6 - 0x80030000) / 8u) * 8u);
 	SpuInit();
 	PadInit(0);
 
