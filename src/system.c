@@ -1,14 +1,20 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libmath.h>
-#include <libgte.h>
-#include <libgpu.h>
 #include <libetc.h>
 #include <libcd.h>
+#include <libgte.h>
+#include <libgpu.h>
+#include <libgs.h>
 #include <libspu.h>
 #include <libapi.h>
 #include "chip8.h"
 #include "system.h"
+
+
+enum OTEntry {
+	OTENTRY_SPRITE
+};
 
 
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
@@ -19,38 +25,21 @@ uint16_t sys_paddata;
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
 
-const DISPENV* sys_curr_dispenv;
-const DRAWENV* sys_curr_drawenv;
-
 static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 
-static DISPENV dispenv[2];
-static DRAWENV drawenv[2];
-
-static SPRT sprt_prims[32];
-static unsigned long ot[2];
-static unsigned long tpage_id;
-static RECT spritesheet_rect;
-static RECT bkg_rect;
-static bool bkg_img_loaded;
+static GsOT* current_oth;
+static GsOT oth[2];
+static GsOT_TAG otu[2][1<<10];
+static PACKET gpu_pckt_area[2][64 * 1000];
+static bool bkg_loaded;
+static GsSPRITE bkg_sprite;
+static GsSPRITE gs_sprites[MAX_SPRITES];
 
 static inline void update_pads(void)
 {
 	extern uint16_t sys_paddata;
 	sys_paddata = PadRead(0);
-}
-
-static void swap_buffers(void)
-{
-	static uint8_t buffer_idx = 1;
-
-	ResetGraph(1);
-	buffer_idx = 1 - buffer_idx;
-	sys_curr_dispenv = &dispenv[buffer_idx];
-	sys_curr_drawenv = &drawenv[buffer_idx];
-	PutDispEnv(&dispenv[buffer_idx]);
-	PutDrawEnv(&drawenv[buffer_idx]);
 }
 
 static void vsync_callback(void)
@@ -62,6 +51,8 @@ static void vsync_callback(void)
 
 void init_system(void)
 {
+	short i;
+
 	ResetCallback();
 	ResetGraph(0);
 
@@ -77,117 +68,140 @@ void init_system(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
-	InitHeap3((void*)0x80030000, ((0x801E9CE6 - 0x80030000) / 8u) * 8u);
+	#ifdef DISPLAY_TYPE_PAL
+	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsINTER|GsOFSGPU, 1, 0);
+	#else
+	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU, 1, 0);
+	#endif
+	GsDefDispBuff(0, 0, 0, SCREEN_HEIGHT);
+
+	memset(gs_sprites, 0, sizeof(GsSPRITE) * MAX_SPRITES);
+	memset(&bkg_sprite, 0, sizeof bkg_sprite);
+
+	bkg_sprite.attribute = (1<<6);
+	bkg_sprite.attribute = (1<<25);
+	bkg_sprite.scalex = 4096;
+	bkg_sprite.scaley = 4096;
+	for (i = 0; i < MAX_SPRITES; ++i) {
+		gs_sprites[i].attribute = (1<<25);
+		gs_sprites[i].attribute = (1<<6);
+		gs_sprites[i].scalex = 4096;
+		gs_sprites[i].scaley = 4096;
+	}
+
+	oth[0].length = 10;
+	oth[1].length = 10;
+	oth[0].org = otu[0];
+	oth[1].org = otu[1];
+	GsClearOt(0, 0, &oth[0]);
+	GsClearOt(0, 0, &oth[1]);
+	current_oth = &oth[GsGetActiveBuff()];
+
+	InitHeap3((void*)0x8003A000, ((0x801E9CE6 - 0x8003A000) / 8u) * 8u);
 	SpuInit();
 	PadInit(0);
 
 	sys_paddata = 0;
-	bkg_img_loaded = false;
-
-	SetDefDispEnv(&dispenv[0], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDrawEnv(&drawenv[0], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDispEnv(&dispenv[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDrawEnv(&drawenv[1], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-	dispenv[0].screen.w = dispenv[1].screen.w = SCREEN_WIDTH;
-	dispenv[0].screen.h = dispenv[1].screen.h = SCREEN_HEIGHT;
-	#ifdef DISPLAY_TYPE_PAL
-	dispenv[0].screen.y = dispenv[1].screen.y = 8;
-	#endif
-
-	drawenv[0].isbg = drawenv[1].isbg = 1;
-	drawenv[0].r0 = drawenv[1].r0 = 50;
-	drawenv[0].g0 = drawenv[1].g0 = 50;
-	drawenv[0].b0 = drawenv[1].b0 = 127;
+	bkg_loaded = false;
 
 	reset_timers();
 	VSyncCallback(vsync_callback);
 	SetDispMask(1);
-	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 255, 0, 255);
 	update_display(DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
 }
 
 void update_display(const DispFlag flags)
 {
-	if (flags&DISPFLAG_DRAWSYNC)
-		DrawSync(0);
-
+	int buffer_id;
 	if (flags&DISPFLAG_SWAPBUFFERS) {
-		swap_buffers();
-		if (bkg_img_loaded) {
-			MoveImage(&bkg_rect,
-			          sys_curr_drawenv->clip.x,
-			          sys_curr_drawenv->clip.y);
-		}
-	}
+		// finish frame
+		if (flags&DISPFLAG_DRAWSYNC)
+			DrawSync(0);
+		if (flags&DISPFLAG_VSYNC)
+			VSync(0);
 
-	if (flags&DISPFLAG_VSYNC)
+		GsSwapDispBuff();
+
+		if (bkg_loaded) {
+			//GsSortFastSprite(&bkg_sprite, current_oth, OTENTRY_BKG);
+		} else {
+			GsSortClear(50, 50, 128, current_oth);
+		}
+
+		GsDrawOt(current_oth);
+
+		// begin new frame
+		buffer_id = GsGetActiveBuff();
+		current_oth = &oth[buffer_id];
+		GsSetWorkBase(gpu_pckt_area[buffer_id]);
+		GsClearOt(0, 0, current_oth);
+	} else if (flags&DISPFLAG_VSYNC) {
 		VSync(0);
+	}
 }
 
 void load_bkg_image(const char* const cdpath)
 {
+	RECT rect;
 	void* p = NULL;
+
 	load_files(&cdpath, &p, 1);
 
-	bkg_rect = (RECT) {
+	rect = (RECT) {
 		.x = SCREEN_WIDTH,
 		.y = SCREEN_HEIGHT,
 		.w = ((uint16_t*)p)[0],
 		.h = ((uint16_t*)p)[1]
 	};
 
-	LoadImage2(&bkg_rect, (void*)(((uint32_t*)p) + 1));
-	bkg_img_loaded = true;
+	bkg_sprite.tpage = LoadTPage((void*)(((uint32_t*)p) + 1), 2, 0,
+	                             rect.x, rect.y, rect.w, rect.h);
+	bkg_sprite.w = rect.w;
+	bkg_sprite.h = rect.h;
+	bkg_loaded = true;
 
+	DrawSync(0);
 	free3(p);
 }
 
 void load_sprite_sheet(const char* const cdpath)
 {
 	short i;
+	RECT rect;
+	u_short tpage_id;
 	void* p = NULL;
 
 	load_files(&cdpath, &p, 1);
 
-	spritesheet_rect = (RECT){
+	rect = (RECT){
 		.x = SCREEN_WIDTH,
 		.y = 0,
 		.w = ((uint16_t*)p)[0],
 		.h = ((uint16_t*)p)[1]
 	};
 
-	for (i = 0; i < 32; ++i) {
-		SetSprt(&sprt_prims[i]);
-		setRGB0(&sprt_prims[i], 127, 127, 127);
-	}
+	tpage_id = LoadTPage((void*)(((uint32_t*)p) + 1), 2, 0,
+	                     rect.x, rect.y, rect.w, rect.h);
 
-	tpage_id = LoadTPage((void*)(((uint32_t*)p) + 1),
-	                     2, 0,
-	                     spritesheet_rect.x, spritesheet_rect.y,
-	                     spritesheet_rect.w, spritesheet_rect.h);
+	for (i = 0; i < MAX_SPRITES; ++i)
+		gs_sprites[i].tpage = tpage_id;
 
 	DrawSync(0);
 	free3(p);
 }
 
-void draw_sprites(const Sprite* const sprites, const short size)
+void draw_sprites(const Sprite* const sprites, const short nsprites)
 {
-	DR_TPAGE tpage;
 	short i;
-
-	ClearOTag(ot, sizeof(ot) / sizeof(ot[0]));
-	SetDrawTPage(&tpage, 0, 1, tpage_id);
-	AddPrim(&ot[0], &tpage);
-
-	for (i = 0; i < size; ++i) {
-		setXY0(&sprt_prims[i], sprites[i].spos.x, sprites[i].spos.y);
-		setUV0(&sprt_prims[i], sprites[i].tpos.u, sprites[i].tpos.v);
-		setWH(&sprt_prims[i], sprites[i].size.w, sprites[i].size.h);
+	for (i = 0; i < nsprites; ++i) {
+		gs_sprites[i].x = sprites[i].spos.x;
+		gs_sprites[i].y = sprites[i].spos.y;
+		gs_sprites[i].w = sprites[i].size.w;
+		gs_sprites[i].h = sprites[i].size.h;
+		gs_sprites[i].u = sprites[i].tpos.u;
+		gs_sprites[i].v = sprites[i].tpos.v;
+		GsSortFastSprite(&gs_sprites[i], current_oth, OTENTRY_SPRITE);
 	}
-
-	AddPrims(&ot[1], &sprt_prims[0], &sprt_prims[size - 1]);
-	DrawOTag(ot);
 }
 
 void update_timers(void)

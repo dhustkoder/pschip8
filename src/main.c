@@ -27,9 +27,9 @@ static char fntbuff[512];
 static const char* game_select_menu(void)
 {
 	static Sprite hand = {
-		.tpos  = { .u = 0, .v = 0   },
 		.spos  = { .x = 0, .y = 8   },
-		.size  = { .w = 26, .h = 14 },
+		.size  = { .w = 26,.h = 14  },
+		.tpos  = { .u = 0, .v = 0   }
 	};
 	static int8_t cursor = 0;
 	static bool movefwd = true;
@@ -43,6 +43,7 @@ static const char* game_select_menu(void)
 	int fps = 0;
 	char* fntbuff_ptr = fntbuff;
 	bool need_disp_update = true;
+	DispFlag dispflags;
 	int8_t i;
 
 	SetDumpFnt(game_select_menu_fnt_stream);
@@ -86,14 +87,16 @@ static const char* game_select_menu(void)
 			}
 		}
 
+		dispflags = DISPFLAG_VSYNC;
 		if (need_disp_update) {
 			FntPrint(fntbuff);
 			FntFlush(-1);
 			draw_sprites(&hand, 1);
-			update_display(DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS);
 			need_disp_update = false;
+			dispflags |= DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS;
 		}
 
+		update_display(dispflags);
 		++fps;
 	}
 
@@ -185,7 +188,7 @@ static void run_game(const char* const gamepath)
 			last_step += usecs_per_step;
 		}
 		
-		dispflags = 0;
+		dispflags = DISPFLAG_VSYNC;
 
 		if (chip8_draw_flag) {
 			FntPrint(fntbuff);
@@ -224,7 +227,7 @@ int main(void)
 	#endif
 
 	load_sprite_sheet("\\HAND.TIM;1");
-	load_bkg_image("\\BKG.TIM;1");
+	//load_bkg_image("\\BKG.TIM;1");
 
 	FntLoad(960, 0);
 
