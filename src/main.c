@@ -22,6 +22,7 @@ static const struct GameInfo {
 
 static long game_select_menu_fnt_stream;
 static long run_game_fnt_stream;
+static char fntbuff[512];
 
 static const char* game_select_menu(void)
 {
@@ -37,33 +38,44 @@ static const char* game_select_menu(void)
 
 	uint16_t pad_old = 0;
 	uint16_t pad = 0;
-	int last_move = 0;
+	uint32_t last_move = 0;
+	uint32_t last_fps = 0;
+	int fps = 0;
+	char* fntbuff_ptr = fntbuff;
+	bool need_disp_update = true;
 	int8_t i;
 
 	SetDumpFnt(game_select_menu_fnt_stream);
 	reset_timers();
 
-	while (!(pad&BUTTON_CIRCLE)) {
-		for (i = 0; i < ngames; ++i)
-			FntPrint("%s\n\n", games[i].name);
+	for (i = 0; i < ngames; ++i)
+		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n\n", games[i].name);
 
-		FntPrint("%d:%d:%d", get_msec()/1000u,
-		         get_msec()%1000, get_usec()%1000);
+	while (!(pad&BUTTON_CIRCLE)) {
+		if ((get_msec() - last_fps) >= 1000u) {
+			last_fps = get_msec();
+			sprintf(fntbuff_ptr, "FPS: %d\n", fps);
+			fps = 0;
+			need_disp_update = true;
+		}
 
 		pad = get_paddata();
 
 		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN)) {
 			++cursor;
 			hand.spos.y += 16;
+			need_disp_update = true;
 		} else if (cursor > 0 && (pad&BUTTON_UP) && !(pad_old&BUTTON_UP)) {
 			--cursor;
 			hand.spos.y -= 16;
+			need_disp_update = true;
 		}
 
 		pad_old = pad;
 
 		if ((get_msec() - last_move) > 50) {
 			last_move = get_msec();
+			need_disp_update = true;
 			if (movefwd) {
 				if (++hand.spos.x >= 8)
 					movefwd = false;
@@ -74,9 +86,15 @@ static const char* game_select_menu(void)
 			}
 		}
 
-		FntFlush(-1);
-		draw_sprites(&hand, 1);
-		update_display(DISPFLAG_DRAWSYNC|DISPFLAG_VSYNC|DISPFLAG_SWAPBUFFERS);
+		if (need_disp_update) {
+			FntPrint(fntbuff);
+			FntFlush(-1);
+			draw_sprites(&hand, 1);
+			update_display(DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS);
+			need_disp_update = false;
+		}
+
+		++fps;
 	}
 
 	return games[cursor].cdpath;
@@ -121,21 +139,23 @@ static void run_game(const char* const gamepath)
 		BUTTON_CIRCLE, BUTTON_TRIANGLE
 	};
 
-	static char fntbuff[256];
-
 	const uint32_t usecs_per_step = (1000000u / CHIP8_FREQ);
 
 	uint32_t timer = 0;
-	uint32_t step_last = 0;
-	uint32_t fps_last = 0;
+	uint32_t last_step = 0;
+	uint32_t last_fps = 0;
 	int fps = 0;
 	int steps = 0;
+	char* fntbuff_ptr = fntbuff;
 	Button pad_old = 0;
 	Button pad;
 	DispFlag dispflags;
 	int i;
 
-	fntbuff[0] = '\0';
+	fntbuff_ptr += sprintf(fntbuff_ptr, 
+	        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
+	        "Press START & SELECT to reset.\n\n");
+
 	SetDumpFnt(run_game_fnt_stream);
 	chip8_loadrom(gamepath);
 	chip8_reset();
@@ -159,10 +179,10 @@ static void run_game(const char* const gamepath)
 
 
 		timer = get_usec();
-		while ((timer - step_last) > usecs_per_step) {
+		while ((timer - last_step) > usecs_per_step) {
 			chip8_step();
 			++steps;
-			step_last += usecs_per_step;
+			last_step += usecs_per_step;
 		}
 		
 		dispflags = 0;
@@ -175,19 +195,17 @@ static void run_game(const char* const gamepath)
 			chip8_draw_flag = false;
 		}
 
-		update_display(dispflags|DISPFLAG_VSYNC);
+		update_display(dispflags);
 
 		++fps;
-		if ((timer - fps_last) >= 1000000u) {
-			sprintf(fntbuff, 
-			        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
+		if ((timer - last_fps) >= 1000000u) {
+			sprintf(fntbuff_ptr, 
 			        "Frames per second: %d\n"
-			        "Steps per second: %d\n"
-			        "Press START & SELECT to reset",
+			        "Steps per second: %d\n",
 			        fps, steps);
 			fps = 0;
 			steps = 0;
-			fps_last = timer;
+			last_fps = timer;
 		}
 	}
 }
