@@ -23,11 +23,13 @@ DISPLAY_TYPE=NTSC
 # Set to Release or Debug
 BUILD_TYPE=Release
 
+DATA_FILES=$(patsubst ps1data/%, %, $(wildcard ps1data/*.SPR ps1data/*.CH8 ps1data/*.SND ps1data/*.BKG))
 
-DATA_FILES=$(patsubst data/%, %, $(wildcard data/*.TIM data/*.CH8))
-
-CFLAGS=-Wall -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE)
-CFLAGS_DEBUG=-O1 -G2 -DDEBUG
+INCLUDE_DIRS=-Isrc/ps1 -Isrc/
+SRC_FILES=$(wildcard src/ps1/*.c src/*.c)
+HEADER_FILES=$(wildcard src/ps1/*.h src/*.h)
+CFLAGS=-Wall -Wno-main -Xo$$80010000 -DDISPLAY_TYPE_$(DISPLAY_TYPE) $(INCLUDE_DIRS)
+CFLAGS_DEBUG=-O0 -G2 -DDEBUG
 CFLAGS_RELEASE=-O2 -G0 -mgpopt -DNDEBUG
 LIBS=
 
@@ -53,19 +55,19 @@ else
 endif
 
 	
-all: cdrom/$(DISPLAY_TYPE).ISO
+all: ps1cd/$(DISPLAY_TYPE).ISO
 main: $(DISPLAY_TYPE).EXE
 asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 
-%.asm: %.c
+asm/%.asm: src/%.c
 	ccpsx $(CFLAGS) -S $^ -o$@
 
 
 %.ISO: $(DISPLAY_TYPE).IMG
-	stripiso s 2352 $< $@
+	ps1cd\STRIPISO.EXE s 2352 $< $@
 
 %.IMG: $(DISPLAY_TYPE).CTI
-	buildcd -l -i$@ $<
+	ps1cd\BUILDCD.EXE -l -i$@ $<
 
 %.CTI: $(DISPLAY_TYPE).CNF
 	@echo Define ProjectPath $(PROJ_DIR)\ > $@
@@ -107,8 +109,9 @@ asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 	$(foreach i, $(DATA_FILES), \
 	@echo 					File $(i) >> $@ & \
 	@echo 						XAFileAttributes Form1 Data >> $@ & \
-	@echo 						Source [ProjectPath]data\$(i) >> $@ & \
+	@echo 						Source [ProjectPath]ps1data\$(i) >> $@ & \
 	@echo 					EndFile >> $@ &)
+
 
 	@echo 				EndHierarchy ;ends the root directory definition >> $@
 	@echo 			EndPrimaryVolume ;ends the primary volume definition >> $@
@@ -117,7 +120,7 @@ asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 	@echo 		PostGap 150 ;required to change the track type >> $@
 	@echo 	EndTrack ;ends the track definition (end of the XA track) >> $@
 	@echo 	LeadOut XA ;note that the leadout track must be the same data type as the last track (IE: AUDIO, XA or MODE1) >> $@
-	@echo 	Empty 150 >> $@
+	@echo 		Empty 150 >> $@
 	@echo 	EndTrack >> $@
 	@echo EndDisc >> $@
 
@@ -134,8 +137,8 @@ asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 	@copy MAIN.EXE $@
 	@del MAIN.EXE
 
-%.CPE: src/*.c src/*.h
-	ccpsx $(CFLAGS) $(LIBS) src/*.c -o$@,$(patsubst %.CPE,%.MAP,$@),$(patsubst %.CPE,%.SYM,$@)
+%.CPE: $(SRC_FILES) $(HEADER_FILES)
+	ccpsx $(CFLAGS) $(LIBS) $(SRC_FILES) -o$@,$(patsubst %.CPE,%.MAP,$@),$(patsubst %.CPE,%.SYM,$@)
 
 .PHONY clean:
 	@del *.MAP *.SYM *.CPE *.IMG *.TOC *.EXE *.CNF *.CTI

@@ -2,17 +2,21 @@
 #define PSCHIP8_CHIP8_H_
 #include "system.h"
 
+/* Chip8 draws with res 64x32
+ * if the gfx buffer is larger than that
+ * the image is centered in the gfx buffer
+ */
+#define CHIP8_GFX_WIDTH   (68)
+#define CHIP8_GFX_HEIGHT  (34)
+#define CHIP8_FREQ        (512)
+#define CHIP8_BUZZ_FREQ   (480)
+#define CHIP8_DELAY_FREQ  (120)
+#define CHIP8_GFX_BGC     (0x8000)
+#define CHIP8_GFX_FGC     (0xFFFF)
 
-#define CHIP8_WIDTH         (64)
-#define CHIP8_HEIGHT        (32)
-#define CHIP8_SCALED_WIDTH  ((int)(CHIP8_WIDTH * 2.5))
-#define CHIP8_SCALED_HEIGHT ((int)(CHIP8_HEIGHT * 2.5))
-#define CHIP8_FREQ          (380)
-#define CHIP8_BUZZ_FREQ     (480)
-#define CHIP8_DELAY_FREQ    (60)
 
-
-typedef uint16_t Chip8Key;
+typedef uint16_t chip8_gfx_t;
+typedef uint16_t chip8key_t;
 enum Chip8Key {
 	CHIP8KEY_0 = 0x0001,
 	CHIP8KEY_1 = 0x0002,
@@ -29,7 +33,7 @@ enum Chip8Key {
 	CHIP8KEY_C = 0x1000,
 	CHIP8KEY_D = 0x2000,
 	CHIP8KEY_E = 0x4000,
-	CHIP8KEY_F = 0x8000,
+	CHIP8KEY_F = 0x8000
 };
 
 void chip8_loadrom(const char* filename);

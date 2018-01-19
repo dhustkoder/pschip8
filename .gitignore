@@ -8,6 +8,8 @@
 *.cnf
 *.cti
 *.asm
+*.elf
+*.o
 ASM/
 
 *.EXE
@@ -20,5 +22,7 @@ ASM/
 *.CNF
 *.CTI
 *.ASM
+*.ELF
+*.O
 ASM/
 
