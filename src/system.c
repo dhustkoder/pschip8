@@ -50,8 +50,8 @@ static void swap_buffers(void)
 	int idx;
 	GsSwapDispBuff();
 	idx = GsGetActiveBuff();
-	curr_drawot = &oth[1 - idx];
-	GsSetWorkBase(gpu_pckt_buff[1 - idx]);
+	curr_drawot = &oth[idx];
+	GsSetWorkBase(gpu_pckt_buff[idx]);
 	sys_curr_drawvec = &drawvec[idx];
 	GsClearOt(0, 0, curr_drawot);
 }
@@ -124,13 +124,13 @@ void init_system(void)
 void update_display(const DispFlag flags)
 {
 	if (flags&DISPFLAG_SWAPBUFFERS) {
-		// finish frame
+		// finish last drawing / frame
 		DrawSync(0);
 		if (flags&DISPFLAG_VSYNC)
 			VSync(0);
-		GsDrawOt(curr_drawot);
 
-		// begin new frame
+		// begin new drawing / frame
+		GsDrawOt(curr_drawot);
 		swap_buffers();
 		if (bkg_loaded) {
 			draw_vram_buffer(0, 0, bkg_rect.x, bkg_rect.y,
