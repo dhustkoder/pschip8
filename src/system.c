@@ -1,39 +1,43 @@
 #include <stdlib.h>
 #include <string.h>
 #include <libmath.h>
-#include <libgte.h>
-#include <libgpu.h>
 #include <libetc.h>
 #include <libcd.h>
+#include <libgte.h>
+#include <libgpu.h>
+#include <libgs.h>
 #include <libspu.h>
 #include <libapi.h>
 #include "chip8.h"
 #include "system.h"
 
 
+enum OTEntry {
+	OTENTRY_SPRITE
+};
+
+
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
+
+const Vec2* sys_curr_drawvec;
 
 uint16_t sys_paddata;
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
 
-const DISPENV* sys_curr_dispenv;
-const DRAWENV* sys_curr_drawenv;
-
 static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 
-static DISPENV dispenv[2];
-static DRAWENV drawenv[2];
-
-static SPRT sprt_prims[32];
-static unsigned long ot[2];
-static unsigned long tpage_id;
-static RECT spritesheet_rect;
+static Vec2 drawvec[2];
+static GsOT* curr_drawot;
+static GsOT oth[2];
+static GsOT_TAG otu[2][1<<10];
+static PACKET gpu_pckt_buff[2][64 * 1000];
+static GsSPRITE gs_sprites[MAX_SPRITES];
 static RECT bkg_rect;
-static bool bkg_img_loaded;
+static bool bkg_loaded;
 
 static inline void update_pads(void)
 {
@@ -43,14 +47,13 @@ static inline void update_pads(void)
 
 static void swap_buffers(void)
 {
-	static uint8_t buffer_idx = 1;
-
-	ResetGraph(1);
-	buffer_idx = 1 - buffer_idx;
-	sys_curr_dispenv = &dispenv[buffer_idx];
-	sys_curr_drawenv = &drawenv[buffer_idx];
-	PutDispEnv(&dispenv[buffer_idx]);
-	PutDrawEnv(&drawenv[buffer_idx]);
+	int idx;
+	GsSwapDispBuff();
+	idx = GsGetActiveBuff();
+	curr_drawot = &oth[idx];
+	GsSetWorkBase(gpu_pckt_buff[idx]);
+	sys_curr_drawvec = &drawvec[idx];
+	GsClearOt(0, 0, curr_drawot);
 }
 
 static void vsync_callback(void)
@@ -62,6 +65,8 @@ static void vsync_callback(void)
 
 void init_system(void)
 {
+	short i;
+
 	ResetCallback();
 	ResetGraph(0);
 
@@ -77,57 +82,66 @@ void init_system(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
-	InitHeap3((void*)0x80030000, ((0x801E9CE6 - 0x80030000) / 8u) * 8u);
+	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU, 1, 0);
+
+	drawvec[0].x = drawvec[1].x = 0;
+	drawvec[0].y = 0;
+	drawvec[1].y = SCREEN_HEIGHT;
+
+	GsDefDispBuff(drawvec[0].x, drawvec[0].y, drawvec[1].x, drawvec[1].y);
+	GsClearDispArea(0, 0, 0);
+
+	memset(gs_sprites, 0, sizeof(GsSPRITE) * MAX_SPRITES);
+	for (i = 0; i < MAX_SPRITES; ++i)
+		gs_sprites[i].attribute = (1<<25)|(1<<6)|(1<<27);
+
+
+	bkg_loaded = false;
+
+	oth[0].length = 10;
+	oth[1].length = 10;
+	oth[0].org = otu[0];
+	oth[1].org = otu[1];
+	swap_buffers();
+
+	InitHeap3((void*)0x8003A000, ((0x801E9CE6 - 0x8003A000) / 8u) * 8u);
 	SpuInit();
+
 	PadInit(0);
-
 	sys_paddata = 0;
-	bkg_img_loaded = false;
-
-	SetDefDispEnv(&dispenv[0], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDrawEnv(&drawenv[0], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDispEnv(&dispenv[1], 0, SCREEN_HEIGHT, SCREEN_WIDTH, SCREEN_HEIGHT);
-	SetDefDrawEnv(&drawenv[1], 0, 0, SCREEN_WIDTH, SCREEN_HEIGHT);
-
-	dispenv[0].screen.w = dispenv[1].screen.w = SCREEN_WIDTH;
-	dispenv[0].screen.h = dispenv[1].screen.h = SCREEN_HEIGHT;
-	#ifdef DISPLAY_TYPE_PAL
-	dispenv[0].screen.y = dispenv[1].screen.y = 8;
-	#endif
-
-	drawenv[0].isbg = drawenv[1].isbg = 1;
-	drawenv[0].r0 = drawenv[1].r0 = 50;
-	drawenv[0].g0 = drawenv[1].g0 = 50;
-	drawenv[0].b0 = drawenv[1].b0 = 127;
 
 	reset_timers();
 	VSyncCallback(vsync_callback);
 	SetDispMask(1);
-	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 255, 0, 255);
-	update_display(DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
+	update_display(DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
 }
 
 void update_display(const DispFlag flags)
 {
-	if (flags&DISPFLAG_DRAWSYNC)
-		DrawSync(0);
-
 	if (flags&DISPFLAG_SWAPBUFFERS) {
-		swap_buffers();
-		if (bkg_img_loaded) {
-			MoveImage(&bkg_rect,
-			          sys_curr_drawenv->clip.x,
-			          sys_curr_drawenv->clip.y);
-		}
-	}
+		// finish last drawing / frame
+		DrawSync(0);
+		if (flags&DISPFLAG_VSYNC)
+			VSync(0);
 
-	if (flags&DISPFLAG_VSYNC)
+		// begin new drawing / frame
+		GsDrawOt(curr_drawot);
+		swap_buffers();
+		if (bkg_loaded) {
+			draw_vram_buffer(0, 0, bkg_rect.x, bkg_rect.y,
+			                 bkg_rect.w, bkg_rect.h);
+		} else {
+			GsSortClear(50, 50, 128, curr_drawot);
+		}
+	} else if (flags&DISPFLAG_VSYNC) {
 		VSync(0);
+	}
 }
 
 void load_bkg_image(const char* const cdpath)
 {
 	void* p = NULL;
+
 	load_files(&cdpath, &p, 1);
 
 	bkg_rect = (RECT) {
@@ -138,7 +152,7 @@ void load_bkg_image(const char* const cdpath)
 	};
 
 	LoadImage2(&bkg_rect, (void*)(((uint32_t*)p) + 1));
-	bkg_img_loaded = true;
+	bkg_loaded = true;
 
 	free3(p);
 }
@@ -146,48 +160,41 @@ void load_bkg_image(const char* const cdpath)
 void load_sprite_sheet(const char* const cdpath)
 {
 	short i;
+	RECT rect;
+	u_short tpage_id;
 	void* p = NULL;
 
 	load_files(&cdpath, &p, 1);
 
-	spritesheet_rect = (RECT){
+	rect = (RECT){
 		.x = SCREEN_WIDTH,
 		.y = 0,
 		.w = ((uint16_t*)p)[0],
 		.h = ((uint16_t*)p)[1]
 	};
 
-	for (i = 0; i < 32; ++i) {
-		SetSprt(&sprt_prims[i]);
-		setRGB0(&sprt_prims[i], 127, 127, 127);
-	}
+	tpage_id = LoadTPage((void*)(((uint32_t*)p) + 1), 2, 0,
+	                     rect.x, rect.y, rect.w, rect.h);
 
-	tpage_id = LoadTPage((void*)(((uint32_t*)p) + 1),
-	                     2, 0,
-	                     spritesheet_rect.x, spritesheet_rect.y,
-	                     spritesheet_rect.w, spritesheet_rect.h);
+	for (i = 0; i < MAX_SPRITES; ++i)
+		gs_sprites[i].tpage = tpage_id;
 
 	DrawSync(0);
 	free3(p);
 }
 
-void draw_sprites(const Sprite* const sprites, const short size)
+void draw_sprites(const Sprite* const sprites, const short nsprites)
 {
-	DR_TPAGE tpage;
 	short i;
-
-	ClearOTag(ot, sizeof(ot) / sizeof(ot[0]));
-	SetDrawTPage(&tpage, 0, 1, tpage_id);
-	AddPrim(&ot[0], &tpage);
-
-	for (i = 0; i < size; ++i) {
-		setXY0(&sprt_prims[i], sprites[i].spos.x, sprites[i].spos.y);
-		setUV0(&sprt_prims[i], sprites[i].tpos.u, sprites[i].tpos.v);
-		setWH(&sprt_prims[i], sprites[i].size.w, sprites[i].size.h);
+	for (i = 0; i < nsprites; ++i) {
+		gs_sprites[i].x = sprites[i].spos.x;
+		gs_sprites[i].y = sprites[i].spos.y;
+		gs_sprites[i].w = sprites[i].size.w;
+		gs_sprites[i].h = sprites[i].size.h;
+		gs_sprites[i].u = sprites[i].tpos.u;
+		gs_sprites[i].v = sprites[i].tpos.v;
+		GsSortFastSprite(&gs_sprites[i], curr_drawot, OTENTRY_SPRITE);
 	}
-
-	AddPrims(&ot[1], &sprt_prims[0], &sprt_prims[size - 1]);
-	DrawOTag(ot);
 }
 
 void update_timers(void)
