@@ -82,16 +82,11 @@ void init_system(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
-	#ifdef DISPLAY_TYPE_PAL
-	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsINTER|GsOFSGPU, 1, 0);
-	drawvec[0].x = drawvec[1].x = 0;
-	drawvec[0].y = drawvec[1].y = 0;
-	#else
 	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU, 1, 0);
+
 	drawvec[0].x = drawvec[1].x = 0;
 	drawvec[0].y = 0;
 	drawvec[1].y = SCREEN_HEIGHT;
-	#endif
 
 	GsDefDispBuff(drawvec[0].x, drawvec[0].y, drawvec[1].x, drawvec[1].y);
 	GsClearDispArea(0, 0, 0);
