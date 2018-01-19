@@ -200,9 +200,9 @@ int main(void)
 	init_system();
 
 	#ifdef DISPLAY_TYPE_PAL
-	loginfo("display type is PAL\n");
+	LOGINFO("display type is PAL\n");
 	#else
-	loginfo("display type is NTSC\n");
+	LOGINFO("display type is NTSC\n");
 	#endif
 
 	load_sprite_sheet("\\HAND.TIM;1");

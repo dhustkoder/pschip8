@@ -29,28 +29,28 @@ typedef uint8_t bool;
 #define NSEC_PER_HSYNC (63560u)
 #endif
 
-#define loginfo(...)  printf("INFO: " __VA_ARGS__)
-#define logerror(...) printf("ERROR: " __VA_ARGS__)
+#define LOGINFO(...)  printf("INFO: " __VA_ARGS__)
+#define LOGERROR(...) printf("ERROR: " __VA_ARGS__)
 
 #define fatal_failure(...) {                     \
-	logerror("FATAL FAILURE: " __VA_ARGS__); \
-	logerror("\n");                          \
+	LOGERROR("FATAL FAILURE: " __VA_ARGS__); \
+	LOGERROR("\n");                          \
 	SystemError(_get_errno(), _get_errno()); \
 }
 
 #ifdef DEBUG
 
-#define logdebug(...) printf("DEBUG: " __VA_ARGS__)
+#define LOGDEBUG(...) printf("DEBUG: " __VA_ARGS__)
 
-#define assert_msg(cond, ...) {              \
+#define ASSERT_MSG(cond, ...) {              \
 	if (!(cond))                         \
 		fatal_failure(__VA_ARGS__);  \
 }
 
 #else
 
-#define logdebug(...)   ((void)0)
-#define assert_msg(...) ((void)0)
+#define LOGDEBUG(...)   ((void)0)
+#define ASSERT_MSG(...) ((void)0)
 
 #endif
 

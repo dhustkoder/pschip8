@@ -224,7 +224,7 @@ void load_files(const char* const* const filenames,
 
 	for (i = 0; i < nfiles; ++i) {
 		strcpy(namebuff, filenames[i]);
-		loginfo("LOADING %s...\n", namebuff);
+		LOGINFO("LOADING %s...\n", namebuff);
 
 		for (j = 0; j < 10; ++j) {
 			if (CdSearchFile(&fp, namebuff) != 0)
@@ -234,7 +234,7 @@ void load_files(const char* const* const filenames,
 		if (j == 10)
 			fatal_failure("Couldn't find file %s in CDROM\n", namebuff);
 		
-		loginfo("Found file %s with size: %lu\n", namebuff, fp.size);
+		LOGINFO("Found file %s with size: %lu\n", namebuff, fp.size);
 
 		for (j = 0; j < 10; ++j) {
 			CdReadFile(namebuff, (void*)dsts[i], fp.size);

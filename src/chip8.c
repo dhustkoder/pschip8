@@ -49,13 +49,13 @@ static void unknown_opcode(const uint16_t opcode)
 
 static void stackpush(const uint16_t value)
 {
-	assert_msg(rgs.sp >= 0, "Chip8 Stack Underflow");
+	ASSERT_MSG(rgs.sp >= 0, "Chip8 Stack Underflow");
 	stack[rgs.sp--] = value;
 }
 
 static uint16_t stackpop(void)
 {
-	assert_msg((rgs.sp + 1) <= 15, "Chip8 Stack Overflow");
+	ASSERT_MSG((rgs.sp + 1) <= 15, "Chip8 Stack Overflow");
 	return stack[++rgs.sp];
 }
 
@@ -130,7 +130,7 @@ void chip8_step(void)
 	else if (waiting_keypress)
 		waiting_keypress = false;
 
-	assert_msg(rgs.pc <= 0x0FFF, "Chip8 PC Register out of range");
+	ASSERT_MSG(rgs.pc <= 0x0FFF, "Chip8 PC Register out of range");
 	ophi = ram[rgs.pc++];
 	oplo = ram[rgs.pc++];
 	x = ophi&0x0F;
