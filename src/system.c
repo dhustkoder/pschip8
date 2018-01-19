@@ -20,6 +20,8 @@ enum OTEntry {
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
+const Vec2* sys_curr_drawvec;
+const Vec2* sys_curr_dispvec;
 
 uint16_t sys_paddata;
 uint32_t sys_msec_timer;
@@ -28,13 +30,16 @@ uint32_t sys_usec_timer;
 static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 
+static Vec2 drawvec[2];
+static Vec2 dispvec[2];
+
 static GsOT* current_oth;
 static GsOT oth[2];
 static GsOT_TAG otu[2][1<<10];
-static PACKET gpu_pckt_area[2][64 * 1000];
-static bool bkg_loaded;
-static GsSPRITE bkg_sprite;
+static PACKET gpu_pckt_buff[2][64 * 1000];
 static GsSPRITE gs_sprites[MAX_SPRITES];
+static RECT bkg_rect;
+static bool bkg_loaded;
 
 static inline void update_pads(void)
 {
@@ -70,24 +75,31 @@ void init_system(void)
 
 	#ifdef DISPLAY_TYPE_PAL
 	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsINTER|GsOFSGPU, 1, 0);
+	drawvec[0].x = drawvec[1].x = 0;
+	dispvec[0].x = dispvec[1].x = 0;
+	drawvec[0].y = drawvec[1].y = 0;
+	dispvec[0].y = dispvec[1].y = 0;
 	#else
 	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU, 1, 0);
+	drawvec[0].x = drawvec[1].x = 0;
+	dispvec[0].x = dispvec[1].x = 0;
+
+	drawvec[0].y = SCREEN_HEIGHT;
+	drawvec[1].y = 0;
+
+	dispvec[0].y = 0;
+	dispvec[1].y = SCREEN_HEIGHT;
 	#endif
-	GsDefDispBuff(0, 0, 0, SCREEN_HEIGHT);
+
+	GsDefDispBuff(dispvec[0].x, dispvec[0].y, dispvec[1].x, dispvec[1].y);
+	GsClearDispArea(0, 0, 0);
 
 	memset(gs_sprites, 0, sizeof(GsSPRITE) * MAX_SPRITES);
-	memset(&bkg_sprite, 0, sizeof bkg_sprite);
+	for (i = 0; i < MAX_SPRITES; ++i)
+		gs_sprites[i].attribute = (1<<25)|(1<<6)|(1<<27);
 
-	bkg_sprite.attribute = (1<<6);
-	bkg_sprite.attribute = (1<<25);
-	bkg_sprite.scalex = 4096;
-	bkg_sprite.scaley = 4096;
-	for (i = 0; i < MAX_SPRITES; ++i) {
-		gs_sprites[i].attribute = (1<<25);
-		gs_sprites[i].attribute = (1<<6);
-		gs_sprites[i].scalex = 4096;
-		gs_sprites[i].scaley = 4096;
-	}
+
+	bkg_loaded = false;
 
 	oth[0].length = 10;
 	oth[1].length = 10;
@@ -96,18 +108,19 @@ void init_system(void)
 	GsClearOt(0, 0, &oth[0]);
 	GsClearOt(0, 0, &oth[1]);
 	current_oth = &oth[GsGetActiveBuff()];
+	GsSetWorkBase(gpu_pckt_buff[GsGetActiveBuff()]);
 
 	InitHeap3((void*)0x8003A000, ((0x801E9CE6 - 0x8003A000) / 8u) * 8u);
-	SpuInit();
-	PadInit(0);
 
+	SpuInit();
+
+	PadInit(0);
 	sys_paddata = 0;
-	bkg_loaded = false;
 
 	reset_timers();
 	VSyncCallback(vsync_callback);
 	SetDispMask(1);
-	update_display(DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
+	update_display(DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
 }
 
 void update_display(const DispFlag flags)
@@ -115,26 +128,29 @@ void update_display(const DispFlag flags)
 	int buffer_id;
 	if (flags&DISPFLAG_SWAPBUFFERS) {
 		// finish frame
-		if (flags&DISPFLAG_DRAWSYNC)
-			DrawSync(0);
+		DrawSync(0);
+		
 		if (flags&DISPFLAG_VSYNC)
 			VSync(0);
 
 		GsSwapDispBuff();
-
-		if (bkg_loaded) {
-			//GsSortFastSprite(&bkg_sprite, current_oth, OTENTRY_BKG);
-		} else {
-			GsSortClear(50, 50, 128, current_oth);
-		}
-
 		GsDrawOt(current_oth);
 
 		// begin new frame
 		buffer_id = GsGetActiveBuff();
 		current_oth = &oth[buffer_id];
-		GsSetWorkBase(gpu_pckt_area[buffer_id]);
+		sys_curr_drawvec = &drawvec[buffer_id];
+		sys_curr_dispvec = &dispvec[buffer_id];
+		GsSetWorkBase(gpu_pckt_buff[buffer_id]);
 		GsClearOt(0, 0, current_oth);
+
+		if (bkg_loaded) {
+			draw_vram_buffer(0, 0, bkg_rect.x, bkg_rect.y,
+			                 bkg_rect.w, bkg_rect.h);
+		} else {
+			GsSortClear(50, 50, 128, current_oth);
+		}
+
 	} else if (flags&DISPFLAG_VSYNC) {
 		VSync(0);
 	}
@@ -142,25 +158,20 @@ void update_display(const DispFlag flags)
 
 void load_bkg_image(const char* const cdpath)
 {
-	RECT rect;
 	void* p = NULL;
 
 	load_files(&cdpath, &p, 1);
 
-	rect = (RECT) {
+	bkg_rect = (RECT) {
 		.x = SCREEN_WIDTH,
 		.y = SCREEN_HEIGHT,
 		.w = ((uint16_t*)p)[0],
 		.h = ((uint16_t*)p)[1]
 	};
 
-	bkg_sprite.tpage = LoadTPage((void*)(((uint32_t*)p) + 1), 2, 0,
-	                             rect.x, rect.y, rect.w, rect.h);
-	bkg_sprite.w = rect.w;
-	bkg_sprite.h = rect.h;
+	LoadImage2(&bkg_rect, (void*)(((uint32_t*)p) + 1));
 	bkg_loaded = true;
 
-	DrawSync(0);
 	free3(p);
 }
 

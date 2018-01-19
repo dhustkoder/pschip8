@@ -93,7 +93,7 @@ static const char* game_select_menu(void)
 			FntFlush(-1);
 			draw_sprites(&hand, 1);
 			need_disp_update = false;
-			dispflags |= DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS;
+			dispflags |= DISPFLAG_SWAPBUFFERS;
 		}
 
 		update_display(dispflags);
@@ -194,7 +194,7 @@ static void run_game(const char* const gamepath)
 			FntPrint(fntbuff);
 			FntFlush(-1);
 			update_chip8_gfx();
-			dispflags |= DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS;
+			dispflags |= DISPFLAG_SWAPBUFFERS;
 			chip8_draw_flag = false;
 		}
 
@@ -227,7 +227,7 @@ int main(void)
 	#endif
 
 	load_sprite_sheet("\\HAND.TIM;1");
-	//load_bkg_image("\\BKG.TIM;1");
+	load_bkg_image("\\BKG.TIM;1");
 
 	FntLoad(960, 0);
 

@@ -77,9 +77,8 @@ enum Button {
 
 typedef uint8_t DispFlag;
 enum DispFlag {
-	DISPFLAG_DRAWSYNC    = 0x01,
-	DISPFLAG_VSYNC       = 0x02,
-	DISPFLAG_SWAPBUFFERS = 0x04
+	DISPFLAG_VSYNC       = 0x01,
+	DISPFLAG_SWAPBUFFERS = 0x02
 };
 
 typedef struct Vec2 {
@@ -104,19 +103,35 @@ void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 
 static inline void draw_ram_buffer(void* pixels,
-                                   const short screen_x,
-                                   const short screen_y,
-                                   const short width,
-                                   const short height)
+                                   const short screenx, const short screeny,
+                                   const short width, const short height)
 {
+	extern const Vec2* sys_curr_drawvec;
+	
+	RECT dst = (RECT) {
+		.x = screenx + sys_curr_drawvec->x,
+		.y = screeny + sys_curr_drawvec->y,
+		.w = width,
+		.h = height
+	};
 
+	LoadImage(&dst, pixels);
 }
 
 static inline void draw_vram_buffer(const short dst_x, const short dst_y,
                                     const short src_x, const short src_y,
                                     const short w, const short h)
 {
+	extern const Vec2* sys_curr_drawvec;
 
+	RECT dst = (RECT) {
+		.x = src_x,
+		.y = src_y,
+		.w = w,
+		.h = h
+	};
+
+	MoveImage(&dst, dst_x + sys_curr_drawvec->x, dst_y + sys_curr_drawvec->y);
 }
 
 static inline uint16_t get_paddata(void)
