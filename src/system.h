@@ -32,7 +32,7 @@ typedef uint8_t bool;
 #define LOGINFO(...)  printf("INFO: " __VA_ARGS__)
 #define LOGERROR(...) printf("ERROR: " __VA_ARGS__)
 
-#define fatal_failure(...) {                     \
+#define FATALERROR(...) {                        \
 	LOGERROR("FATAL FAILURE: " __VA_ARGS__); \
 	LOGERROR("\n");                          \
 	SystemError(_get_errno(), _get_errno()); \
@@ -44,7 +44,7 @@ typedef uint8_t bool;
 
 #define ASSERT_MSG(cond, ...) {              \
 	if (!(cond))                         \
-		fatal_failure(__VA_ARGS__);  \
+		FATALERROR(__VA_ARGS__);     \
 }
 
 #else

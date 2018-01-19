@@ -65,16 +65,16 @@ void init_system(void)
 	ResetCallback();
 	ResetGraph(0);
 
-	#ifdef DISPLAY_TYPE_PAL
-	SetVideoMode(MODE_PAL);
-	#else
-	SetVideoMode(MODE_NTSC);
-	#endif
-
 	#ifdef DEBUG
 	SetGraphDebug(1);
 	#else
 	SetGraphDebug(0);
+	#endif
+
+	#ifdef DISPLAY_TYPE_PAL
+	SetVideoMode(MODE_PAL);
+	#else
+	SetVideoMode(MODE_NTSC);
 	#endif
 
 	InitHeap3((void*)0x80030000, ((0x801E9CE6 - 0x80030000) / 8u) * 8u);
@@ -234,7 +234,7 @@ void load_files(const char* const* const filenames,
 		}
 
 		if (j == 10)
-			fatal_failure("Couldn't find file %s in CDROM\n", namebuff);
+			FATALERROR("Couldn't find file %s in CDROM\n", namebuff);
 		
 		LOGINFO("Found file %s with size: %lu\n", namebuff, fp.size);
 
@@ -255,7 +255,7 @@ void load_files(const char* const* const filenames,
 		if (j == 10) {
 			if (need_alloc)
 				free3(dsts[i]);
-			fatal_failure("Couldn't read file %s from CDROM\n", namebuff);
+			FATALERROR("Couldn't read file %s from CDROM\n", namebuff);
 		}
 	}
 
