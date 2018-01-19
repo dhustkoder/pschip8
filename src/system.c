@@ -29,7 +29,7 @@ static DISPENV dispenv[2];
 static DRAWENV drawenv[2];
 
 static SPRT sprt_prims[32];
-static unsigned long ot[64];
+static unsigned long ot[2];
 static unsigned long tpage_id;
 static RECT spritesheet_rect;
 static RECT bkg_rect;
@@ -51,11 +51,6 @@ static void swap_buffers(void)
 	sys_curr_drawenv = &drawenv[buffer_idx];
 	PutDispEnv(&dispenv[buffer_idx]);
 	PutDrawEnv(&drawenv[buffer_idx]);
-	if (bkg_img_loaded) {
-		MoveImage(&bkg_rect,
-		          sys_curr_drawenv->clip.x,
-		          sys_curr_drawenv->clip.y);
-	}
 }
 
 static void vsync_callback(void)
@@ -69,6 +64,18 @@ void init_system(void)
 {
 	ResetCallback();
 	ResetGraph(0);
+
+	#ifdef DISPLAY_TYPE_PAL
+	SetVideoMode(MODE_PAL);
+	#else
+	SetVideoMode(MODE_NTSC);
+	#endif
+
+	#ifdef DEBUG
+	SetGraphDebug(1);
+	#else
+	SetGraphDebug(0);
+	#endif
 
 	InitHeap3((void*)0x80030000, ((0x801E9CE6 - 0x80030000) / 8u) * 8u);
 	SpuInit();
@@ -93,34 +100,34 @@ void init_system(void)
 	drawenv[0].g0 = drawenv[1].g0 = 50;
 	drawenv[0].b0 = drawenv[1].b0 = 127;
 
-	// clears the whole framebuffer 
-	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 255, 0, 255);
-
-	#ifdef DEBUG
-	SetGraphDebug(1);
-	#else
-	SetGraphDebug(0);
-	#endif
-
-	swap_buffers();
 	reset_timers();
 	VSyncCallback(vsync_callback);
 	SetDispMask(1);
+	ClearImage(&(RECT){.x = 0, .y = 0, .w = 1024, .h = 512}, 255, 0, 255);
+	update_display(DISPFLAG_DRAWSYNC|DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
 }
 
 void update_display(const DispFlag flags)
 {
 	if (flags&DISPFLAG_DRAWSYNC)
 		DrawSync(0);
+
+	if (flags&DISPFLAG_SWAPBUFFERS) {
+		swap_buffers();
+		if (bkg_img_loaded) {
+			MoveImage(&bkg_rect,
+			          sys_curr_drawenv->clip.x,
+			          sys_curr_drawenv->clip.y);
+		}
+	}
+
 	if (flags&DISPFLAG_VSYNC)
 		VSync(0);
-	if (flags&DISPFLAG_SWAPBUFFERS)
-		swap_buffers();
 }
 
 void load_bkg_image(const char* const cdpath)
 {
-	void* const p = malloc3((2048 * 114) + 2048);
+	void* p = NULL;
 	load_files(&cdpath, &p, 1);
 
 	bkg_rect = (RECT) {
@@ -139,7 +146,7 @@ void load_bkg_image(const char* const cdpath)
 void load_sprite_sheet(const char* const cdpath)
 {
 	short i;
-	void* const p = malloc3((2048 * 114) + 2048);
+	void* p = NULL;
 
 	load_files(&cdpath, &p, 1);
 
@@ -207,11 +214,12 @@ void reset_timers(void)
 }
 
 void load_files(const char* const* const filenames, 
-                void* const* const dsts, 
-                const int nfiles)
+                void** const dsts, 
+                const short nfiles)
 {
 	CdlFILE fp;
 	int i, j, cnt;
+	bool need_alloc;
 	char namebuff[16];
 
 	CdInit();
@@ -230,6 +238,10 @@ void load_files(const char* const* const filenames,
 		
 		LOGINFO("Found file %s with size: %lu\n", namebuff, fp.size);
 
+		need_alloc = dsts[i] == NULL;
+		if (need_alloc)
+			dsts[i] = malloc3(2048 + fp.size);
+
 		for (j = 0; j < 10; ++j) {
 			CdReadFile(namebuff, (void*)dsts[i], fp.size);
 
@@ -240,8 +252,11 @@ void load_files(const char* const* const filenames,
 				break;
 		}
 
-		if (j == 10)
+		if (j == 10) {
+			if (need_alloc)
+				free3(dsts[i]);
 			fatal_failure("Couldn't read file %s from CDROM\n", namebuff);
+		}
 	}
 
 	CdStop();

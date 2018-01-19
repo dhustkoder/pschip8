@@ -94,9 +94,7 @@ void load_sprite_sheet(const char* cdpath);
 void draw_sprites(const Sprite* sprites, short size);
 void update_timers(void);
 void reset_timers(void);
-void load_files(const char* const * filenames,
-                void* const * dsts,
-                int nfiles);
+void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 
 static inline void draw_ram_buffer(void* pixels,

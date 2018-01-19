@@ -99,7 +99,7 @@ static void update_dt_st(void)
 
 void chip8_loadrom(const char* const fname)
 {
-	void* const p = &ram[0x200];
+	void* p = &ram[0x200];
 	load_files(&fname, &p, 1);
 }
 
