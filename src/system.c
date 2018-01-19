@@ -12,6 +12,10 @@
 #include "system.h"
 
 
+#define OT_LENGTH   (10)
+#define MAX_PACKETS (64)
+
+
 enum OTEntry {
 	OTENTRY_SPRITE
 };
@@ -27,14 +31,15 @@ uint16_t sys_paddata;
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
 
+
 static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 
 static Vec2 drawvec[2];
 static GsOT* curr_drawot;
 static GsOT oth[2];
-static GsOT_TAG otu[2][1<<10];
-static PACKET gpu_pckt_buff[2][64 * 1000];
+static GsOT_TAG otu[2][1<<OT_LENGTH];
+static PACKET gpu_pckt_buff[2][MAX_PACKETS];
 static GsSPRITE gs_sprites[MAX_SPRITES];
 static RECT bkg_rect;
 static bool bkg_loaded;
@@ -93,13 +98,11 @@ void init_system(void)
 
 	memset(gs_sprites, 0, sizeof(GsSPRITE) * MAX_SPRITES);
 	for (i = 0; i < MAX_SPRITES; ++i)
-		gs_sprites[i].attribute = (1<<25)|(1<<6)|(1<<27);
-
+		gs_sprites[i].attribute = (1<<6)|(1<<25)|(1<<27);
 
 	bkg_loaded = false;
-
-	oth[0].length = 10;
-	oth[1].length = 10;
+	oth[0].length = OT_LENGTH;
+	oth[1].length = OT_LENGTH;
 	oth[0].org = otu[0];
 	oth[1].org = otu[1];
 	swap_buffers();
