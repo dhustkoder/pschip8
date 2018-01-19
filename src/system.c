@@ -20,8 +20,8 @@ enum OTEntry {
 u_long _ramsize   = 0x00200000; // force 2 megabytes of RAM
 u_long _stacksize = 0x00004000; // force 16 kilobytes of stack
 
+
 const Vec2* sys_curr_drawvec;
-const Vec2* sys_curr_dispvec;
 
 uint16_t sys_paddata;
 uint32_t sys_msec_timer;
@@ -31,9 +31,7 @@ static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 
 static Vec2 drawvec[2];
-static Vec2 dispvec[2];
-
-static GsOT *curr_drawot, *curr_dispot;
+static GsOT* curr_drawot;
 static GsOT oth[2];
 static GsOT_TAG otu[2][1<<10];
 static PACKET gpu_pckt_buff[2][64 * 1000];
@@ -45,6 +43,17 @@ static inline void update_pads(void)
 {
 	extern uint16_t sys_paddata;
 	sys_paddata = PadRead(0);
+}
+
+static void swap_buffers(void)
+{
+	int idx;
+	GsSwapDispBuff();
+	idx = GsGetActiveBuff();
+	curr_drawot = &oth[1 - idx];
+	GsSetWorkBase(gpu_pckt_buff[1 - idx]);
+	sys_curr_drawvec = &drawvec[idx];
+	GsClearOt(0, 0, curr_drawot);
 }
 
 static void vsync_callback(void)
@@ -76,22 +85,15 @@ void init_system(void)
 	#ifdef DISPLAY_TYPE_PAL
 	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsINTER|GsOFSGPU, 1, 0);
 	drawvec[0].x = drawvec[1].x = 0;
-	dispvec[0].x = dispvec[1].x = 0;
 	drawvec[0].y = drawvec[1].y = 0;
-	dispvec[0].y = dispvec[1].y = 0;
 	#else
 	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU, 1, 0);
 	drawvec[0].x = drawvec[1].x = 0;
-	dispvec[0].x = dispvec[1].x = 0;
-
-	drawvec[0].y = SCREEN_HEIGHT;
-	drawvec[1].y = 0;
-
-	dispvec[0].y = 0;
-	dispvec[1].y = SCREEN_HEIGHT;
+	drawvec[0].y = 0;
+	drawvec[1].y = SCREEN_HEIGHT;
 	#endif
 
-	GsDefDispBuff(dispvec[0].x, dispvec[0].y, dispvec[1].x, dispvec[1].y);
+	GsDefDispBuff(drawvec[0].x, drawvec[0].y, drawvec[1].x, drawvec[1].y);
 	GsClearDispArea(0, 0, 0);
 
 	memset(gs_sprites, 0, sizeof(GsSPRITE) * MAX_SPRITES);
@@ -105,17 +107,9 @@ void init_system(void)
 	oth[1].length = 10;
 	oth[0].org = otu[0];
 	oth[1].org = otu[1];
-	GsClearOt(0, 0, &oth[0]);
-	GsClearOt(0, 0, &oth[1]);
-	i = GsGetActiveBuff();
-	curr_dispot = &oth[i];
-	curr_drawot = &oth[1 - i];
-	sys_curr_dispvec = &dispvec[i];
-	sys_curr_drawvec = &drawvec[1 - i];
-	GsSetWorkBase(gpu_pckt_buff[1 - i]);
+	swap_buffers();
 
 	InitHeap3((void*)0x8003A000, ((0x801E9CE6 - 0x8003A000) / 8u) * 8u);
-
 	SpuInit();
 
 	PadInit(0);
@@ -129,28 +123,18 @@ void init_system(void)
 
 void update_display(const DispFlag flags)
 {
-	int buffer_id;
 	if (flags&DISPFLAG_SWAPBUFFERS) {
 		// finish frame
 		DrawSync(0);
-		
 		if (flags&DISPFLAG_VSYNC)
 			VSync(0);
-
 		GsDrawOt(curr_drawot);
 
-		GsSwapDispBuff();
 		// begin new frame
-		buffer_id = GsGetActiveBuff();
-		curr_drawot = &oth[1 - buffer_id];
-		curr_dispot = &oth[buffer_id];
-		sys_curr_drawvec = &drawvec[1 - buffer_id];
-		sys_curr_dispvec = &dispvec[buffer_id];
-		GsSetWorkBase(gpu_pckt_buff[1 - buffer_id]);
-		GsClearOt(0, 0, curr_drawot);
+		swap_buffers();
 		if (bkg_loaded) {
 			draw_vram_buffer(0, 0, bkg_rect.x, bkg_rect.y,
-		                     bkg_rect.w, bkg_rect.h);
+			                 bkg_rect.w, bkg_rect.h);
 		} else {
 			GsSortClear(50, 50, 128, curr_drawot);
 		}
