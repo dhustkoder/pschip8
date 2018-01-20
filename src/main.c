@@ -105,28 +105,12 @@ static const char* game_select_menu(void)
 
 static void update_chip8_gfx(void)
 {
-	extern bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
-
-	static uint16_t scaled_chip8_gfx[CHIP8_SCALED_HEIGHT][CHIP8_SCALED_WIDTH];
-
-	const uint32_t xratio = ((CHIP8_WIDTH<<16) / CHIP8_SCALED_WIDTH) + 1;
-	const uint32_t yratio = ((CHIP8_HEIGHT<<16) / CHIP8_SCALED_HEIGHT) + 1;
-	uint32_t px, py;
-	short i, j;
-
-	// scale chip8 graphics
-	for (i = 0; i < CHIP8_SCALED_HEIGHT; ++i) {
-		py = (i * yratio)>>16;
-		for (j = 0; j < CHIP8_SCALED_WIDTH; ++j) {
-			px = (j * xratio)>>16;
-			scaled_chip8_gfx[i][j] = chip8_gfx[py][px] ? ~0 : 0;
-		}
-	}
-
-	draw_ram_buffer(scaled_chip8_gfx,
-	                (SCREEN_WIDTH / 2) - (CHIP8_SCALED_WIDTH / 2),
-	                (SCREEN_HEIGHT / 2) - (CHIP8_SCALED_HEIGHT / 2),
-	                CHIP8_SCALED_WIDTH, CHIP8_SCALED_HEIGHT);
+	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+	draw_ram_buffer_scaled(chip8_gfx,
+	                       (SCREEN_WIDTH / 2),
+			       (SCREEN_HEIGHT / 2),
+	                       CHIP8_WIDTH, CHIP8_HEIGHT,
+			       3, 3);
 }
 
 static void run_game(const char* const gamepath)

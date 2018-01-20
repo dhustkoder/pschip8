@@ -5,12 +5,12 @@
 
 #define CHIP8_WIDTH         (64)
 #define CHIP8_HEIGHT        (32)
-#define CHIP8_SCALED_WIDTH  ((int)(CHIP8_WIDTH * 2.5))
-#define CHIP8_SCALED_HEIGHT ((int)(CHIP8_HEIGHT * 2.5))
 #define CHIP8_FREQ          (380)
 #define CHIP8_BUZZ_FREQ     (480)
 #define CHIP8_DELAY_FREQ    (60)
-
+#define CHIP8_GFX_BGC       (0x1000)
+#define CHIP8_GFX_FGC       (0xFFFF)
+#define CHIP8_GFX_TYPE      uint16_t
 
 typedef uint16_t Chip8Key;
 enum Chip8Key {

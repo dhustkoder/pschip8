@@ -4,7 +4,7 @@
 #include "chip8.h"
 
 
-bool chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+CHIP8_GFX_TYPE chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
 bool chip8_draw_flag;
 Chip8Key chip8_keys;
 
@@ -62,7 +62,7 @@ static uint16_t stackpop(void)
 static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 {
 	const uint8_t* const sprite = &ram[rgs.i];
-	uint16_t pixel;
+	bool bit;
 	uint8_t i, j, x, y;
 	
 	rgs.v[0x0F] = 0;
@@ -70,10 +70,16 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 		y = (vy + i)%CHIP8_HEIGHT;
 		for (j = 0; j < 8; ++j) {
 			x = (vx + j)%CHIP8_WIDTH;
-			pixel = (sprite[i]&(0x80>>j)) != 0;
-			rgs.v[0x0F] |= chip8_gfx[y][x] && pixel;
-			chip8_draw_flag |= (chip8_gfx[y][x] ^ pixel) != chip8_gfx[y][x];
-			chip8_gfx[y][x] ^= pixel;
+			bit = (sprite[i]&(0x80>>j)) != 0;
+
+			if (chip8_gfx[y][x] == CHIP8_GFX_BGC && bit) {
+				chip8_gfx[y][x] = CHIP8_GFX_FGC;
+				chip8_draw_flag = true;
+			} else if (chip8_gfx[y][x] == CHIP8_GFX_FGC && bit) {
+				chip8_gfx[y][x] = CHIP8_GFX_BGC;
+				rgs.v[0x0F] |= 0x01;
+				chip8_draw_flag = true;
+			}
 		}
 	}
 }
@@ -96,6 +102,14 @@ static void update_dt_st(void)
 	}
 }
 
+static void clear_screen(void)
+{
+	int i, j;
+	for (i = 0; i < CHIP8_HEIGHT; ++i)
+		for (j = 0; j < CHIP8_WIDTH; ++j)
+			chip8_gfx[i][j] = CHIP8_GFX_BGC;
+}
+
 
 void chip8_loadrom(const char* const fname)
 {
@@ -107,8 +121,8 @@ void chip8_reset(void)
 {
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
-	memset(chip8_gfx, 0, sizeof chip8_gfx);
 	memcpy(ram, font, sizeof font);
+	clear_screen();
 	rgs.pc = 0x200;
 	rgs.sp = 15;
 	paddata_old = 0x0000;
@@ -143,7 +157,7 @@ void chip8_step(void)
 		switch (oplo) {
 		default: unknown_opcode(opcode); break;
 		case 0xE0: // - CLS clear display
-			memset(chip8_gfx, 0, sizeof chip8_gfx);
+			clear_screen();
 			chip8_draw_flag = true;
 			break;
 		case 0xEE: // - RET Return from a subroutine.

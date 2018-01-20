@@ -100,6 +100,10 @@ void draw_sprites(const Sprite* sprites, short nsprites);
 void update_timers(void);
 void reset_timers(void);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
+void draw_ram_buffer_scaled(void* pixels,
+                            const short screenx, const short screeny,
+                            const short width, const short height,
+                            const uint8_t scalex, const uint8_t scaley);
 
 
 static inline void draw_ram_buffer(void* pixels,
@@ -108,7 +112,7 @@ static inline void draw_ram_buffer(void* pixels,
 {
 	extern const Vec2* sys_curr_drawvec;
 	
-	RECT dst = (RECT) {
+	RECT dst = {
 		.x = screenx + sys_curr_drawvec->x,
 		.y = screeny + sys_curr_drawvec->y,
 		.w = width,
@@ -124,7 +128,7 @@ static inline void draw_vram_buffer(const short dst_x, const short dst_y,
 {
 	extern const Vec2* sys_curr_drawvec;
 
-	RECT dst = (RECT) {
+	RECT dst = {
 		.x = src_x,
 		.y = src_y,
 		.w = w,

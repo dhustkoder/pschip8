@@ -200,6 +200,37 @@ void draw_sprites(const Sprite* const sprites, const short nsprites)
 	}
 }
 
+void draw_ram_buffer_scaled(void* pixels,
+                            const short screenx, const short screeny,
+                            const short width, const short height,
+                            const uint8_t scalex, const uint8_t scaley)
+{
+	static GsSPRITE sprt;
+	static RECT tpage_rect;
+
+	memset(&sprt, 0, sizeof sprt);
+	tpage_rect = (RECT) {
+		.x = SCREEN_WIDTH + 256,
+		.y = 0,
+		.w = width,
+		.h = height
+	};
+
+	LoadImage(&tpage_rect, pixels);
+	sprt.attribute = (1<<6)|(1<<25);
+	sprt.tpage = GetTPage(2, 0, tpage_rect.x, tpage_rect.y);
+	sprt.x = screenx;
+	sprt.y = screeny;
+	sprt.w = width;
+	sprt.h = height;
+	sprt.mx = width / 2u;
+	sprt.my = height / 2u;
+	sprt.scalex = ONE * scalex;
+	sprt.scaley = ONE * scaley;
+
+	GsSortSprite(&sprt, curr_drawot, OTENTRY_SPRITE);
+}
+
 void update_timers(void)
 {
 	const uint16_t rcnt1 = GetRCnt(RCntCNT1);
