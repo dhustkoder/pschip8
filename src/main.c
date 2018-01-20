@@ -110,7 +110,7 @@ static void update_chip8_gfx(void)
 	                       (SCREEN_WIDTH / 2),
 			       (SCREEN_HEIGHT / 2),
 	                       CHIP8_WIDTH, CHIP8_HEIGHT,
-			       2, 2);
+			       3, 3);
 }
 
 static void run_game(const char* const gamepath)

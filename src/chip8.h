@@ -3,8 +3,8 @@
 #include "system.h"
 
 
-#define CHIP8_WIDTH         (64)
-#define CHIP8_HEIGHT        (32)
+#define CHIP8_WIDTH         (68)
+#define CHIP8_HEIGHT        (34)
 #define CHIP8_FREQ          (380)
 #define CHIP8_BUZZ_FREQ     (480)
 #define CHIP8_DELAY_FREQ    (60)

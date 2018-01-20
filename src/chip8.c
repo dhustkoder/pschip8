@@ -67,9 +67,9 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 	
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i) {
-		y = (vy + i)%CHIP8_HEIGHT;
+		y = ((vy + i)&31) + ((CHIP8_HEIGHT - 32) / 2u);
 		for (j = 0; j < 8; ++j) {
-			x = (vx + j)%CHIP8_WIDTH;
+			x = ((vx + j)&63) + ((CHIP8_WIDTH - 64) / 2u);
 			bit = (sprite[i]&(0x80>>j)) != 0;
 
 			if (chip8_gfx[y][x] == CHIP8_GFX_BGC && bit) {
