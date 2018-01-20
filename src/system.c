@@ -12,8 +12,8 @@
 #include "system.h"
 
 
-#define OT_LENGTH   (10)
-#define MAX_PACKETS (64)
+#define OT_LENGTH   (14)
+#define MAX_PACKETS (2048)
 
 
 enum OTEntry {
@@ -73,7 +73,6 @@ void init_system(void)
 	short i;
 
 	ResetCallback();
-	ResetGraph(0);
 
 	#ifdef DEBUG
 	SetGraphDebug(1);
@@ -87,7 +86,7 @@ void init_system(void)
 	SetVideoMode(MODE_NTSC);
 	#endif
 
-	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU, 1, 0);
+	GsInitGraph(SCREEN_WIDTH, SCREEN_HEIGHT, GsNONINTER|GsOFSGPU|GsRESET0, 1, 0);
 
 	drawvec[0].x = drawvec[1].x = 0;
 	drawvec[0].y = 0;
@@ -134,7 +133,13 @@ void update_display(const DispFlag flags)
 			draw_vram_buffer(0, 0, bkg_rect.x, bkg_rect.y,
 			                 bkg_rect.w, bkg_rect.h);
 		} else {
-			GsSortClear(50, 50, 128, curr_drawot);
+			RECT clear_rect = {
+				.x = sys_curr_drawvec->x,
+				.y = sys_curr_drawvec->y,
+				.w = SCREEN_WIDTH,
+				.h = SCREEN_HEIGHT
+			};
+			ClearImage(&clear_rect, 50, 50, 128);
 		}
 	} else if (flags&DISPFLAG_VSYNC) {
 		VSync(0);
