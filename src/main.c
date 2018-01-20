@@ -87,7 +87,7 @@ static const char* game_select_menu(void)
 			}
 		}
 
-		dispflags = 0;
+		dispflags = DISPFLAG_VSYNC;
 		if (need_disp_update) {
 			FntPrint(fntbuff);
 			FntFlush(-1);
@@ -172,7 +172,7 @@ static void run_game(const char* const gamepath)
 			last_step += usecs_per_step;
 		}
 		
-		dispflags = 0;
+		dispflags = DISPFLAG_VSYNC;
 
 		if (chip8_draw_flag) {
 			FntPrint(fntbuff);
