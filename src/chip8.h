@@ -2,15 +2,20 @@
 #define PSCHIP8_CHIP8_H_
 #include "system.h"
 
+// the drawing will be at the gfx buffer with a resolution of 64x32.
+// the gfx buffer must be at least 64x32.
+// if gfx buffer is greater, the drawing will be centered in the buffer.
+// This fixes the GsSPRITE scale problem for now...
+// TODO: Fix GsSPRITE scale problem, so we can get rid of this workaround.
+#define CHIP8_GFX_WIDTH   (68)
+#define CHIP8_GFX_HEIGHT  (34)
+#define CHIP8_FREQ        (380)
+#define CHIP8_BUZZ_FREQ   (480)
+#define CHIP8_DELAY_FREQ  (60)
+#define CHIP8_GFX_BGC     (0x8000)
+#define CHIP8_GFX_FGC     (0xFFFF)
+#define CHIP8_GFX_TYPE    uint16_t
 
-#define CHIP8_WIDTH         (68)
-#define CHIP8_HEIGHT        (34)
-#define CHIP8_FREQ          (380)
-#define CHIP8_BUZZ_FREQ     (480)
-#define CHIP8_DELAY_FREQ    (60)
-#define CHIP8_GFX_BGC       (0x8000)
-#define CHIP8_GFX_FGC       (0xFFFF)
-#define CHIP8_GFX_TYPE      uint16_t
 
 typedef uint16_t Chip8Key;
 enum Chip8Key {

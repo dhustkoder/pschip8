@@ -4,7 +4,7 @@
 #include "chip8.h"
 
 
-CHIP8_GFX_TYPE chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
+CHIP8_GFX_TYPE chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 bool chip8_draw_flag;
 Chip8Key chip8_keys;
 
@@ -67,9 +67,9 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 	
 	rgs.v[0x0F] = 0;
 	for (i = 0; i < n; ++i) {
-		y = ((vy + i)&31) + ((CHIP8_HEIGHT - 32) / 2u);
+		y = ((vy + i)&31) + ((CHIP8_GFX_HEIGHT - 32) / 2u);
 		for (j = 0; j < 8; ++j) {
-			x = ((vx + j)&63) + ((CHIP8_WIDTH - 64) / 2u);
+			x = ((vx + j)&63) + ((CHIP8_GFX_WIDTH - 64) / 2u);
 			bit = (sprite[i]&(0x80>>j)) != 0;
 
 			if (chip8_gfx[y][x] == CHIP8_GFX_BGC && bit) {
@@ -105,8 +105,8 @@ static void update_dt_st(void)
 static void clear_screen(void)
 {
 	int i, j;
-	for (i = 0; i < CHIP8_HEIGHT; ++i)
-		for (j = 0; j < CHIP8_WIDTH; ++j)
+	for (i = 0; i < CHIP8_GFX_HEIGHT; ++i)
+		for (j = 0; j < CHIP8_GFX_WIDTH; ++j)
 			chip8_gfx[i][j] = CHIP8_GFX_BGC;
 }
 

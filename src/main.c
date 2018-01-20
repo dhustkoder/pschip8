@@ -103,20 +103,11 @@ static const char* game_select_menu(void)
 	return games[cursor].cdpath;
 }
 
-static void update_chip8_gfx(void)
-{
-	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_HEIGHT][CHIP8_WIDTH];
-	draw_ram_buffer_scaled(chip8_gfx,
-	                       (SCREEN_WIDTH / 2),
-			       (SCREEN_HEIGHT / 2),
-	                       CHIP8_WIDTH, CHIP8_HEIGHT,
-			       3, 3);
-}
-
 static void run_game(const char* const gamepath)
 {
 	extern bool chip8_draw_flag;
 	extern Chip8Key chip8_keys;
+	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 
 	static const Button button_tbl[] = {
 		BUTTON_DOWN, BUTTON_L1, BUTTON_UP, BUTTON_R1,
@@ -177,7 +168,11 @@ static void run_game(const char* const gamepath)
 		if (chip8_draw_flag) {
 			FntPrint(fntbuff);
 			FntFlush(-1);
-			update_chip8_gfx();
+
+			draw_ram_buffer_scaled(chip8_gfx,
+				(SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2),
+				CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
+
 			dispflags |= DISPFLAG_SWAPBUFFERS;
 			chip8_draw_flag = false;
 		}
