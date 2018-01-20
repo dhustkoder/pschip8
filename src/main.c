@@ -147,7 +147,7 @@ static void run_game(const char* const gamepath)
 
 			for (i = 0; i < sizeof(button_tbl)/sizeof(button_tbl[0]); ++i) {
 				if (pad&button_tbl[i])
-					chip8_keys |= 0x1<<i;
+					chip8_keys |= 0x01<<i;
 				else
 					chip8_keys &= ~(0x01<<i);
 			}
