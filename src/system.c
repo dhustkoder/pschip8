@@ -107,7 +107,7 @@ void init_system(void)
 	oth[1].org = otu[1];
 	swap_buffers();
 
-	InitHeap3((void*)0x8003A000, ((0x801E9CE6 - 0x8003A000) / 8u) * 8u);
+	InitHeap3((void*)0x801F8000, 0x100000);
 	SpuInit();
 
 	PadInit(0);
