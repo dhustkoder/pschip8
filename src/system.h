@@ -75,11 +75,6 @@ enum Button {
 	BUTTON_L2       = 0x0001
 };
 
-typedef uint8_t DispFlag;
-enum DispFlag {
-	DISPFLAG_VSYNC       = 0x01,
-	DISPFLAG_SWAPBUFFERS = 0x02
-};
 
 typedef struct Vec2 {
 	short x, y;
@@ -95,7 +90,7 @@ typedef struct Sprite {
 void init_system(void);
 void reset_timers(void);
 void update_timers(void);
-void update_display(DispFlag flags);
+void update_display(bool vsync);
 
 void font_print(short x, short y, const char* fmt, ...);
 void draw_sprites(const Sprite* sprites, short nsprites);

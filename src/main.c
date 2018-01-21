@@ -26,13 +26,13 @@ static char fntbuff[512];
 static const char* game_select_menu(void)
 {
 	static Sprite hand = {
-		.spos  = { .x = 6, .y = 8   },
+		.spos  = { .x = 4, .y = 12   },
 		.size  = { .w = 26,.h = 14  },
 		.tpos  = { .u = 0, .v = 0   }
 	};
 	static int8_t cursor = 0;
 	static bool movefwd = true;
-	
+
 	const int8_t ngames = sizeof(games) / sizeof(games[0]);
 
 	uint16_t pad_old = 0;
@@ -41,8 +41,6 @@ static const char* game_select_menu(void)
 	uint32_t last_fps = 0;
 	int fps = 0;
 	char* fntbuff_ptr = fntbuff;
-	bool need_disp_update = true;
-	DispFlag dispflags;
 	int8_t i;
 
 	reset_timers();
@@ -55,7 +53,6 @@ static const char* game_select_menu(void)
 			last_fps = get_msec();
 			sprintf(fntbuff_ptr, "FPS: %d\n", fps);
 			fps = 0;
-			need_disp_update = true;
 		}
 
 		pad = get_paddata();
@@ -63,37 +60,28 @@ static const char* game_select_menu(void)
 		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN)) {
 			++cursor;
 			hand.spos.y += 12;
-			need_disp_update = true;
 		} else if (cursor > 0 && (pad&BUTTON_UP) && !(pad_old&BUTTON_UP)) {
 			--cursor;
 			hand.spos.y -= 12;
-			need_disp_update = true;
 		}
 
 		pad_old = pad;
 
-		if ((get_msec() - last_move) > 50) {
+		if ((get_msec() - last_move) > 1000u/8u) {
 			last_move = get_msec();
-			need_disp_update = true;
 			if (movefwd) {
 				if (++hand.spos.x >= 8)
 					movefwd = false;
 
 			} else {
-				if (--hand.spos.x <= 0)
+				if (--hand.spos.x <= 4)
 					movefwd = true;
 			}
 		}
 
-		dispflags = DISPFLAG_VSYNC;
-		if (need_disp_update) {
-			font_print(26 + 16, 6, fntbuff);
-			draw_sprites(&hand, 1);
-			need_disp_update = false;
-			dispflags |= DISPFLAG_SWAPBUFFERS;
-		}
-
-		update_display(dispflags);
+		font_print(26 + 8, 12, fntbuff);
+		draw_sprites(&hand, 1);
+		update_display(true);
 		++fps;
 	}
 
@@ -102,7 +90,6 @@ static const char* game_select_menu(void)
 
 static void run_game(const char* const gamepath)
 {
-	extern bool chip8_draw_flag;
 	extern Chip8Key chip8_keys;
 	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 
@@ -124,7 +111,6 @@ static void run_game(const char* const gamepath)
 	char* fntbuff_ptr = fntbuff;
 	Button pad_old = 0;
 	Button pad;
-	DispFlag dispflags;
 	int i;
 
 	fntbuff_ptr += sprintf(fntbuff_ptr, 
@@ -158,26 +144,19 @@ static void run_game(const char* const gamepath)
 			++steps;
 			last_step += usecs_per_step;
 		}
-		
-		dispflags = DISPFLAG_VSYNC;
 
-		if (chip8_draw_flag) {
-			font_print(0, 0, fntbuff);
-			draw_ram_buffer(chip8_gfx,
-			                (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2),
-			                CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
-			dispflags |= DISPFLAG_SWAPBUFFERS;
-			chip8_draw_flag = false;
-		}
 
-		update_display(dispflags);
+		font_print(8, 8, fntbuff);
+		draw_ram_buffer(chip8_gfx,
+		                (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2),
+		                CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
+		update_display(true);
 
 		++fps;
 		if ((timer - last_fps) >= 1000000u) {
-			sprintf(fntbuff_ptr, 
-			        "Frames per second: %d\n"
-			        "Steps per second: %d\n",
-			        fps, steps);
+			sprintf(fntbuff_ptr,
+			        "Frames Per Second: %d\n"
+			        "Steps Per Second: %d", fps, steps);
 			fps = 0;
 			steps = 0;
 			last_fps = timer;

@@ -21,7 +21,7 @@ PROJ_DIR=C:\PSYQ\PROJECTS\$(PROJNAME)
 DISPLAY_TYPE=NTSC
 
 # Set to Release or Debug
-BUILD_TYPE=Debug
+BUILD_TYPE=Release
 
 
 DATA_FILES=$(patsubst data/%, %, $(wildcard data/*.TIM data/*.CH8))
