@@ -239,8 +239,8 @@ void draw_ram_buffer(void* pixels,
 	sprt.attribute = (1<<6)|(1<<25);
 	sprt.x = screenx;
 	sprt.y = screeny;
-	sprt.w = width;
-	sprt.h = height;
+	sprt.w = width + 1;
+	sprt.h = height + 1;
 	sprt.mx = width / 2u;
 	sprt.my = height / 2u;
 	sprt.scalex = ONE * scalex;
