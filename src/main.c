@@ -6,18 +6,18 @@ static const struct GameInfo {
 	const char* const name;
 	const char* const cdpath;
 } games[] = {
-	{ "BRIX",     "\\BRIX.CH8;1"     },
-	{ "BLITZ",    "\\BLITZ.CH8;1"    },
-	{ "INVADERS", "\\INVADERS.CH8;1" },
-	{ "MISSILE",  "\\MISSILE.CH8;1"  },
-	{ "PONG",     "\\PONG.CH8;1"     },
-	{ "TETRIS",   "\\TETRIS.CH8;1"   },
-	{ "UFO",      "\\UFO.CH8;1"      },
-	{ "TANK",     "\\TANK.CH8;1"     },
-	{ "PONG2",    "\\PONG2.CH8;1"    },
-	{ "VBRIX",    "\\VBRIX.CH8;1"    },
-	{ "BLINKY",   "\\BLINKY.CH8;1"   },
-	{ "TICTAC",   "\\TICTAC.CH8;1"   }
+	{ "Brix",        "\\BRIX.CH8;1"     },
+	{ "Blitz",       "\\BLITZ.CH8;1"    },
+	{ "Invaders",    "\\INVADERS.CH8;1" },
+	{ "Missile",     "\\MISSILE.CH8;1"  },
+	{ "Pong",        "\\PONG.CH8;1"     },
+	{ "Tetris",      "\\TETRIS.CH8;1"   },
+	{ "UFO",         "\\UFO.CH8;1"      },
+	{ "Tank",        "\\TANK.CH8;1"     },
+	{ "Pong 2",      "\\PONG2.CH8;1"    },
+	{ "VBrix",       "\\VBRIX.CH8;1"    },
+	{ "Blinky",      "\\BLINKY.CH8;1"   },
+	{ "Tic Tac Toe", "\\TICTAC.CH8;1"   }
 };
 
 

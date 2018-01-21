@@ -5,8 +5,8 @@
 // Chip8 draws with res 64x32
 // if the gfx buffer is larger than that
 // the image is centered in the gfx buffer
-#define CHIP8_GFX_WIDTH   (64)
-#define CHIP8_GFX_HEIGHT  (32)
+#define CHIP8_GFX_WIDTH   (68)
+#define CHIP8_GFX_HEIGHT  (34)
 #define CHIP8_FREQ        (512)
 #define CHIP8_BUZZ_FREQ   (480)
 #define CHIP8_DELAY_FREQ  (60)
