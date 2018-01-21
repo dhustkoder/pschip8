@@ -42,7 +42,7 @@ static GsOT oth[2];
 static GsOT_TAG otu[2][1<<OT_LENGTH];
 static PACKET gpu_pckt_buff[2][MAX_PACKETS];
 static GsSPRITE gs_sprites[MAX_SPRITES];
-static GsSPRITE gs_fnt_char_sprites[96];
+static GsSPRITE gs_fnt_char_sprites[100];
 
 
 static inline void update_pads(void)
@@ -69,6 +69,7 @@ static void vsync_callback(void)
 void init_system(void)
 {
 	ResetCallback();
+	SetDispMask(1);
 
 	#ifdef DEBUG
 	SetGraphDebug(1);
@@ -100,7 +101,6 @@ void init_system(void)
 
 	reset_timers();
 	VSyncCallback(vsync_callback);
-	SetDispMask(1);
 	update_display(DISPFLAG_SWAPBUFFERS|DISPFLAG_VSYNC);
 }
 
@@ -139,9 +139,9 @@ void update_display(const DispFlag flags)
 		GsSwapDispBuff();
 		GsSortClear(50, 50, 128, curr_drawot);
 		GsDrawOt(curr_drawot);
-
 		setup_curr_drawot();
 	} else if (flags&DISPFLAG_VSYNC) {
+		DrawSync(0);
 		VSync(0);
 	}
 }
@@ -188,8 +188,6 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 
 	*out = '\0';
 
-	va_end(args);
-
 	x = scrx;
 	y = scry;
 	for (i = 0; fnt_buffer[i] != '\0'; ++i) {
@@ -214,6 +212,8 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 
 		x += sort_sprites[sort_sprites_idx].w;
 		++sort_sprites_idx;
+
+		va_end(args);
 	}
 }
 
@@ -275,8 +275,8 @@ void load_sprite_sheet(const char* const cdpath)
 	load_files(&cdpath, &p, 1);
 
 	rect = (RECT){
-		.x = SCREEN_WIDTH,
-		.y = 0,
+		.x = SPRTSHEET_FB_X,
+		.y = SPRTSHEET_FB_Y,
 		.w = ((uint16_t*)p)[0],
 		.h = ((uint16_t*)p)[1]
 	};
@@ -305,7 +305,6 @@ void load_font(const char* const cdpath,
 
 	LoadImage(&rect, (void*)(((uint32_t*)p) + 1));
 	tpage = GetTPage(2, 0, rect.x, rect.y);
-
 	memset(gs_fnt_char_sprites, 0, sizeof gs_fnt_char_sprites);
 	for (i = s = 0; i < rect.h; i += char_h) {
 		for (j = 0; j < rect.w; j += char_w) {

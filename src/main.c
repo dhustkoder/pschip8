@@ -201,7 +201,6 @@ int main(void)
 	load_sprite_sheet("\\HAND.TIM;1");
 	load_font("\\FONT2.TIM;1", 5, 12);
 
-
 	for (;;) {
 		gamepath = game_select_menu();
 		run_game(gamepath);
