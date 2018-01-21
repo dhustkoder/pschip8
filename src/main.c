@@ -179,7 +179,7 @@ int main(void)
 	
 	load_bkg("\\BKG.TIM;1");
 	load_sprite_sheet("\\HAND.TIM;1", 1);
-	load_font("\\FONT3.TIM;1", 5, 12);
+	load_font("\\FONT4.TIM;1", 8, 12);
 
 	for (;;) {
 		gamepath = game_select_menu();
