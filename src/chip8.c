@@ -77,7 +77,7 @@ static void draw(const uint8_t vx, const uint8_t vy, const uint8_t n)
 				chip8_draw_flag = true;
 			} else if (chip8_gfx[y][x] == CHIP8_GFX_FGC && bit) {
 				chip8_gfx[y][x] = CHIP8_GFX_BGC;
-				rgs.v[0x0F] |= 0x01;
+				rgs.v[0x0F] = 0x01;
 				chip8_draw_flag = true;
 			}
 		}

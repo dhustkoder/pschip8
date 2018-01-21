@@ -20,14 +20,13 @@ static const struct GameInfo {
 	{ "TICTAC",   "\\TICTAC.CH8;1"   }
 };
 
-static long game_select_menu_fnt_stream;
-static long run_game_fnt_stream;
+
 static char fntbuff[512];
 
 static const char* game_select_menu(void)
 {
 	static Sprite hand = {
-		.spos  = { .x = 0, .y = 8   },
+		.spos  = { .x = 6, .y = 8   },
 		.size  = { .w = 26,.h = 14  },
 		.tpos  = { .u = 0, .v = 0   }
 	};
@@ -46,11 +45,10 @@ static const char* game_select_menu(void)
 	DispFlag dispflags;
 	int8_t i;
 
-	SetDumpFnt(game_select_menu_fnt_stream);
 	reset_timers();
 
 	for (i = 0; i < ngames; ++i)
-		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n\n", games[i].name);
+		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n", games[i].name);
 
 	while (!(pad&BUTTON_CIRCLE)) {
 		if ((get_msec() - last_fps) >= 1000u) {
@@ -64,11 +62,11 @@ static const char* game_select_menu(void)
 
 		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN)) {
 			++cursor;
-			hand.spos.y += 16;
+			hand.spos.y += 12;
 			need_disp_update = true;
 		} else if (cursor > 0 && (pad&BUTTON_UP) && !(pad_old&BUTTON_UP)) {
 			--cursor;
-			hand.spos.y -= 16;
+			hand.spos.y -= 12;
 			need_disp_update = true;
 		}
 
@@ -89,8 +87,7 @@ static const char* game_select_menu(void)
 
 		dispflags = DISPFLAG_VSYNC;
 		if (need_disp_update) {
-			FntPrint(fntbuff);
-			FntFlush(-1);
+			font_print(26 + 16, 6, fntbuff);
 			draw_sprites(&hand, 1);
 			need_disp_update = false;
 			dispflags |= DISPFLAG_SWAPBUFFERS;
@@ -131,10 +128,9 @@ static void run_game(const char* const gamepath)
 	int i;
 
 	fntbuff_ptr += sprintf(fntbuff_ptr, 
-	        "PSCHIP8 - Chip8 Interpreter for PS1!\n\n"
-	        "Press START & SELECT to reset.\n\n");
+	        "PSCHIP8 - Chip8 Interpreter for PS1!\n"
+	        "Press START & SELECT to reset.\n");
 
-	SetDumpFnt(run_game_fnt_stream);
 	chip8_loadrom(gamepath);
 	chip8_reset();
 	reset_timers();
@@ -166,13 +162,10 @@ static void run_game(const char* const gamepath)
 		dispflags = DISPFLAG_VSYNC;
 
 		if (chip8_draw_flag) {
-			FntPrint(fntbuff);
-			FntFlush(-1);
-
-			draw_ram_buffer_scaled(chip8_gfx,
-				(SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2),
-				CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
-
+			font_print(0, 0, fntbuff);
+			draw_ram_buffer(chip8_gfx,
+			                (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2),
+			                CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
 			dispflags |= DISPFLAG_SWAPBUFFERS;
 			chip8_draw_flag = false;
 		}
@@ -204,29 +197,16 @@ int main(void)
 	#else
 	LOGINFO("display type is NTSC\n");
 	#endif
-
+	
 	load_sprite_sheet("\\HAND.TIM;1");
-	load_bkg_image("\\BKG.TIM;1");
+	load_font("\\FONT2.TIM;1", 5, 12);
 
-	FntLoad(960, 0);
-
-	game_select_menu_fnt_stream = 
-		FntOpen(36, 8,
-		        SCREEN_WIDTH - 36,
-			SCREEN_HEIGHT - 8, 
-	                0, 512);
-
-	run_game_fnt_stream =
-		FntOpen(0, 12,
-		        SCREEN_WIDTH,
-		        SCREEN_HEIGHT - 12,
-			0, 256);
 
 	for (;;) {
 		gamepath = game_select_menu();
 		run_game(gamepath);
 	}
-		
+
 }
 
 

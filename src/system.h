@@ -93,50 +93,22 @@ typedef struct Sprite {
 
 
 void init_system(void);
-void update_display(DispFlag flags); // shall be called once every frame.
-void load_bkg_image(const char* cdpath);
-void load_sprite_sheet(const char* cdpath);
-void draw_sprites(const Sprite* sprites, short nsprites);
-void update_timers(void);
 void reset_timers(void);
+void update_timers(void);
+void update_display(DispFlag flags);
+
+void font_print(short x, short y, const char* fmt, ...);
+void draw_sprites(const Sprite* sprites, short nsprites);
+void draw_ram_buffer(void* pixels,
+                     const short screenx, const short screeny,
+                     const short width, const short height,
+                     const uint8_t scalex, const uint8_t scaley);
+
+void load_sprite_sheet(const char* cdpath);
+void load_font(const char* cdpath, uint8_t char_w, uint8_t char_h);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
-void draw_ram_buffer_scaled(void* pixels,
-                            const short screenx, const short screeny,
-                            const short width, const short height,
-                            const uint8_t scalex, const uint8_t scaley);
 
 
-static inline void draw_ram_buffer(void* pixels,
-                                   const short screenx, const short screeny,
-                                   const short width, const short height)
-{
-	extern const Vec2* sys_curr_drawvec;
-	
-	RECT dst = {
-		.x = screenx + sys_curr_drawvec->x,
-		.y = screeny + sys_curr_drawvec->y,
-		.w = width,
-		.h = height
-	};
-
-	LoadImage(&dst, pixels);
-}
-
-static inline void draw_vram_buffer(const short dst_x, const short dst_y,
-                                    const short src_x, const short src_y,
-                                    const short w, const short h)
-{
-	extern const Vec2* sys_curr_drawvec;
-
-	RECT dst = {
-		.x = src_x,
-		.y = src_y,
-		.w = w,
-		.h = h
-	};
-
-	MoveImage(&dst, dst_x + sys_curr_drawvec->x, dst_y + sys_curr_drawvec->y);
-}
 
 static inline uint16_t get_paddata(void)
 {
