@@ -16,7 +16,6 @@
 #define MAX_PACKETS          (2048)
 #define OTENTRY_FONT         (0)
 #define OTENTRY_SPRITE       (1)
-#define OTENTRY_BKG          ((1<<OT_LENGTH) - 1)
 #define SPRTSHEET_FB_X       (SCREEN_WIDTH)
 #define SPRTSHEET_FB_Y       (0)
 #define FONT_FB_X            (SCREEN_WIDTH + 256)
@@ -37,13 +36,14 @@ uint32_t sys_usec_timer;
 static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 
-static GsOT* curr_drawot;
 static GsOT oth[2];
 static GsOT_TAG otu[2][1<<OT_LENGTH];
 static PACKET gpu_pckt_buff[2][MAX_PACKETS];
-static GsSPRITE gs_sprites[MAX_SPRITES];
-static GsSPRITE gs_fnt_char_sprites[100];
-
+static GsOT* curr_drawot = NULL;
+static GsSPRITE* ss_sprites = NULL;  // sprite sheet sprites
+static GsSPRITE* char_sprites = NULL;// font characteres sprites
+static short ss_sprites_size = 0;
+static short char_sprites_size = 0;
 
 static inline void update_pads(void)
 {
@@ -141,7 +141,6 @@ void update_display(const DispFlag flags)
 		GsDrawOt(curr_drawot);
 		setup_curr_drawot();
 	} else if (flags&DISPFLAG_VSYNC) {
-		DrawSync(0);
 		VSync(0);
 	}
 }
@@ -193,7 +192,7 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 	for (i = 0; fnt_buffer[i] != '\0'; ++i) {
 
 		if (fnt_buffer[i] == '\n') {
-			y += gs_fnt_char_sprites[0].h;
+			y += char_sprites[0].h;
 			x = scrx;
 			continue;
 		}
@@ -202,7 +201,7 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 			sort_sprites_idx = 0;
 
 		memcpy(&sort_sprites[sort_sprites_idx],
-		       &gs_fnt_char_sprites[fnt_buffer[i] - 32],
+		       &char_sprites[fnt_buffer[i] - 32],
 		       sizeof(GsSPRITE));
 
 		sort_sprites[sort_sprites_idx].x = x;
@@ -220,19 +219,15 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 
 void draw_sprites(const Sprite* const sprites, const short nsprites)
 {
-	const int tpage = GetTPage(2, 0, SPRTSHEET_FB_X, SPRTSHEET_FB_Y);
 	short i;
 	for (i = 0; i < nsprites; ++i) {
-		memset(&gs_sprites[i], 0, sizeof(GsSPRITE));
-		gs_sprites[i].attribute = (1<<6)|(1<<25)|(1<<27);
-		gs_sprites[i].tpage = tpage;
-		gs_sprites[i].x = sprites[i].spos.x;
-		gs_sprites[i].y = sprites[i].spos.y;
-		gs_sprites[i].w = sprites[i].size.w;
-		gs_sprites[i].h = sprites[i].size.h;
-		gs_sprites[i].u = sprites[i].tpos.u;
-		gs_sprites[i].v = sprites[i].tpos.v;
-		GsSortFastSprite(&gs_sprites[i], curr_drawot, OTENTRY_SPRITE);
+		ss_sprites[i].x = sprites[i].spos.x;
+		ss_sprites[i].y = sprites[i].spos.y;
+		ss_sprites[i].w = sprites[i].size.w;
+		ss_sprites[i].h = sprites[i].size.h;
+		ss_sprites[i].u = sprites[i].tpos.u;
+		ss_sprites[i].v = sprites[i].tpos.v;
+		GsSortFastSprite(&ss_sprites[i], curr_drawot, OTENTRY_SPRITE);
 	}
 }
 
@@ -242,16 +237,14 @@ void draw_ram_buffer(void* pixels,
                      const uint8_t scalex, const uint8_t scaley)
 {
 	static GsSPRITE sprt;
-	static RECT rect;
-
-	memset(&sprt, 0, sizeof sprt);
-	rect = (RECT) {
+	RECT rect = {
 		.x = TMPBUFF_FB_X,
 		.y = TMPBUFF_FB_Y,
 		.w = width,
 		.h = height
 	};
 
+	memset(&sprt, 0, sizeof sprt);
 	LoadImage(&rect, pixels);
 	sprt.tpage = GetTPage(2, 0, TMPBUFF_FB_X, TMPBUFF_FB_Y);
 	sprt.attribute = (1<<6)|(1<<25);
@@ -267,21 +260,31 @@ void draw_ram_buffer(void* pixels,
 	GsSortSprite(&sprt, curr_drawot, OTENTRY_SPRITE);
 }
 
-void load_sprite_sheet(const char* const cdpath)
+void load_sprite_sheet(const char* const cdpath, short maxsprites_on_screen)
 {
-	RECT rect;
+	short i;
+	int tpage;
 	void* p = NULL;
 
 	load_files(&cdpath, &p, 1);
 
-	rect = (RECT){
-		.x = SPRTSHEET_FB_X,
-		.y = SPRTSHEET_FB_Y,
-		.w = ((uint16_t*)p)[0],
-		.h = ((uint16_t*)p)[1]
-	};
+	tpage = LoadTPage((void*)(((uint32_t*)p) + 1), 2, 0,
+	                  SPRTSHEET_FB_X, SPRTSHEET_FB_Y,
+	                  ((uint16_t*)p)[0], ((uint16_t*)p)[1]);
 
-	LoadImage2(&rect, (void*)(((uint32_t*)p) + 1));
+	if (ss_sprites != NULL)
+		free3(ss_sprites);
+
+	ss_sprites_size = maxsprites_on_screen;
+	ss_sprites = malloc3(sizeof(*ss_sprites) * ss_sprites_size);
+
+	memset(ss_sprites, 0, sizeof(*ss_sprites) * ss_sprites_size);
+	for (i = 0; i < ss_sprites_size; ++i) {
+		ss_sprites[i].attribute = (1<<6)|(1<<25)|(1<<27);
+		ss_sprites[i].tpage = tpage;
+	}
+
+	DrawSync(0);
 	free3(p);
 }
 
@@ -289,26 +292,28 @@ void load_font(const char* const cdpath,
                const uint8_t char_w,
                const uint8_t char_h)
 {
-	short i, j, s;
-	int tpage;
-	RECT rect;
 	void* p = NULL;
+	int tpage;
+	uint16_t tw, th;
+	uint16_t i, j, s;
 
 	load_files(&cdpath, &p, 1);
+	tw = ((uint16_t*)p)[0];
+	th = ((uint16_t*)p)[1];
 
-	rect = (RECT) {
-		.x = FONT_FB_X,
-		.y = FONT_FB_Y,
-		.w = ((uint16_t*)p)[0],
-		.h = ((uint16_t*)p)[1]
-	};
+	tpage = LoadTPage((void*)(((uint32_t*)p) + 1), 2, 0,
+	                  FONT_FB_X, FONT_FB_Y, tw, th);
 
-	LoadImage(&rect, (void*)(((uint32_t*)p) + 1));
-	tpage = GetTPage(2, 0, rect.x, rect.y);
-	memset(gs_fnt_char_sprites, 0, sizeof gs_fnt_char_sprites);
-	for (i = s = 0; i < rect.h; i += char_h) {
-		for (j = 0; j < rect.w; j += char_w) {
-			gs_fnt_char_sprites[s++] = (GsSPRITE) {
+	if (char_sprites != NULL)
+		free3(char_sprites);
+
+	char_sprites_size = (tw / char_w) * (th / char_h);
+	char_sprites = malloc3(sizeof(*char_sprites) * char_sprites_size);
+
+	memset(char_sprites, 0, sizeof(*char_sprites) * char_sprites_size);
+	for (i = s = 0; i < th; i += char_h) {
+		for (j = 0; j < tw; j += char_w) {
+			char_sprites[s++] = (GsSPRITE) {
 				.attribute = (1<<6)|(1<<25),
 				.tpage = tpage,
 				.w = char_w,

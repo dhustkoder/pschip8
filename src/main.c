@@ -198,7 +198,7 @@ int main(void)
 	LOGINFO("display type is NTSC\n");
 	#endif
 	
-	load_sprite_sheet("\\HAND.TIM;1");
+	load_sprite_sheet("\\HAND.TIM;1", 1);
 	load_font("\\FONT2.TIM;1", 5, 12);
 
 	for (;;) {

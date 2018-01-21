@@ -55,7 +55,7 @@ typedef uint8_t bool;
 
 #endif
 
-#define MAX_SPRITES (32)
+
 
 typedef uint16_t Button;
 enum Button {
@@ -104,7 +104,7 @@ void draw_ram_buffer(void* pixels,
                      const short width, const short height,
                      const uint8_t scalex, const uint8_t scaley);
 
-void load_sprite_sheet(const char* cdpath);
+void load_sprite_sheet(const char* cdpath, short maxsprites_on_screen);
 void load_font(const char* cdpath, uint8_t char_w, uint8_t char_h);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
 
