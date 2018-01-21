@@ -9,7 +9,7 @@
 // TODO: Fix GsSPRITE scale problem, so we can get rid of this workaround.
 #define CHIP8_GFX_WIDTH   (68)
 #define CHIP8_GFX_HEIGHT  (34)
-#define CHIP8_FREQ        (380)
+#define CHIP8_FREQ        (512)
 #define CHIP8_BUZZ_FREQ   (480)
 #define CHIP8_DELAY_FREQ  (60)
 #define CHIP8_GFX_BGC     (0x8000)
