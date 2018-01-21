@@ -12,14 +12,17 @@
 #include "chip8.h"
 #include "system.h"
 
-#define OT_LENGTH            (10)
+#define OT_LENGTH            (4)
 #define MAX_PACKETS          (4096)
 #define OTENTRY_FONT         (0)
 #define OTENTRY_SPRITE       (1)
+#define OTENTRY_BKG          (2)
 #define SPRTSHEET_FB_X       (SCREEN_WIDTH)
 #define SPRTSHEET_FB_Y       (0)
 #define FONT_FB_X            (SCREEN_WIDTH + 256)
 #define FONT_FB_Y            (0)
+#define BKG_FB_X             (SCREEN_WIDTH)
+#define BKG_FB_Y             (256)
 #define TMPBUFF_FB_X         (SCREEN_WIDTH * 2)
 #define TMPBUFF_FB_Y         (256)
 
@@ -44,6 +47,8 @@ static GsSPRITE* ss_sprites = NULL;  // sprite sheet sprites
 static GsSPRITE* char_sprites = NULL;// font characteres sprites
 static short ss_sprites_size = 0;
 static short char_sprites_size = 0;
+static GsSPRITE bkg_sprites[2];
+static bool bkg_loaded = false;
 
 static inline void update_pads(void)
 {
@@ -136,7 +141,12 @@ void update_display(const bool vsync)
 
 	// display finished draw / start new drawing
 	GsSwapDispBuff();
-	GsSortClear(50, 50, 128, curr_drawot);
+	if (bkg_loaded) {
+		GsSortFastSprite(&bkg_sprites[0], curr_drawot, OTENTRY_BKG);
+		GsSortFastSprite(&bkg_sprites[1], curr_drawot, OTENTRY_BKG);
+	} else {
+		GsSortClear(50, 50, 128, curr_drawot);
+	}
 	GsDrawOt(curr_drawot);
 	setup_curr_drawot();
 }
@@ -272,6 +282,37 @@ void load_sprite_sheet(const char* const cdpath, short maxsprites_on_screen)
 		ss_sprites[i].attribute = (1<<6)|(1<<25)|(1<<27);
 		ss_sprites[i].tpage = tpage;
 	}
+
+	DrawSync(0);
+	free3(p);
+}
+
+void load_bkg(const char* const cdpath)
+{
+	RECT rect;
+	void* p = NULL;
+
+	load_files(&cdpath, &p, 1);
+
+ 	rect = (RECT) {
+		.x = BKG_FB_X,
+		.y = BKG_FB_Y,
+		.w = ((uint16_t*)p)[0],
+		.h = ((uint16_t*)p)[1]
+	};
+
+	LoadImage(&rect, (void*)(((uint32_t*)p) + 1));
+
+	memset(&bkg_sprites, 0, sizeof(GsSPRITE) * 2);
+	bkg_sprites[0].attribute = bkg_sprites[1].attribute = (1<<6)|(1<<25)|(1<<27);
+	bkg_sprites[0].w = 256;
+	bkg_sprites[0].h = rect.h;
+	bkg_sprites[1].x = 256;
+	bkg_sprites[1].w = rect.w - 256;
+	bkg_sprites[1].h = rect.h;
+	bkg_sprites[0].tpage = GetTPage(2, 0, BKG_FB_X, BKG_FB_Y);
+	bkg_sprites[1].tpage = GetTPage(2, 0, BKG_FB_X + 256, BKG_FB_Y);
+	bkg_loaded = true;
 
 	DrawSync(0);
 	free3(p);
