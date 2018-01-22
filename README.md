@@ -5,6 +5,8 @@
 
 [Clint Bellanger](https://opengameart.org/users/clint-bellanger) - FONT1
 
+[Pixel-boy](https://twitter.com/2pblog1) - FONT2
+
 Jordan Trudgett - HAND
 
 

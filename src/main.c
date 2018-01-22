@@ -26,7 +26,7 @@ static char fntbuff[512];
 static const char* game_select_menu(void)
 {
 	static Sprite hand = {
-		.spos  = { .x = 4, .y = 12   },
+		.spos  = { .x = 4, .y = 36  },
 		.size  = { .w = 26,.h = 14  },
 		.tpos  = { .u = 0, .v = 0   }
 	};
@@ -44,6 +44,10 @@ static const char* game_select_menu(void)
 	int8_t i;
 
 	reset_timers();
+
+	fntbuff_ptr += sprintf(fntbuff_ptr,
+	                       "     - PSCHIP8 - \n"
+			       "    Chip8 for PS1!\n");
 
 	for (i = 0; i < ngames; ++i)
 		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n", games[i].name);
@@ -113,9 +117,7 @@ static void run_game(const char* const gamepath)
 	Button pad;
 	int i;
 
-	fntbuff_ptr += sprintf(fntbuff_ptr, 
-	        "PSCHIP8 - Chip8 Interpreter for PS1!\n"
-	        "Press START & SELECT to reset.\n");
+	fntbuff_ptr += sprintf(fntbuff_ptr, "Reset: Start & Select\n");
 
 	chip8_loadrom(gamepath);
 	chip8_reset();
@@ -178,8 +180,8 @@ int main(void)
 	#endif
 	
 	load_bkg("\\BKG.TIM;1");
-	load_sprite_sheet("\\HAND.TIM;1", 1);
 	load_font("\\FONT1.TIM;1", 8, 12);
+	load_sprite_sheet("\\HAND.TIM;1", 1);
 
 	for (;;) {
 		gamepath = game_select_menu();
