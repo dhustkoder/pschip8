@@ -101,7 +101,8 @@ void draw_ram_buffer(void* pixels,
 
 void load_bkg(const char* cdpath);
 void load_sprite_sheet(const char* cdpath, short maxsprites_on_screen);
-void load_font(const char* cdpath, uint8_t char_w, uint8_t char_h);
+void load_font(const char* cdpath, uint8_t cw, uint8_t ch,
+               uint8_t ascii_idx, short max_chars_on_scr);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 

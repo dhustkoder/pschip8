@@ -180,7 +180,7 @@ int main(void)
 	#endif
 	
 	load_bkg("\\BKG.TIM;1");
-	load_font("\\FONT1.TIM;1", 8, 12);
+	load_font("\\FONT2.TIM;1", 12, 12, 32, 256);
 	load_sprite_sheet("\\HAND.TIM;1", 1);
 
 	for (;;) {
