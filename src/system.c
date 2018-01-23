@@ -155,7 +155,8 @@ void update_display(const bool vsync)
 	setup_curr_drawot();
 }
 
-void font_print(short scrx, short scry, const char* const fmt, ...)
+
+void font_print(short scrx, short scry, const char* fmt, const void* const* varpack)
 {
 	static char fnt_buffer[512];
 	static short char_sprites_idx = 0;
@@ -165,10 +166,6 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 	short i, x, y;
 	const char* in;
 	char* out;
-
-	va_list args;
-
-	va_start(args, fmt);
 
 	in = fmt;
 	out = fnt_buffer;
@@ -185,11 +182,13 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 				break;
 			case 'd':
 				++in;
-				out += sprintf(out, "%d", va_arg(args, int));
+				out += sprintf(out, "%d", *((const int*)(*varpack)));
+				++varpack;
 				break;
 			case 's':
 				++in;
-				out += sprintf(out, "%s", va_arg(args, char*));
+				out += sprintf(out, "%s", ((const char*)(*varpack)));
+				++varpack;
 				break;
 			}
 			break;
@@ -197,7 +196,6 @@ void font_print(short scrx, short scry, const char* const fmt, ...)
 	}
 
 	*out = '\0';
-	va_end(args);
 
 	x = scrx;
 	y = scry;

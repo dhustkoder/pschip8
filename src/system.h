@@ -92,7 +92,7 @@ void reset_timers(void);
 void update_timers(void);
 void update_display(bool vsync);
 
-void font_print(short x, short y, const char* fmt, ...);
+void font_print(short scrx, short scry, const char* fmt, const void* const* varpack);
 void draw_sprites(const Sprite* sprites, short nsprites);
 void draw_ram_buffer(void* pixels,
                      const short screenx, const short screeny,

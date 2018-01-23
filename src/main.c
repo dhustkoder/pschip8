@@ -9,6 +9,32 @@ enum SubMenu {
 	SUBMENU_NSUBMENUS
 };
 
+enum ClbkArg {
+	CLBKARG_INIT,
+	CLBKARG_UPDATE,
+	CLBKARG_EXIT_CLBK
+};
+
+enum ClbkRet {
+	CLBKRET_INIT_CONFIRMED,
+	CLBKRET_UPDATE_NO_CHANGE,
+	CLBKRET_UPDATE_CHANGE,
+	CLBKRET_EXIT_CLBK_CONFIRMED,
+	CLBKRET_EXIT_MENU
+};
+
+typedef enum ClbkRet(*MenuClbk)(enum ClbkArg, void* clbkdata);
+
+typedef struct MenuOptions {
+	const char* fmt;
+	const void* const* varpack;
+	const Vec2* hand_positions;
+	MenuClbk* clbks;
+	void* clbkdata;
+	short x, y;
+	uint8_t size;
+} MenuOptions;
+
 
 static char fntbuff[512];
 
@@ -53,130 +79,134 @@ static void hand_animation_update(void)
 
 }
 
+static uint8_t run_menu(const MenuOptions opts)
+{
+
+	uint8_t index = 0;
+	uint8_t index_old = index;
+	bool clbk_action = false;
+	bool clbk_action_old = clbk_action;
+	bool exit_menu = false;
+	uint16_t pad = get_paddata();
+	uint16_t pad_old = pad;
+	enum ClbkArg clbkarg;
+
+	hand_move(opts.hand_positions[index]);
+	
+	while (!exit_menu) {
+		pad = get_paddata();
+
+		if (pad != pad_old) {
+			if (!clbk_action) {
+				if (pad&BUTTON_CIRCLE) {
+					clbk_action = true;
+				} else {
+					if (pad&BUTTON_DOWN && index < (opts.size - 1))
+						++index;
+					else if (pad&BUTTON_UP && index > 0)
+						--index;
+
+					if (index != index_old) {
+						hand_move(opts.hand_positions[index]);
+						index_old = index;
+					}
+				}
+
+			} else if (clbk_action && pad&BUTTON_CROSS) {
+				clbk_action = false;
+			}
+
+			pad_old = pad;
+		}
+
+		if (clbk_action || clbk_action_old) {
+			if (opts.clbks == NULL)
+				break;
+
+			if (clbk_action && !clbk_action_old) {
+				clbkarg = CLBKARG_INIT;
+			} else if (!clbk_action && clbk_action_old) {
+				clbkarg = CLBKARG_EXIT_CLBK;
+			} else {
+				clbkarg = CLBKARG_UPDATE;
+			}
+
+			switch (opts.clbks[index](clbkarg, opts.clbkdata)) {
+			case CLBKRET_INIT_CONFIRMED: clbk_action_old = true; break;
+			case CLBKRET_EXIT_CLBK_CONFIRMED: clbk_action_old = false; break;
+			case CLBKRET_EXIT_MENU: exit_menu = true; break;
+			default: break;
+			}
+		}
+
+		hand_animation_update();
+		font_print(opts.x, opts.y, opts.fmt, opts.varpack);
+		draw_sprites(&hand, 1);
+		update_display(true);
+	}
+
+	return index;
+}
+
 static enum SubMenu main_menu(void)
 {
-	static const Vec2 hand_positions[SUBMENU_NSUBMENUS] = {
+	const Vec2 hand_positions[SUBMENU_NSUBMENUS] = {
 		{ .x = 40,  .y = 38 },
 		{ .x = 142, .y = 38 },
 		{ .x = 82,  .y = 62 }
 	};
+	
+	const MenuOptions menuopts = {
+		.fmt = fntbuff,
+		.varpack = NULL,
+		.hand_positions = hand_positions,
+		.clbks = NULL,
+		.clbkdata = NULL,
+		.size = 3,
+		.x = 6,
+		.y = 6
+	};
 
-	static enum SubMenu option = SUBMENU_CDROM;
+	const enum SubMenu options[SUBMENU_NSUBMENUS] = {
+		SUBMENU_CDROM, SUBMENU_MEMORY_CARD, SUBMENU_OPTIONS
+	};
 
+	sprintf(fntbuff,
+	        "                  - PSCHIP8 -\n"
+	        "      Chip8 Interpreter For PlayStation 1\n\n\n"
+	        "           CDROM            Memory Card\n\n\n"
+	        "                  Options");
 
-	char* fntbuff_p = fntbuff;
-	uint16_t pad = get_paddata();
-	uint16_t pad_old = pad;
-	enum SubMenu option_old = option;
-
-	fntbuff_p += sprintf(fntbuff_p,
-			"                  - PSCHIP8 -\n"
-			"      Chip8 Interpreter For PlayStation 1\n\n\n"
-			"           CDROM            Memory Card\n\n\n"
-			"                  Options");
-
-	hand_move(hand_positions[option]);
-
-	for (;;) {
-		pad = get_paddata();
-		if (pad != pad_old) {
-			if (pad&BUTTON_CIRCLE)
-				break;
-
-			if (pad&BUTTON_RIGHT)
-				option = SUBMENU_MEMORY_CARD;
-			else if (pad&BUTTON_LEFT)
-				option = SUBMENU_CDROM;
-			else if (pad&BUTTON_DOWN)
-				option = SUBMENU_OPTIONS;
-			
-			if (option != option_old) {
-				hand_move(hand_positions[option]);
-				option_old = option;
-			}
-
-			pad_old = pad;
-		}
-
-		hand_animation_update();
-		font_print(6, 6, fntbuff);
-		draw_sprites(&hand, 1);
-		update_display(true);
-	}
-
-	return option;
+	
+	return options[run_menu(menuopts)];
 }
 
 static const char* cdrom_menu(void)
 {
-	static const struct GameInfo {
-		const char* const name;
-		const char* const cdpath;
-	} games[] = {
-		{ "Brix",        "\\BRIX.CH8;1"     },
-		{ "Blitz",       "\\BLITZ.CH8;1"    },
-		{ "Invaders",    "\\INVADERS.CH8;1" },
-		{ "Missile",     "\\MISSILE.CH8;1"  },
-		{ "Pong",        "\\PONG.CH8;1"     },
-		{ "Tetris",      "\\TETRIS.CH8;1"   },
-		{ "UFO",         "\\UFO.CH8;1"      },
-		{ "Tank",        "\\TANK.CH8;1"     },
-		{ "Pong 2",      "\\PONG2.CH8;1"    },
-		{ "VBrix",       "\\VBRIX.CH8;1"    },
-		{ "Blinky",      "\\BLINKY.CH8;1"   },
-		{ "Tic Tac Toe", "\\TICTAC.CH8;1"   }
+	const char* cdpaths[] = {
+		"\\BRIX.CH8;1",
+		"\\MISSILE.CH8;1",
+		"\\INVADERS.CH8;1"
 	};
 
-	static const int8_t ngames = sizeof(games) / sizeof(games[0]);
+	const Vec2 hand_positions[] = {
+		{ 0, 16 },
+		{ 0, 24 },
+		{ 0, 32 }
+	};
 
-	static int8_t cursor = 0;
-	static Vec2 hand_pos = { .x = 30, .y = 8 };
+	const MenuOptions opts = {
+		.fmt = "Brix\nMissile\nInvaders",
+		.varpack = NULL,
+		.clbks = NULL,
+		.clbkdata = NULL,
+		.hand_positions = hand_positions,
+		.x = 32,
+		.y = 16,
+		.size = 3
+	};
 
-	uint16_t pad = get_paddata();
-	uint16_t pad_old = pad;
-	char* fntbuff_ptr = fntbuff;
-	int8_t cursor_old = cursor;
-	int8_t i;
-
-	hand_move(hand_pos);
-
-	for (i = 0; i < ngames; ++i)
-		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n", games[i].name);
-
-	for (;;) {
-		pad = get_paddata();
-		
-		if (pad != pad_old) {
-			if (pad&BUTTON_CIRCLE)
-				break;
-
-			if (cursor < (ngames - 1) &&
-			   (pad&BUTTON_DOWN)      &&
-			   !(pad_old&BUTTON_DOWN)) {
-				++cursor;
-				hand_pos.y += 8;
-			} else if (cursor > 0 &&
-				  (pad&BUTTON_UP) &&
-				  !(pad_old&BUTTON_UP)) {
-				--cursor;
-				hand_pos.y -= 8;
-			}
-
-			pad_old = pad;
-
-			if (cursor != cursor_old) {
-				cursor_old = cursor;
-				hand_move(hand_pos);
-			}
-		}
-
-		hand_animation_update();
-		font_print(62, 8, fntbuff);
-		draw_sprites(&hand, 1);
-		update_display(true);
-	}
-
-	return games[cursor].cdpath;
+	return cdpaths[run_menu(opts)];
 }
 
 static void run_game(const char* const gamepath)
@@ -184,7 +214,7 @@ static void run_game(const char* const gamepath)
 	extern Chip8Key chip8_keys;
 	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 
-	static const uint32_t usecs_per_step = (1000000u / CHIP8_FREQ);
+	const uint32_t usecs_per_step = 1000000u / CHIP8_FREQ;
 
 	uint32_t timer = 0;
 	uint32_t last_step = 0;
@@ -227,7 +257,7 @@ static void run_game(const char* const gamepath)
 		}
 
 
-		font_print(8, 8, fntbuff);
+		font_print(8, 8, fntbuff, NULL);
 		draw_ram_buffer(chip8_gfx,
 		                (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2),
 		                CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
@@ -257,9 +287,10 @@ int main(void)
 	
 	load_bkg("\\BKG.TIM;1");
 	load_font("\\FONT3.TIM;1", 6, 8, 32, 256);
-	load_sprite_sheet("\\HAND.TIM;1", 1);
+	load_sprite_sheet("\\SPRITES1.TIM;1", 32);
 
 	reset_timers();
+
 	for (;;) {
 		switch (main_menu()) {
 		case SUBMENU_CDROM:
@@ -267,10 +298,12 @@ int main(void)
 			if (cdpath != NULL)
 				run_game(cdpath);
 			break;
-		default: break;
+		case SUBMENU_OPTIONS:
+			break;
+		default:
+			break;
 		}
 	}
-
 }
 
 
