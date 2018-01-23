@@ -2,91 +2,120 @@
 #include "chip8.h"
 
 
-static const struct GameInfo {
-	const char* const name;
-	const char* const cdpath;
-} games[] = {
-	{ "Brix",        "\\BRIX.CH8;1"     },
-	{ "Blitz",       "\\BLITZ.CH8;1"    },
-	{ "Invaders",    "\\INVADERS.CH8;1" },
-	{ "Missile",     "\\MISSILE.CH8;1"  },
-	{ "Pong",        "\\PONG.CH8;1"     },
-	{ "Tetris",      "\\TETRIS.CH8;1"   },
-	{ "UFO",         "\\UFO.CH8;1"      },
-	{ "Tank",        "\\TANK.CH8;1"     },
-	{ "Pong 2",      "\\PONG2.CH8;1"    },
-	{ "VBrix",       "\\VBRIX.CH8;1"    },
-	{ "Blinky",      "\\BLINKY.CH8;1"   },
-	{ "Tic Tac Toe", "\\TICTAC.CH8;1"   }
+enum SubMenu {
+	SUBMENU_CDROM,
+	SUBMENU_MEMORY_CARD,
+	SUBMENU_OPTIONS,
+	SUBMENU_NSUBMENUS
 };
 
 
 static char fntbuff[512];
 
-static const char* game_select_menu(void)
-{
-	static Sprite hand = {
-		.spos  = { .x = 4, .y = 24  },
-		.size  = { .w = 26,.h = 14  },
-		.tpos  = { .u = 0, .v = 0   }
-	};
-	static int8_t cursor = 0;
-	static bool movefwd = true;
+static Button button_tbl[] = {
+	BUTTON_DOWN, BUTTON_L1, BUTTON_UP, BUTTON_R1,
+	BUTTON_LEFT, BUTTON_CROSS, BUTTON_RIGHT,
+	BUTTON_L2, BUTTON_DOWN, BUTTON_R2,
+	BUTTON_START, BUTTON_SELECT, BUTTON_SQUARE,
+	BUTTON_CIRCLE, BUTTON_TRIANGLE
+};
 
-	const int8_t ngames = sizeof(games) / sizeof(games[0]);
+static Sprite hand = {
+	.size  = { .w = 26, .h = 14  },
+	.tpos  = { .u = 0,  .v = 0   }
+};
+
+
+static void hand_move(const Vec2 vec2)
+{
+	hand.spos.x = vec2.x;
+	hand.spos.y = vec2.y;
+}
+
+static void hand_animation_update(void)
+{
+	static uint32_t msec_last;
+	static uint32_t fwd_last;
+	static bool fwd = true;
+
+	if ((get_msec() - fwd_last) > 1000u / 2u) {
+		fwd_last = get_msec();
+		fwd = !fwd;
+	}
+	
+	if ((get_msec() - msec_last) > 1000u / 8u) {
+		msec_last = get_msec();
+		if (fwd)
+			++hand.spos.x;
+		else
+			--hand.spos.x;
+	}
+
+}
+
+static const char* cdrom_menu(void)
+{
+	static const struct GameInfo {
+		const char* const name;
+		const char* const cdpath;
+	} games[] = {
+		{ "Brix",        "\\BRIX.CH8;1"     },
+		{ "Blitz",       "\\BLITZ.CH8;1"    },
+		{ "Invaders",    "\\INVADERS.CH8;1" },
+		{ "Missile",     "\\MISSILE.CH8;1"  },
+		{ "Pong",        "\\PONG.CH8;1"     },
+		{ "Tetris",      "\\TETRIS.CH8;1"   },
+		{ "UFO",         "\\UFO.CH8;1"      },
+		{ "Tank",        "\\TANK.CH8;1"     },
+		{ "Pong 2",      "\\PONG2.CH8;1"    },
+		{ "VBrix",       "\\VBRIX.CH8;1"    },
+		{ "Blinky",      "\\BLINKY.CH8;1"   },
+		{ "Tic Tac Toe", "\\TICTAC.CH8;1"   }
+	};
+
+	static const int8_t ngames = sizeof(games) / sizeof(games[0]);
+
+	static int8_t cursor = 0;
+	static Vec2 hand_pos = { .x = 30, .y = 4 };
 
 	uint16_t pad_old = 0;
 	uint16_t pad = 0;
-	uint32_t last_move = 0;
-	uint32_t last_fps = 0;
-	int fps = 0;
 	char* fntbuff_ptr = fntbuff;
+	int8_t cursor_old = cursor;
 	int8_t i;
-
-	reset_timers();
-
-	fntbuff_ptr += sprintf(fntbuff_ptr,
-	                       "                - PSCHIP8 - \n"
-			       "               Chip8 for PS1!\n");
 
 	for (i = 0; i < ngames; ++i)
 		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n", games[i].name);
 
+	reset_pad();
 	while (!(pad&BUTTON_CIRCLE)) {
-		if ((get_msec() - last_fps) >= 1000u) {
-			last_fps = get_msec();
-			sprintf(fntbuff_ptr, "FPS: %d\n", fps);
-			fps = 0;
-		}
-
 		pad = get_paddata();
+		
+		if (pad != pad_old) {
+			if (cursor < (ngames - 1) &&
+			   (pad&BUTTON_DOWN)      &&
+			   !(pad_old&BUTTON_DOWN)) {
+				++cursor;
+				hand_pos.y += 8;
+			} else if (cursor > 0 &&
+				  (pad&BUTTON_UP) &&
+				  !(pad_old&BUTTON_UP)) {
+				--cursor;
+				hand_pos.y -= 8;
+			}
 
-		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN)) {
-			++cursor;
-			hand.spos.y += 8;
-		} else if (cursor > 0 && (pad&BUTTON_UP) && !(pad_old&BUTTON_UP)) {
-			--cursor;
-			hand.spos.y -= 8;
-		}
+			pad_old = pad;
 
-		pad_old = pad;
-
-		if ((get_msec() - last_move) > 1000u/8u) {
-			last_move = get_msec();
-			if (movefwd) {
-				if (++hand.spos.x >= 8)
-					movefwd = false;
-
-			} else {
-				if (--hand.spos.x <= 4)
-					movefwd = true;
+			if (cursor != cursor_old) {
+				cursor_old = cursor;
+				hand_move(hand_pos);
 			}
 		}
 
-		font_print(26 + 8, 8, fntbuff);
+		hand_animation_update();
+		font_print(38, 8, fntbuff);
 		draw_sprites(&hand, 1);
 		update_display(true);
-		++fps;
 	}
 
 	return games[cursor].cdpath;
@@ -97,20 +126,11 @@ static void run_game(const char* const gamepath)
 	extern Chip8Key chip8_keys;
 	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 
-	static const Button button_tbl[] = {
-		BUTTON_DOWN, BUTTON_L1, BUTTON_UP, BUTTON_R1,
-		BUTTON_LEFT, BUTTON_CROSS, BUTTON_RIGHT,
-		BUTTON_L2, BUTTON_DOWN, BUTTON_R2,
-		BUTTON_START, BUTTON_SELECT, BUTTON_SQUARE,
-		BUTTON_CIRCLE, BUTTON_TRIANGLE
-	};
-
-	const uint32_t usecs_per_step = (1000000u / CHIP8_FREQ);
+	static const uint32_t usecs_per_step = (1000000u / CHIP8_FREQ);
 
 	uint32_t timer = 0;
 	uint32_t last_step = 0;
-	uint32_t last_fps = 0;
-	int fps = 0;
+	uint32_t last_sec = 0;
 	int steps = 0;
 	char* fntbuff_ptr = fntbuff;
 	Button pad_old = 0;
@@ -121,6 +141,8 @@ static void run_game(const char* const gamepath)
 
 	chip8_loadrom(gamepath);
 	chip8_reset();
+
+	reset_pad();
 	reset_timers();
 
 	for (;;) {
@@ -154,22 +176,69 @@ static void run_game(const char* const gamepath)
 		                CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT, 3, 3);
 		update_display(true);
 
-		++fps;
-		if ((timer - last_fps) >= 1000000u) {
-			sprintf(fntbuff_ptr,
-			        "Frames Per Second: %d\n"
-			        "Steps Per Second: %d", fps, steps);
-			fps = 0;
+		if ((timer - last_sec) >= 1000000u) {
+			sprintf(fntbuff_ptr, "Steps Per Second: %d", steps);
 			steps = 0;
-			last_fps = timer;
 		}
 	}
+}
+
+static enum SubMenu main_menu(void)
+{
+	static const Vec2 hand_positions[SUBMENU_NSUBMENUS] = {
+		{ .x = 40,  .y = 38 },
+		{ .x = 142, .y = 38 },
+		{ .x = 82,  .y = 62 }
+	};
+
+	static enum SubMenu option = SUBMENU_CDROM;
+
+
+	char* fntbuff_p = fntbuff;
+	uint16_t pad_old = 0;
+	uint16_t pad = 0;
+	enum SubMenu option_old = option;
+
+	fntbuff_p += sprintf(fntbuff_p,
+			"                  - PSCHIP8 -\n"
+			"      Chip8 Interpreter For PlayStation 1\n\n\n"
+			"           CDROM            Memory Card\n\n\n"
+			"                  Options");
+
+	hand_move(hand_positions[option]);
+	reset_pad();
+
+	while (!(pad&BUTTON_CIRCLE)) {
+		pad = get_paddata();
+		if (pad != pad_old) {
+			if (pad&BUTTON_RIGHT)
+				option = SUBMENU_MEMORY_CARD;
+			else if (pad&BUTTON_LEFT)
+				option = SUBMENU_CDROM;
+			else if (pad&BUTTON_DOWN)
+				option = SUBMENU_OPTIONS;
+			
+			if (option != option_old) {
+				hand_move(hand_positions[option]);
+				option_old = option;
+			}
+
+			pad_old = pad;
+		}
+
+		hand_animation_update();
+		font_print(6, 6, fntbuff);
+		draw_sprites(&hand, 1);
+		update_display(true);
+	}
+
+	return option;
 }
 
 
 int main(void)
 {
-	const char* gamepath;
+	const char* cdpath;
 
 	init_system();
 
@@ -183,9 +252,17 @@ int main(void)
 	load_font("\\FONT3.TIM;1", 6, 8, 32, 256);
 	load_sprite_sheet("\\HAND.TIM;1", 1);
 
+	reset_timers();
 	for (;;) {
-		gamepath = game_select_menu();
-		run_game(gamepath);
+		switch (main_menu()) {
+		case SUBMENU_CDROM:
+			cdpath = cdrom_menu();
+			if (cdpath != NULL)
+				run_game(cdpath);
+			break;
+		case SUBMENU_MEMORY_CARD: break;
+		case SUBMENU_OPTIONS: break;
+		}
 	}
 
 }
