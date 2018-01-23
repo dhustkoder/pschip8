@@ -97,23 +97,20 @@ static uint8_t run_menu(const MenuOptions opts)
 		pad = get_paddata();
 
 		if (pad != pad_old) {
-			if (!clbk_action) {
-				if (pad&BUTTON_CIRCLE) {
-					clbk_action = true;
-				} else {
-					if (pad&BUTTON_DOWN && index < (opts.size - 1))
-						++index;
-					else if (pad&BUTTON_UP && index > 0)
-						--index;
-
-					if (index != index_old) {
-						hand_move(opts.hand_positions[index]);
-						index_old = index;
-					}
-				}
-
+			if (!clbk_action && pad&BUTTON_CIRCLE) {
+				clbk_action = true;	
 			} else if (clbk_action && pad&BUTTON_CROSS) {
 				clbk_action = false;
+			} else {
+				if (pad&BUTTON_DOWN && index < (opts.size - 1))
+					++index;
+				else if (pad&BUTTON_UP && index > 0)
+					--index;
+
+				if (index != index_old) {
+					hand_move(opts.hand_positions[index]);
+					index_old = index;
+				}
 			}
 
 			pad_old = pad;
