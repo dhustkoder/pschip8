@@ -12,7 +12,7 @@
 #include "chip8.h"
 #include "system.h"
 
-// 562
+
 #define OT_LENGTH            (4)
 #define MAX_PACKETS          (4096)
 #define OTENTRY_FONT         (0)
