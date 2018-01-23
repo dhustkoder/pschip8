@@ -7,6 +7,8 @@
 
 [Pixel-boy](https://twitter.com/2pblog1) - FONT2
 
+[Zingot Games](http://www.zingot.com) - FONT3
+
 Jordan Trudgett - HAND
 
 

@@ -26,7 +26,7 @@ static char fntbuff[512];
 static const char* game_select_menu(void)
 {
 	static Sprite hand = {
-		.spos  = { .x = 4, .y = 36  },
+		.spos  = { .x = 4, .y = 24  },
 		.size  = { .w = 26,.h = 14  },
 		.tpos  = { .u = 0, .v = 0   }
 	};
@@ -46,8 +46,8 @@ static const char* game_select_menu(void)
 	reset_timers();
 
 	fntbuff_ptr += sprintf(fntbuff_ptr,
-	                       "     - PSCHIP8 - \n"
-			       "    Chip8 for PS1!\n");
+	                       "                - PSCHIP8 - \n"
+			       "               Chip8 for PS1!\n");
 
 	for (i = 0; i < ngames; ++i)
 		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n", games[i].name);
@@ -63,10 +63,10 @@ static const char* game_select_menu(void)
 
 		if (cursor < (ngames - 1) && (pad&BUTTON_DOWN) && !(pad_old&BUTTON_DOWN)) {
 			++cursor;
-			hand.spos.y += 12;
+			hand.spos.y += 8;
 		} else if (cursor > 0 && (pad&BUTTON_UP) && !(pad_old&BUTTON_UP)) {
 			--cursor;
-			hand.spos.y -= 12;
+			hand.spos.y -= 8;
 		}
 
 		pad_old = pad;
@@ -83,7 +83,7 @@ static const char* game_select_menu(void)
 			}
 		}
 
-		font_print(26 + 8, 12, fntbuff);
+		font_print(26 + 8, 8, fntbuff);
 		draw_sprites(&hand, 1);
 		update_display(true);
 		++fps;
@@ -180,7 +180,7 @@ int main(void)
 	#endif
 	
 	load_bkg("\\BKG.TIM;1");
-	load_font("\\FONT2.TIM;1", 12, 12, 32, 256);
+	load_font("\\FONT3.TIM;1", 6, 8, 32, 256);
 	load_sprite_sheet("\\HAND.TIM;1", 1);
 
 	for (;;) {
