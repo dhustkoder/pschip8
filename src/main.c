@@ -53,6 +53,60 @@ static void hand_animation_update(void)
 
 }
 
+static enum SubMenu main_menu(void)
+{
+	static const Vec2 hand_positions[SUBMENU_NSUBMENUS] = {
+		{ .x = 40,  .y = 38 },
+		{ .x = 142, .y = 38 },
+		{ .x = 82,  .y = 62 }
+	};
+
+	static enum SubMenu option = SUBMENU_CDROM;
+
+
+	char* fntbuff_p = fntbuff;
+	uint16_t pad = get_paddata();
+	uint16_t pad_old = pad;
+	enum SubMenu option_old = option;
+
+	fntbuff_p += sprintf(fntbuff_p,
+			"                  - PSCHIP8 -\n"
+			"      Chip8 Interpreter For PlayStation 1\n\n\n"
+			"           CDROM            Memory Card\n\n\n"
+			"                  Options");
+
+	hand_move(hand_positions[option]);
+
+	for (;;) {
+		pad = get_paddata();
+		if (pad != pad_old) {
+			if (pad&BUTTON_CIRCLE)
+				break;
+
+			if (pad&BUTTON_RIGHT)
+				option = SUBMENU_MEMORY_CARD;
+			else if (pad&BUTTON_LEFT)
+				option = SUBMENU_CDROM;
+			else if (pad&BUTTON_DOWN)
+				option = SUBMENU_OPTIONS;
+			
+			if (option != option_old) {
+				hand_move(hand_positions[option]);
+				option_old = option;
+			}
+
+			pad_old = pad;
+		}
+
+		hand_animation_update();
+		font_print(6, 6, fntbuff);
+		draw_sprites(&hand, 1);
+		update_display(true);
+	}
+
+	return option;
+}
+
 static const char* cdrom_menu(void)
 {
 	static const struct GameInfo {
@@ -76,22 +130,26 @@ static const char* cdrom_menu(void)
 	static const int8_t ngames = sizeof(games) / sizeof(games[0]);
 
 	static int8_t cursor = 0;
-	static Vec2 hand_pos = { .x = 30, .y = 4 };
+	static Vec2 hand_pos = { .x = 30, .y = 8 };
 
-	uint16_t pad_old = 0;
-	uint16_t pad = 0;
+	uint16_t pad = get_paddata();
+	uint16_t pad_old = pad;
 	char* fntbuff_ptr = fntbuff;
 	int8_t cursor_old = cursor;
 	int8_t i;
 
+	hand_move(hand_pos);
+
 	for (i = 0; i < ngames; ++i)
 		fntbuff_ptr += sprintf(fntbuff_ptr, "%s\n", games[i].name);
 
-	reset_pad();
-	while (!(pad&BUTTON_CIRCLE)) {
+	for (;;) {
 		pad = get_paddata();
 		
 		if (pad != pad_old) {
+			if (pad&BUTTON_CIRCLE)
+				break;
+
 			if (cursor < (ngames - 1) &&
 			   (pad&BUTTON_DOWN)      &&
 			   !(pad_old&BUTTON_DOWN)) {
@@ -113,7 +171,7 @@ static const char* cdrom_menu(void)
 		}
 
 		hand_animation_update();
-		font_print(38, 8, fntbuff);
+		font_print(62, 8, fntbuff);
 		draw_sprites(&hand, 1);
 		update_display(true);
 	}
@@ -142,7 +200,6 @@ static void run_game(const char* const gamepath)
 	chip8_loadrom(gamepath);
 	chip8_reset();
 
-	reset_pad();
 	reset_timers();
 
 	for (;;) {
@@ -179,61 +236,11 @@ static void run_game(const char* const gamepath)
 		if ((timer - last_sec) >= 1000000u) {
 			sprintf(fntbuff_ptr, "Steps Per Second: %d", steps);
 			steps = 0;
+			last_sec = timer;
 		}
 	}
 }
 
-static enum SubMenu main_menu(void)
-{
-	static const Vec2 hand_positions[SUBMENU_NSUBMENUS] = {
-		{ .x = 40,  .y = 38 },
-		{ .x = 142, .y = 38 },
-		{ .x = 82,  .y = 62 }
-	};
-
-	static enum SubMenu option = SUBMENU_CDROM;
-
-
-	char* fntbuff_p = fntbuff;
-	uint16_t pad_old = 0;
-	uint16_t pad = 0;
-	enum SubMenu option_old = option;
-
-	fntbuff_p += sprintf(fntbuff_p,
-			"                  - PSCHIP8 -\n"
-			"      Chip8 Interpreter For PlayStation 1\n\n\n"
-			"           CDROM            Memory Card\n\n\n"
-			"                  Options");
-
-	hand_move(hand_positions[option]);
-	reset_pad();
-
-	while (!(pad&BUTTON_CIRCLE)) {
-		pad = get_paddata();
-		if (pad != pad_old) {
-			if (pad&BUTTON_RIGHT)
-				option = SUBMENU_MEMORY_CARD;
-			else if (pad&BUTTON_LEFT)
-				option = SUBMENU_CDROM;
-			else if (pad&BUTTON_DOWN)
-				option = SUBMENU_OPTIONS;
-			
-			if (option != option_old) {
-				hand_move(hand_positions[option]);
-				option_old = option;
-			}
-
-			pad_old = pad;
-		}
-
-		hand_animation_update();
-		font_print(6, 6, fntbuff);
-		draw_sprites(&hand, 1);
-		update_display(true);
-	}
-
-	return option;
-}
 
 
 int main(void)
@@ -260,8 +267,7 @@ int main(void)
 			if (cdpath != NULL)
 				run_game(cdpath);
 			break;
-		case SUBMENU_MEMORY_CARD: break;
-		case SUBMENU_OPTIONS: break;
+		default: break;
 		}
 	}
 

@@ -107,12 +107,6 @@ void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 
 
-static inline void reset_pad(void)
-{
-	extern uint16_t sys_paddata;
-	sys_paddata = 0;
-}
-
 static inline uint16_t get_paddata(void)
 {
 	extern uint16_t sys_paddata;
