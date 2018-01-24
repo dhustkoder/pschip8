@@ -23,14 +23,14 @@ enum ClbkRet {
 	CLBKRET_EXIT_MENU
 };
 
-typedef enum ClbkRet(*MenuClbk)(enum ClbkArg, void* clbkdata);
+typedef enum ClbkRet(*MenuClbk)(enum ClbkArg, uint8_t index, void* clbkdata);
 
 typedef struct MenuOptions {
 	const char* title;
 	const char* const* options;
 	const char* optionsfmt;
 	void* const* varpack;
-	MenuClbk* clbks;
+	MenuClbk clbk;
 	void* clbkdata;
 	uint8_t size;
 	bool cross_exit;
@@ -166,7 +166,7 @@ Lsetup_fntbuff:
 		}
 
 		if (clbk_action || clbk_action_old) {
-			if (opts->clbks == NULL) {
+			if (opts->clbk == NULL) {
 				exit_menu = true;
 				break;
 			}
@@ -179,7 +179,7 @@ Lsetup_fntbuff:
 				clbkarg = CLBKARG_UPDATE;
 			}
 
-			switch (opts->clbks[index](clbkarg, opts->clbkdata)) {
+			switch (opts->clbk(clbkarg, index, opts->clbkdata)) {
 			case CLBKRET_INIT_CONFIRMED: clbk_action_old = true; break;
 			case CLBKRET_EXIT_CLBK_CONFIRMED: clbk_action_old = false; break;
 			case CLBKRET_EXIT_MENU: exit_menu = true; break;
@@ -208,7 +208,7 @@ static enum SubMenu main_menu(void)
 		.options = options_strs,
 		.optionsfmt = NULL,
 		.varpack = NULL,
-		.clbks = NULL,
+		.clbk = NULL,
 		.clbkdata = NULL,
 		.size = 3,
 		.cross_exit = false
@@ -237,7 +237,7 @@ static const char* cdrom_menu(void)
 		.options = options,
 		.optionsfmt = NULL,
 		.varpack = NULL,
-		.clbks = NULL,
+		.clbk = NULL,
 		.clbkdata = NULL,
 		.size = 4,
 		.cross_exit = true
@@ -247,8 +247,12 @@ static const char* cdrom_menu(void)
 	return idx != -1 ? cdpaths[idx] : NULL;
 }
 
-static enum ClbkRet options_menu_freq_clbk(enum ClbkArg arg, void* clbkdata)
+static enum ClbkRet options_menu_clbk(enum ClbkArg arg, uint8_t index, void* clbkdata)
 {
+	enum {
+		INDEX_FREQ
+	};
+
 	uint32_t* const last = clbkdata;
 	const int lastfreq = chip8_freq;
 
@@ -257,16 +261,19 @@ static enum ClbkRet options_menu_freq_clbk(enum ClbkArg arg, void* clbkdata)
 	else if (arg == CLBKARG_EXIT_CLBK)
 		return CLBKRET_EXIT_CLBK_CONFIRMED;
 
-	if ((get_msec() - *last) > 1000u / 16u) {
-		if (get_paddata()&BUTTON_RIGHT)
-			++chip8_freq;	
-		else if (get_paddata()&BUTTON_LEFT)
-			--chip8_freq;
-		*last = get_msec();
+	if (index == INDEX_FREQ) {
+		if ((get_msec() - *last) > 1000u / 16u) {
+			if (get_paddata()&BUTTON_RIGHT)
+				++chip8_freq;	
+			else if (get_paddata()&BUTTON_LEFT)
+				--chip8_freq;
+			*last = get_msec();
+		}
+
+		if (lastfreq != chip8_freq)
+			return CLBKRET_UPDATE_CHANGE;
 	}
 
-	if (lastfreq != chip8_freq)
-		return CLBKRET_UPDATE_CHANGE;
 	return CLBKRET_UPDATE_NO_CHANGE;
 }
 
@@ -277,7 +284,6 @@ static void options_menu(void)
 	};
 
 	void* varpack[] = { &chip8_freq };
-	MenuClbk clbks[] = { options_menu_freq_clbk };
 
 	uint32_t timer = get_msec();
 
@@ -286,7 +292,7 @@ static void options_menu(void)
 		.options = options,
 		.optionsfmt = "d",
 		.varpack = varpack,
-		.clbks = clbks,
+		.clbk = options_menu_clbk,
 		.clbkdata = &timer,
 		.size = 1,
 		.cross_exit = true
