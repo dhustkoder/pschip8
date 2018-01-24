@@ -200,12 +200,18 @@ void font_print(short scrx, short scry, const char* fmt, const void* const* varp
 	x = scrx;
 	y = scry;
 	for (i = 0; fnt_buffer[i] != '\0'; ++i) {
-		if (fnt_buffer[i] == '\n' || x >= SCREEN_WIDTH) {
-			y += char_csize.y;
-			x = scrx;
+		if (fnt_buffer[i] == ' ') {
+			x += char_csize.x;
 			continue;
 		}
 		
+		if (fnt_buffer[i] == '\n' || x >= SCREEN_WIDTH) {
+			y += char_csize.y;
+			x = scrx;
+			if (fnt_buffer[i] == '\n')
+				continue;
+		}
+
 		if (char_sprites_idx >= char_sprites_size)
 			char_sprites_idx = 0;
 

@@ -2,40 +2,13 @@
 #include "chip8.h"
 
 
-enum SubMenu {
-	SUBMENU_CDROM,
-	SUBMENU_MEMORY_CARD,
-	SUBMENU_OPTIONS,
-	SUBMENU_NSUBMENUS
+enum Menu {
+	MENU_MAIN,
+	MENU_CDROM,
+	MENU_MEMORY_CARD,
+	MENU_OPTIONS,
+	MENU_NMENUS
 };
-
-enum ClbkArg {
-	CLBKARG_INIT,
-	CLBKARG_UPDATE,
-	CLBKARG_EXIT_CLBK
-};
-
-enum ClbkRet {
-	CLBKRET_INIT_CONFIRMED,
-	CLBKRET_UPDATE_NO_CHANGE,
-	CLBKRET_UPDATE_CHANGE,
-	CLBKRET_EXIT_CLBK_CONFIRMED,
-	CLBKRET_EXIT_MENU
-};
-
-typedef enum ClbkRet(*MenuClbk)(enum ClbkArg, uint8_t index, void* clbkdata);
-
-typedef struct MenuOptions {
-	const char* title;
-	const char* const* options;
-	const char* optionsfmt;
-	void* const* varpack;
-	MenuClbk clbk;
-	void* clbkdata;
-	uint8_t size;
-	bool cross_exit;
-} MenuOptions;
-
 
 static char fntbuff[512];
 
@@ -47,258 +20,156 @@ static Button button_tbl[] = {
 	BUTTON_CIRCLE, BUTTON_TRIANGLE
 };
 
-static Sprite hand = {
-	.size  = { .w = 26, .h = 14  },
-	.tpos  = { .u = 0,  .v = 0   }
-};
-
 static int chip8_freq = CHIP8_FREQ;
 
-
-static void hand_move(const Vec2 vec2)
+static void sprite_move(const Vec2 vec2, Sprite* const sprite)
 {
-	hand.spos.x = vec2.x;
-	hand.spos.y = vec2.y;
+	sprite->spos.x = vec2.x;
+	sprite->spos.y = vec2.y;
 }
 
-static void hand_animation_update(void)
+static void sprite_animation_update(const uint8_t fwd_div,
+                                    const uint8_t mov_div,
+                                    uint32_t* const msec_last,
+                                    uint32_t* const fwd_last,
+                                    bool* const fwd,
+                                    Sprite* const sprite)
 {
-	static uint32_t msec_last;
-	static uint32_t fwd_last;
-	static bool fwd = true;
-
-	if ((get_msec() - fwd_last) > 1000u / 2u) {
-		fwd_last = get_msec();
-		fwd = !fwd;
+	if ((get_msec() - *fwd_last) > 1000u / fwd_div) {
+		*fwd_last = get_msec();
+		*fwd = !(*fwd);
 	}
 	
-	if ((get_msec() - msec_last) > 1000u / 8u) {
-		msec_last = get_msec();
-		if (fwd)
-			++hand.spos.x;
+	if ((get_msec() - *msec_last) > 1000u / mov_div) {
+		*msec_last = get_msec();
+		if (*fwd)
+			++sprite->spos.x;
 		else
-			--hand.spos.x;
+			--sprite->spos.x;
 	}
 
 }
 
-static short run_menu(const MenuOptions* const opts)
+static void run_menu(const enum Menu menu, void* out)
 {
-	const short title_len = strlen(opts->title);
-	const short title_padding = ((SCREEN_WIDTH / 2) - ((title_len / 2) * 6)) / 6;
-	const short options_padding = (SCREEN_WIDTH / 2) / 6;
+	// Main Menu
+	const char* main_menu_fmt =
+		"                - PSCHIP8 -\n\n\n"
+		"          CDROM               Memory Card\n\n\n"
+		"                  Options\n";
 
-	short index = 0;
-	short index_old = index;
-	bool clbk_action = false;
-	bool clbk_action_old = clbk_action;
-	bool exit_menu = false;
+	const Vec2 hand_pos_main_menu[] = {
+		{ (10 * 6) - 32, 3 * 8 },
+		{ (30 * 6) - 32, 3 * 8 },
+		{ (18 * 6) - 32, 6 * 8 }
+	};
+
+	const enum Menu main_menu_out[] = {
+		MENU_CDROM, MENU_MEMORY_CARD, MENU_OPTIONS
+	};
+
+	// CDROM Menu
+	const char* cdrom_menu_fmt =
+		"             - CDROM -\n\n\n"
+		"                Brix\n\n"
+		"               Missile\n\n"
+		"                Tank";
+
+	const Vec2 hand_pos_cdrom_menu[] = {
+		{ (15 * 6) - 32, 3 * 8 },
+		{ (15 * 6) - 32, 5 * 8 },
+		{ (15 * 6) - 32, 7 * 8 }
+	};
+
+	const char* const cdrom_menu_out[] = {
+		"\\BRIX.CH8;1", "\\MISSILE.CH8;1", "\\TANK.CH8;1"
+	};
+
+
+	// Logic
+	Sprite hand = {
+		.size  = { .w = 26, .h = 14  },
+		.tpos  = { .u = 0,  .v = 0   }
+	};
+
+	uint32_t hand_anim_last = 0;
+	uint32_t hand_fwd_last = 0;
+	bool hand_fwd = true;
+
 	uint16_t pad = get_paddata();
 	uint16_t pad_old = pad;
+	short index = 0;
+	short index_old = index;
+	short max_index;
+	const Vec2* hand_pos;
 
-	Vec2 hand_positions[opts->size];
-	enum ClbkArg clbkarg;
-	short i, j;
-	char* fntbuff_p;
-	
-Lsetup_fntbuff:
-	fntbuff_p = fntbuff;
-
-	for (i = 0; i < title_padding; ++i)
-		fntbuff_p += sprintf(fntbuff_p, " ");
-
-	fntbuff_p += sprintf(fntbuff_p, "%s\n\n\n", opts->title);
-
-	for (i = 0; i < opts->size; ++i) {
-		for (j = 0; j < options_padding; ++j)
-			fntbuff_p += sprintf(fntbuff_p, " ");
-
-		fntbuff_p += sprintf(fntbuff_p, "%s", opts->options[i]);
-
-		if (opts->optionsfmt != NULL && opts->optionsfmt[i] != '\0') {
-			switch (opts->optionsfmt[i]) {
-			case 'd':
-				fntbuff_p += sprintf(fntbuff_p, ": %d",
-				                     *((const int*)(opts->varpack[i])));
-				break;
-			case 's':
-				fntbuff_p += sprintf(fntbuff_p, ": %s",
-				                     ((const char*)(opts->varpack[i])));
-				break;
-			default:
-				break;
-			}
-		}
-
-		fntbuff_p += sprintf(fntbuff_p, "\n\n");
-		hand_positions[i].x = (options_padding * 6) - 32;
-		hand_positions[i].y = 24 + (16 * i);
+	switch (menu) {
+	default:
+	case MENU_MAIN:
+		max_index = 2;
+		hand_pos = hand_pos_main_menu;
+		strcpy(fntbuff, main_menu_fmt);
+		break;
+	case MENU_CDROM:
+		max_index = 2;
+		hand_pos = hand_pos_cdrom_menu;
+		strcpy(fntbuff, cdrom_menu_fmt);
+		break;
 	}
 
-	if (!clbk_action)
-		hand_move(hand_positions[index]);
+	sprite_move(hand_pos[index], &hand);
 
-	while (!exit_menu) {
+	for (;;) {
 		pad = get_paddata();
 
 		if (pad != pad_old) {
-			if (!clbk_action && pad&BUTTON_CIRCLE) {
-				clbk_action = true;	
-			} else if (clbk_action && pad&BUTTON_CROSS) {
-				clbk_action = false;
-			} else if (opts->cross_exit && pad&BUTTON_CROSS){
-				exit_menu = true;
-				index = -1;
+			if (pad&BUTTON_CIRCLE)
 				break;
-			} else {
-				if (pad&BUTTON_DOWN && index < (opts->size - 1))
+
+			if (menu == MENU_MAIN) {
+				if (pad&BUTTON_LEFT)
+					index = 0;
+				else if (pad&BUTTON_RIGHT)
+					index = 1;
+				else if (pad&BUTTON_DOWN)
+					index = 2;
+			} else if (menu == MENU_CDROM) {
+				if (pad&BUTTON_CROSS) {
+					index = -1;
+					break;
+				}
+
+				if (pad&BUTTON_DOWN && index < max_index)
 					++index;
 				else if (pad&BUTTON_UP && index > 0)
 					--index;
+			}
 
-				if (index != index_old) {
-					hand_move(hand_positions[index]);
-					index_old = index;
-				}
+			if (index != index_old) {
+				sprite_move(hand_pos[index], &hand);
+				index_old = index;
 			}
 
 			pad_old = pad;
 		}
 
-		if (clbk_action || clbk_action_old) {
-			if (opts->clbk == NULL) {
-				exit_menu = true;
-				break;
-			}
+		sprite_animation_update(2u, 8u, &hand_anim_last,
+					&hand_fwd_last, &hand_fwd, &hand);
 
-			if (clbk_action && !clbk_action_old) {
-				clbkarg = CLBKARG_INIT;
-			} else if (!clbk_action && clbk_action_old) {
-				clbkarg = CLBKARG_EXIT_CLBK;
-			} else {
-				clbkarg = CLBKARG_UPDATE;
-			}
-
-			switch (opts->clbk(clbkarg, index, opts->clbkdata)) {
-			case CLBKRET_INIT_CONFIRMED: clbk_action_old = true; break;
-			case CLBKRET_EXIT_CLBK_CONFIRMED: clbk_action_old = false; break;
-			case CLBKRET_EXIT_MENU: exit_menu = true; break;
-			case CLBKRET_UPDATE_CHANGE: goto Lsetup_fntbuff;
-			default: break;
-			}
-		}
-
-		hand_animation_update();
 		font_print(0, 0, fntbuff, NULL);
 		draw_sprites(&hand, 1);
 		update_display(true);
 	}
 
-	return index;
-}
-
-static enum SubMenu main_menu(void)
-{
-	const char* options_strs[] = {
-		"CDROM", "Memory Card", "Options"
-	};
-
-	const MenuOptions menuopts = {
-		.title = "- PSCHIP8 -",
-		.options = options_strs,
-		.optionsfmt = NULL,
-		.varpack = NULL,
-		.clbk = NULL,
-		.clbkdata = NULL,
-		.size = 3,
-		.cross_exit = false
-	};
-
-	const enum SubMenu options[SUBMENU_NSUBMENUS] = {
-		SUBMENU_CDROM, SUBMENU_MEMORY_CARD, SUBMENU_OPTIONS
-	};
-	
-	return options[run_menu(&menuopts)];
-}
-
-static const char* cdrom_menu(void)
-{
-	const char* cdpaths[] = {
-		"\\BRIX.CH8;1", "\\MISSILE.CH8;1", "\\INVADERS.CH8;1",
-		"\\MERLIN.CH8;1"
-	};
-
-	const char* options[] = {
-		"Brix", "Missile", "Invaders", "Merlin"
-	};
-
-	const MenuOptions opts = {
-		.title = "- CDROM -",
-		.options = options,
-		.optionsfmt = NULL,
-		.varpack = NULL,
-		.clbk = NULL,
-		.clbkdata = NULL,
-		.size = 4,
-		.cross_exit = true
-	};
-
-	const short idx = run_menu(&opts);
-	return idx != -1 ? cdpaths[idx] : NULL;
-}
-
-static enum ClbkRet options_menu_clbk(enum ClbkArg arg, uint8_t index, void* clbkdata)
-{
-	enum {
-		INDEX_FREQ
-	};
-
-	uint32_t* const last = clbkdata;
-	const int lastfreq = chip8_freq;
-
-	if (arg == CLBKARG_INIT)
-		return CLBKRET_INIT_CONFIRMED;
-	else if (arg == CLBKARG_EXIT_CLBK)
-		return CLBKRET_EXIT_CLBK_CONFIRMED;
-
-	if (index == INDEX_FREQ) {
-		if ((get_msec() - *last) > 1000u / 16u) {
-			if (get_paddata()&BUTTON_RIGHT)
-				++chip8_freq;	
-			else if (get_paddata()&BUTTON_LEFT)
-				--chip8_freq;
-			*last = get_msec();
-		}
-
-		if (lastfreq != chip8_freq)
-			return CLBKRET_UPDATE_CHANGE;
+	if (menu == MENU_MAIN) {
+		*((int*)out) = main_menu_out[index];
+	} else if (menu == MENU_CDROM) {
+		if (index != -1)
+			*((const char**)out) = cdrom_menu_out[index];
+		else
+			*((const char**)out) = NULL;
 	}
 
-	return CLBKRET_UPDATE_NO_CHANGE;
-}
-
-static void options_menu(void)
-{
-	const char* options[] = {
-		"Frequency"
-	};
-
-	void* varpack[] = { &chip8_freq };
-
-	uint32_t timer = get_msec();
-
-	const MenuOptions opts = {
-		.title = "- Options -",
-		.options = options,
-		.optionsfmt = "d",
-		.varpack = varpack,
-		.clbk = options_menu_clbk,
-		.clbkdata = &timer,
-		.size = 1,
-		.cross_exit = true
-	};
-
-	run_menu(&opts);
 }
 
 static void run_game(const char* const gamepath)
@@ -367,7 +238,8 @@ static void run_game(const char* const gamepath)
 
 int main(void)
 {
-	const char* cdpath;
+	const char* cdrom_menu_ret;
+	enum Menu main_menu_ret;
 
 	init_system();
 
@@ -384,14 +256,12 @@ int main(void)
 	reset_timers();
 
 	for (;;) {
-		switch (main_menu()) {
-		case SUBMENU_CDROM:
-			cdpath = cdrom_menu();
-			if (cdpath != NULL)
-				run_game(cdpath);
-			break;
-		case SUBMENU_OPTIONS:
-			options_menu();
+		run_menu(MENU_MAIN, &main_menu_ret);
+		switch (main_menu_ret) {
+		case MENU_CDROM:
+			run_menu(MENU_CDROM, &cdrom_menu_ret);
+			if (cdrom_menu_ret != NULL)
+				run_game(cdrom_menu_ret);
 			break;
 		default:
 			break;
