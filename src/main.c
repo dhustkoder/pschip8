@@ -31,6 +31,7 @@ typedef struct MenuOptions {
 	MenuClbk* clbks;
 	void* clbkdata;
 	uint8_t size;
+	bool cross_exit;
 } MenuOptions;
 
 
@@ -77,7 +78,7 @@ static void hand_animation_update(void)
 
 }
 
-static uint8_t run_menu(const MenuOptions* const opts)
+static short run_menu(const MenuOptions* const opts)
 {
 	const short title_len = strlen(opts->title);
 	const short title_padding = ((SCREEN_WIDTH / 2) - ((title_len / 2) * 6)) / 6;
@@ -85,8 +86,8 @@ static uint8_t run_menu(const MenuOptions* const opts)
 
 	char* fntbuff_p = fntbuff;
 
-	uint8_t index = 0;
-	uint8_t index_old = index;
+	short index = 0;
+	short index_old = index;
 	bool clbk_action = false;
 	bool clbk_action_old = clbk_action;
 	bool exit_menu = false;
@@ -121,6 +122,10 @@ static uint8_t run_menu(const MenuOptions* const opts)
 				clbk_action = true;	
 			} else if (clbk_action && pad&BUTTON_CROSS) {
 				clbk_action = false;
+			} else if (opts->cross_exit && pad&BUTTON_CROSS){
+				exit_menu = true;
+				index = -1;
+				break;
 			} else {
 				if (pad&BUTTON_DOWN && index < (opts->size - 1))
 					++index;
@@ -137,8 +142,10 @@ static uint8_t run_menu(const MenuOptions* const opts)
 		}
 
 		if (clbk_action || clbk_action_old) {
-			if (opts->clbks == NULL)
+			if (opts->clbks == NULL) {
+				exit_menu = true;
 				break;
+			}
 
 			if (clbk_action && !clbk_action_old) {
 				clbkarg = CLBKARG_INIT;
@@ -176,7 +183,8 @@ static enum SubMenu main_menu(void)
 		.options = options_strs,
 		.clbks = NULL,
 		.clbkdata = NULL,
-		.size = 3
+		.size = 3,
+		.cross_exit = false
 	};
 
 	const enum SubMenu options[SUBMENU_NSUBMENUS] = {
@@ -189,11 +197,12 @@ static enum SubMenu main_menu(void)
 static const char* cdrom_menu(void)
 {
 	const char* cdpaths[] = {
-		"\\BRIX.CH8;1", "\\MISSILE.CH8;1", "\\INVADERS.CH8;1"
+		"\\BRIX.CH8;1", "\\MISSILE.CH8;1", "\\INVADERS.CH8;1",
+		"\\MERLIN.CH8;1"
 	};
 
 	const char* options[] = {
-		"Brix", "Missile", "Invaders"
+		"Brix", "Missile", "Invaders", "Merlin"
 	};
 
 	const MenuOptions opts = {
@@ -201,10 +210,17 @@ static const char* cdrom_menu(void)
 		.options = options,
 		.clbks = NULL,
 		.clbkdata = NULL,
-		.size = 3
+		.size = 4,
+		.cross_exit = true
 	};
 
-	return cdpaths[run_menu(&opts)];
+	const short idx = run_menu(&opts);
+	return idx != -1 ? cdpaths[idx] : NULL;
+}
+
+static void options_menu(void)
+{
+	// TODO
 }
 
 static void run_game(const char* const gamepath)
