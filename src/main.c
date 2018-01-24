@@ -28,6 +28,8 @@ typedef enum ClbkRet(*MenuClbk)(enum ClbkArg, void* clbkdata);
 typedef struct MenuOptions {
 	const char* title;
 	const char* const* options;
+	const char* optionsfmt;
+	void* const* varpack;
 	MenuClbk* clbks;
 	void* clbkdata;
 	uint8_t size;
@@ -49,6 +51,8 @@ static Sprite hand = {
 	.size  = { .w = 26, .h = 14  },
 	.tpos  = { .u = 0,  .v = 0   }
 };
+
+static int chip8_freq = CHIP8_FREQ;
 
 
 static void hand_move(const Vec2 vec2)
@@ -84,8 +88,6 @@ static short run_menu(const MenuOptions* const opts)
 	const short title_padding = ((SCREEN_WIDTH / 2) - ((title_len / 2) * 6)) / 6;
 	const short options_padding = (SCREEN_WIDTH / 2) / 6;
 
-	char* fntbuff_p = fntbuff;
-
 	short index = 0;
 	short index_old = index;
 	bool clbk_action = false;
@@ -97,6 +99,10 @@ static short run_menu(const MenuOptions* const opts)
 	Vec2 hand_positions[opts->size];
 	enum ClbkArg clbkarg;
 	short i, j;
+	char* fntbuff_p;
+	
+Lsetup_fntbuff:
+	fntbuff_p = fntbuff;
 
 	for (i = 0; i < title_padding; ++i)
 		fntbuff_p += sprintf(fntbuff_p, " ");
@@ -107,12 +113,30 @@ static short run_menu(const MenuOptions* const opts)
 		for (j = 0; j < options_padding; ++j)
 			fntbuff_p += sprintf(fntbuff_p, " ");
 
-		fntbuff_p += sprintf(fntbuff_p, "%s\n\n", opts->options[i]);
+		fntbuff_p += sprintf(fntbuff_p, "%s", opts->options[i]);
+
+		if (opts->optionsfmt != NULL && opts->optionsfmt[i] != '\0') {
+			switch (opts->optionsfmt[i]) {
+			case 'd':
+				fntbuff_p += sprintf(fntbuff_p, ": %d",
+				                     *((const int*)(opts->varpack[i])));
+				break;
+			case 's':
+				fntbuff_p += sprintf(fntbuff_p, ": %s",
+				                     ((const char*)(opts->varpack[i])));
+				break;
+			default:
+				break;
+			}
+		}
+
+		fntbuff_p += sprintf(fntbuff_p, "\n\n");
 		hand_positions[i].x = (options_padding * 6) - 32;
 		hand_positions[i].y = 24 + (16 * i);
 	}
 
-	hand_move(hand_positions[index]);
+	if (!clbk_action)
+		hand_move(hand_positions[index]);
 
 	while (!exit_menu) {
 		pad = get_paddata();
@@ -159,6 +183,7 @@ static short run_menu(const MenuOptions* const opts)
 			case CLBKRET_INIT_CONFIRMED: clbk_action_old = true; break;
 			case CLBKRET_EXIT_CLBK_CONFIRMED: clbk_action_old = false; break;
 			case CLBKRET_EXIT_MENU: exit_menu = true; break;
+			case CLBKRET_UPDATE_CHANGE: goto Lsetup_fntbuff;
 			default: break;
 			}
 		}
@@ -181,6 +206,8 @@ static enum SubMenu main_menu(void)
 	const MenuOptions menuopts = {
 		.title = "- PSCHIP8 -",
 		.options = options_strs,
+		.optionsfmt = NULL,
+		.varpack = NULL,
 		.clbks = NULL,
 		.clbkdata = NULL,
 		.size = 3,
@@ -208,6 +235,8 @@ static const char* cdrom_menu(void)
 	const MenuOptions opts = {
 		.title = "- CDROM -",
 		.options = options,
+		.optionsfmt = NULL,
+		.varpack = NULL,
 		.clbks = NULL,
 		.clbkdata = NULL,
 		.size = 4,
@@ -218,9 +247,52 @@ static const char* cdrom_menu(void)
 	return idx != -1 ? cdpaths[idx] : NULL;
 }
 
+static enum ClbkRet options_menu_freq_clbk(enum ClbkArg arg, void* clbkdata)
+{
+	uint32_t* const last = clbkdata;
+	const int lastfreq = chip8_freq;
+
+	if (arg == CLBKARG_INIT)
+		return CLBKRET_INIT_CONFIRMED;
+	else if (arg == CLBKARG_EXIT_CLBK)
+		return CLBKRET_EXIT_CLBK_CONFIRMED;
+
+	if ((get_msec() - *last) > 1000u / 16u) {
+		if (get_paddata()&BUTTON_RIGHT)
+			++chip8_freq;	
+		else if (get_paddata()&BUTTON_LEFT)
+			--chip8_freq;
+		*last = get_msec();
+	}
+
+	if (lastfreq != chip8_freq)
+		return CLBKRET_UPDATE_CHANGE;
+	return CLBKRET_UPDATE_NO_CHANGE;
+}
+
 static void options_menu(void)
 {
-	// TODO
+	const char* options[] = {
+		"Frequency"
+	};
+
+	void* varpack[] = { &chip8_freq };
+	MenuClbk clbks[] = { options_menu_freq_clbk };
+
+	uint32_t timer = get_msec();
+
+	const MenuOptions opts = {
+		.title = "- Options -",
+		.options = options,
+		.optionsfmt = "d",
+		.varpack = varpack,
+		.clbks = clbks,
+		.clbkdata = &timer,
+		.size = 1,
+		.cross_exit = true
+	};
+
+	run_menu(&opts);
 }
 
 static void run_game(const char* const gamepath)
@@ -228,7 +300,7 @@ static void run_game(const char* const gamepath)
 	extern Chip8Key chip8_keys;
 	extern CHIP8_GFX_TYPE chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 
-	const uint32_t usecs_per_step = 1000000u / CHIP8_FREQ;
+	const uint32_t usecs_per_step = 1000000u / chip8_freq;
 
 	uint32_t timer = 0;
 	uint32_t last_step = 0;
@@ -313,6 +385,7 @@ int main(void)
 				run_game(cdpath);
 			break;
 		case SUBMENU_OPTIONS:
+			options_menu();
 			break;
 		default:
 			break;
