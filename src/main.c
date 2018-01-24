@@ -26,12 +26,10 @@ enum ClbkRet {
 typedef enum ClbkRet(*MenuClbk)(enum ClbkArg, void* clbkdata);
 
 typedef struct MenuOptions {
-	const char* fmt;
-	const void* const* varpack;
-	const Vec2* hand_positions;
+	const char* title;
+	const char* const* options;
 	MenuClbk* clbks;
 	void* clbkdata;
-	short x, y;
 	uint8_t size;
 } MenuOptions;
 
@@ -79,8 +77,13 @@ static void hand_animation_update(void)
 
 }
 
-static uint8_t run_menu(const MenuOptions opts)
+static uint8_t run_menu(const MenuOptions* const opts)
 {
+	const short title_len = strlen(opts->title);
+	const short title_padding = ((SCREEN_WIDTH / 2) - ((title_len / 2) * 6)) / 6;
+	const short options_padding = (SCREEN_WIDTH / 2) / 6;
+
+	char* fntbuff_p = fntbuff;
 
 	uint8_t index = 0;
 	uint8_t index_old = index;
@@ -89,10 +92,27 @@ static uint8_t run_menu(const MenuOptions opts)
 	bool exit_menu = false;
 	uint16_t pad = get_paddata();
 	uint16_t pad_old = pad;
-	enum ClbkArg clbkarg;
 
-	hand_move(opts.hand_positions[index]);
-	
+	Vec2 hand_positions[opts->size];
+	enum ClbkArg clbkarg;
+	short i, j;
+
+	for (i = 0; i < title_padding; ++i)
+		fntbuff_p += sprintf(fntbuff_p, " ");
+
+	fntbuff_p += sprintf(fntbuff_p, "%s\n\n\n", opts->title);
+
+	for (i = 0; i < opts->size; ++i) {
+		for (j = 0; j < options_padding; ++j)
+			fntbuff_p += sprintf(fntbuff_p, " ");
+
+		fntbuff_p += sprintf(fntbuff_p, "%s\n\n", opts->options[i]);
+		hand_positions[i].x = (options_padding * 6) - 32;
+		hand_positions[i].y = 24 + (16 * i);
+	}
+
+	hand_move(hand_positions[index]);
+
 	while (!exit_menu) {
 		pad = get_paddata();
 
@@ -102,13 +122,13 @@ static uint8_t run_menu(const MenuOptions opts)
 			} else if (clbk_action && pad&BUTTON_CROSS) {
 				clbk_action = false;
 			} else {
-				if (pad&BUTTON_DOWN && index < (opts.size - 1))
+				if (pad&BUTTON_DOWN && index < (opts->size - 1))
 					++index;
 				else if (pad&BUTTON_UP && index > 0)
 					--index;
 
 				if (index != index_old) {
-					hand_move(opts.hand_positions[index]);
+					hand_move(hand_positions[index]);
 					index_old = index;
 				}
 			}
@@ -117,7 +137,7 @@ static uint8_t run_menu(const MenuOptions opts)
 		}
 
 		if (clbk_action || clbk_action_old) {
-			if (opts.clbks == NULL)
+			if (opts->clbks == NULL)
 				break;
 
 			if (clbk_action && !clbk_action_old) {
@@ -128,7 +148,7 @@ static uint8_t run_menu(const MenuOptions opts)
 				clbkarg = CLBKARG_UPDATE;
 			}
 
-			switch (opts.clbks[index](clbkarg, opts.clbkdata)) {
+			switch (opts->clbks[index](clbkarg, opts->clbkdata)) {
 			case CLBKRET_INIT_CONFIRMED: clbk_action_old = true; break;
 			case CLBKRET_EXIT_CLBK_CONFIRMED: clbk_action_old = false; break;
 			case CLBKRET_EXIT_MENU: exit_menu = true; break;
@@ -137,7 +157,7 @@ static uint8_t run_menu(const MenuOptions opts)
 		}
 
 		hand_animation_update();
-		font_print(opts.x, opts.y, opts.fmt, opts.varpack);
+		font_print(0, 0, fntbuff, NULL);
 		draw_sprites(&hand, 1);
 		update_display(true);
 	}
@@ -147,63 +167,44 @@ static uint8_t run_menu(const MenuOptions opts)
 
 static enum SubMenu main_menu(void)
 {
-	const Vec2 hand_positions[SUBMENU_NSUBMENUS] = {
-		{ .x = 40,  .y = 38 },
-		{ .x = 142, .y = 38 },
-		{ .x = 82,  .y = 62 }
+	const char* options_strs[] = {
+		"CDROM", "Memory Card", "Options"
 	};
-	
+
 	const MenuOptions menuopts = {
-		.fmt = fntbuff,
-		.varpack = NULL,
-		.hand_positions = hand_positions,
+		.title = "- PSCHIP8 -",
+		.options = options_strs,
 		.clbks = NULL,
 		.clbkdata = NULL,
-		.size = 3,
-		.x = 6,
-		.y = 6
+		.size = 3
 	};
 
 	const enum SubMenu options[SUBMENU_NSUBMENUS] = {
 		SUBMENU_CDROM, SUBMENU_MEMORY_CARD, SUBMENU_OPTIONS
 	};
-
-	sprintf(fntbuff,
-	        "                  - PSCHIP8 -\n"
-	        "      Chip8 Interpreter For PlayStation 1\n\n\n"
-	        "           CDROM            Memory Card\n\n\n"
-	        "                  Options");
-
 	
-	return options[run_menu(menuopts)];
+	return options[run_menu(&menuopts)];
 }
 
 static const char* cdrom_menu(void)
 {
 	const char* cdpaths[] = {
-		"\\BRIX.CH8;1",
-		"\\MISSILE.CH8;1",
-		"\\INVADERS.CH8;1"
+		"\\BRIX.CH8;1", "\\MISSILE.CH8;1", "\\INVADERS.CH8;1"
 	};
 
-	const Vec2 hand_positions[] = {
-		{ 0, 16 },
-		{ 0, 24 },
-		{ 0, 32 }
+	const char* options[] = {
+		"Brix", "Missile", "Invaders"
 	};
 
 	const MenuOptions opts = {
-		.fmt = "Brix\nMissile\nInvaders",
-		.varpack = NULL,
+		.title = "- CDROM -",
+		.options = options,
 		.clbks = NULL,
 		.clbkdata = NULL,
-		.hand_positions = hand_positions,
-		.x = 32,
-		.y = 16,
 		.size = 3
 	};
 
-	return cdpaths[run_menu(opts)];
+	return cdpaths[run_menu(&opts)];
 }
 
 static void run_game(const char* const gamepath)

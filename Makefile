@@ -57,7 +57,7 @@ all: cdrom/$(DISPLAY_TYPE).ISO
 main: $(DISPLAY_TYPE).EXE
 asm: $(patsubst src/%.c, asm/%.asm, $(wildcard src/*.c))
 
-%.asm: %.c
+asm/%.asm: src/%.c
 	ccpsx $(CFLAGS) -S $^ -o$@
 
 
