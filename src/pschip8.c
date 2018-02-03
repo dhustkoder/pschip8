@@ -267,7 +267,6 @@ static void run_game(const char* const gamepath)
 	}
 }
 
-
 void pschip8()
 {
 	{

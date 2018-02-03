@@ -1,87 +1,177 @@
-#include <stdio.h>
-#include <tamtypes.h>
 #include <kernel.h>
-#include <sifrpc.h>
-#include <debug.h>
-#include <libgs.h>
-#include "system.h"
+#include <tamtypes.h>
+#include <stdio.h>
 
-#define MAX_SPRITES		1000
-#define	SCREEN_WIDTH		640
-#define	SCREEN_HEIGHT		448
-#define GIF_PACKET_MAX		10
+#include <gif_tags.h>
 
+#include <gs_gp.h>
+#include <gs_psm.h>
 
-static short int ScreenOffsetX, ScreenOffsetY;
+#include <dma.h>
+#include <dma_tags.h>
 
-static GS_DRAWENV		draw_env;
-static GS_DISPENV		disp_env;
-
-static GS_GIF_PACKET		packets[GIF_PACKET_MAX];
-static GS_PACKET_TABLE		giftable;
+#include <draw.h>
+#include <graph.h>
+#include <packet.h>
 
 
-static void  InitGraphics(void)
+
+static void init_gs(framebuffer_t* const frame, zbuffer_t* const z)
 {
-	unsigned int fb_vram_addr;
 
-	GsResetGraph(GS_INIT_RESET, GS_INTERLACED, GS_MODE_NTSC, GS_FFMD_FIELD);
+	/* Define a 32-bit 512x512 framebuffer. */
+	frame->width = 512;
+	frame->height = 512;
+	frame->mask = 0;
+	frame->psm = GS_PSM_32;
 
-	fb_vram_addr = GsVramAllocFrameBuffer(SCREEN_WIDTH, SCREEN_HEIGHT, GS_PIXMODE_32);
-	GsSetDefaultDrawEnv(&draw_env, GS_PIXMODE_32, SCREEN_WIDTH, SCREEN_HEIGHT);
-	
-	/* Retrieve screen offset parameters. */
-	ScreenOffsetX = draw_env.offset_x;
-	ScreenOffsetY = draw_env.offset_y;
-	GsSetDefaultDrawEnvAddress(&draw_env, fb_vram_addr);
+	/* Switch the mask on for some fun. */
+	/*frame->mask = 0xFFFF0000; */
 
-	GsSetDefaultDisplayEnv(&disp_env, GS_PIXMODE_32, SCREEN_WIDTH, SCREEN_HEIGHT, 0, 0);
-	GsSetDefaultDisplayEnvAddress(&disp_env, fb_vram_addr);
+	/* Allocate some vram for our framebuffer */
+	frame->address = graph_vram_allocate(frame->width, frame->height, frame->psm, GRAPH_ALIGN_PAGE);
 
-	/* execute draw/display environment(s)  (context 1) */
-	GsPutDrawEnv1(&draw_env);
-	GsPutDisplayEnv1(&disp_env);
+	/* Disable the zbuffer. */
+	z->enable = 0;
+	z->address = 0;
+	z->mask = 0;
+	z->zsm = 0;
 
-	/* Set common primitive-drawing settings (Refer to documentation on PRMODE and PRMODECONT registers). */
-	GsOverridePrimAttributes(GS_DISABLE, 0, 0, 0, 0, 0, 0, 0, 0);
+	/* Initialize the screen and tie the framebuffer to the read circuits. */
+	graph_initialize(frame->address, frame->width, frame->height, frame->psm, 0, 0);
 
-	/* Set transparency settings for context 1 (Refer to documentation on TEST and TEXA registers).
-	 *Alpha test = enabled, pass if >= alpha reference, alpha reference = 1, fail method = no update
-	 */
-	GsEnableAlphaTransparency1(GS_ENABLE, GS_ALPHA_GEQUAL, 0x01, GS_ALPHA_NO_UPDATE);
-	/* Enable global alpha blending */
-	GsEnableAlphaBlending1(GS_ENABLE);
+	/* This is how you would define a custom mode */
+	/*graph_set_mode(GRAPH_MODE_NONINTERLACED,GRAPH_MODE_VGA_1024_60,GRAPH_MODE_FRAME,GRAPH_DISABLE); */
+	/*graph_set_screen(0,0,512,768); */
+	/*graph_set_bgcolor(0,0,0); */
+	/*graph_set_framebuffer_filtered(frame->address,frame->width,frame->psm,0,0); */
+	/*graph_enable_output(); */
 
-	/*set transparency settings for context 2 (Refer to documentation on TEST and TEXA registers).
-	 *Alpha test = enabled, pass if >= alpha reference, alpha reference = 1, fail method = no update
-	 */
-	GsEnableAlphaTransparency2(GS_ENABLE, GS_ALPHA_GEQUAL, 0x01, GS_ALPHA_NO_UPDATE);
-	/* Enable global alpha blending */
-	GsEnableAlphaBlending2(GS_ENABLE);
+}
+
+static void init_drawing_environment(packet_t* const packet, framebuffer_t* const frame, zbuffer_t* const z)
+{
+
+	/* This is our generic qword pointer. */
+	qword_t* q = packet->data;
+
+	/* This will setup a default drawing environment. */
+	q = draw_setup_environment(q, 0, frame, z);
+
+	/* This is where you could add various other drawing environment settings, */
+	/* or keep on adding onto the packet, but I'll stop with the default setup */
+	/* by appending a finish tag. */
+
+	q = draw_finish(q);
+
+	/* Now send the packet, no need to wait since it's the first. */
+	dma_channel_send_normal(DMA_CHANNEL_GIF, packet->data, q - packet->data, 0, 0);
+
+	/* Wait until the finish event occurs. */
+	draw_wait_finish();
+
+}
+
+static void render(packet_t *packet, framebuffer_t *frame)
+{
+
+	/* Used for the render loop. */
+	int loop0;
+
+	/* Used for the qword pointer. */
+	qword_t *q = packet->data;
+
+	/* Since we only have one packet, we need to wait until the dmac is done */
+	/* before reusing our pointer; */
+	dma_wait_fast();
+
+	q = packet->data;
+	q = draw_clear(q,0,0,0,frame->width,frame->height,0,0,0);
+	q = draw_finish(q);
+
+	dma_channel_send_normal(DMA_CHANNEL_GIF,packet->data, q - packet->data, 0, 0);
+
+	/* Wait until the screen is cleared. */
+	draw_wait_finish();
+
+	/* Update the screen. */
+	graph_wait_vsync();
+
+	/* Draw 20 100x100 squares from the origin point. */
+	for (loop0=0;loop0<20;loop0++)
+	{
+
+		/* No dmatags in a normal transfer. */
+		q = packet->data;
+
+		/* Wait for our previous dma transfer to end. */
+		dma_wait_fast();
+
+		/* Draw another square on the screen. */
+		PACK_GIFTAG(q, GIF_SET_TAG(4, 1, 0, 0, 0, 1),GIF_REG_AD);
+		q++;
+		PACK_GIFTAG(q, GIF_SET_PRIM(6, 0, 0, 0, 0, 0, 0, 0, 0), GIF_REG_PRIM);
+		q++;
+		PACK_GIFTAG(q, GIF_SET_RGBAQ((loop0 * 10), 0, 255 - (loop0 * 10), 0x80, 0x3F800000), GIF_REG_RGBAQ);
+		q++;
+		PACK_GIFTAG(q, GIF_SET_XYZ(( (loop0 * 20) << 4) + (2048<<4), ((loop0 * 10) << 4) + (2048<<4), 0), GIF_REG_XYZ2);
+		q++;
+		PACK_GIFTAG(q, GIF_SET_XYZ( (((loop0 * 20) + 100) << 4) + (2048<<4), (((loop0 * 10) + 100) << 4) + (2048<<4), 0), GIF_REG_XYZ2);
+		q++;
+
+		q = draw_finish(q);
+
+		/* DMA send */
+		dma_channel_send_normal(DMA_CHANNEL_GIF,packet->data,q - packet->data, 0, 0);
+
+		/* Wait until the drawing is finished. */
+		draw_wait_finish();
+
+		/* Now initiate vsync. */
+		graph_wait_vsync();
+
+	}
 
 }
 
 
-void __attribute__((noreturn)) main(void)
+void  __attribute__((noreturn)) main(void)
 {
-	InitGraphics();
-	
-	giftable.packet_count = GIF_PACKET_MAX;
-	giftable.packets = packets;
+
+	/* The minimum buffers needed for single buffered rendering. */
+	framebuffer_t frame;
+	zbuffer_t z;
+
+	/* The data packet. */
+	packet_t *packet = packet_init(50,PACKET_NORMAL);
+
+	/* Init GIF dma channel. */
+	dma_channel_initialize(DMA_CHANNEL_GIF,NULL,0);
+	dma_channel_fast_waits(DMA_CHANNEL_GIF);
+
+	/* Init the GS, framebuffer, and zbuffer. */
+	init_gs(&frame,&z);
+
+	/* Init the drawing environment and framebuffer. */
+	init_drawing_environment(packet,&frame,&z);
 
 	for (;;) {
-		/* clear the area that we are going to put the sprites/triangles/.... */
-		GsGifPacketsClear(&giftable);
-
-
-
-
-		GsDrawSync(0);
-		GsVSync(0);
-		/* clear the draw environment before we draw stuff on it */
-		GsClearDrawEnv1(&draw_env);
-		/* set to '1' becuse we want to wait for drawing to finish. if we dont wait we will write on packets that is currently writing to the gif */
-		GsGifPacketsExecute(&giftable, 1);
+		/* Render the sample. */
+		render(packet,&frame);
 	}
-}
+	/* Free the vram. */
+	graph_vram_free(frame.address);
 
+	/* Free the packet. */
+	packet_free(packet);
+
+	/* Disable output and reset the GS. */
+	graph_shutdown();
+
+	/* Shutdown our currently used dma channel. */
+	dma_channel_shutdown(DMA_CHANNEL_GIF,0);
+
+	/* Sleep */
+	SleepThread();
+
+}

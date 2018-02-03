@@ -4,7 +4,8 @@
 void __attribute__((noreturn)) main(void)
 {
 	init_system();
+	pschip8();
 	for (;;)
-		pschip8();
+		update_display(true);
 }
 
