@@ -37,7 +37,7 @@ EE_ASFLAGS := -G0 $(EE_ASFLAGS)
 # Link with following libraries.  This is a special case, and instead of
 # allowing the user to override the library order, we always make sure
 # libkernel is the last library to be linked.
-EE_LIBS += -lc -ldebug -lkernel -lgs
+EE_LIBS += -lgs -lc -ldebug -lkernel
 
 # Externally defined variables: EE_BIN, EE_OBJS, EE_LIB
 
@@ -59,7 +59,7 @@ endif
 
 
 all: $(EE_BIN)
-
+	$(EE_STRIP) --strip-all $(EE_BIN)
 %.o: %.c
 	$(EE_CC) $(EE_CFLAGS) $(EE_INCS) -c $< -o $@
 
