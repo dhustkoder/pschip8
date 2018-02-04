@@ -44,7 +44,7 @@ typedef uint8_t bool;
 
 
 void init_system(void);
-
+void update_display(bool vsync);
 
 static inline uint32_t get_msec_now(void)
 {

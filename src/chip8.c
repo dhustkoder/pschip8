@@ -100,7 +100,7 @@ static void update_dt_st(void)
 	}
 }
 
-static void clear_screen(void)
+static void clear_gfx(void)
 {
 	int i, j;
 	for (i = 0; i < CHIP8_GFX_HEIGHT; ++i)
@@ -120,7 +120,7 @@ void chip8_reset(void)
 	memset(&rgs, 0, sizeof rgs);
 	memset(stack, 0, sizeof stack);
 	memcpy(ram, font, sizeof font);
-	clear_screen();
+	clear_gfx();
 	rgs.pc = 0x200;
 	rgs.sp = 15;
 	chip8_draw_flag = true;
@@ -154,7 +154,7 @@ void chip8_step(void)
 		switch (oplo) {
 		default: unknown_opcode(opcode); break;
 		case 0xE0: /* - CLS clear display */
-			clear_screen();
+			clear_gfx();
 			chip8_draw_flag = true;
 			break;
 		case 0xEE: /* - RET Return from a subroutine. */
