@@ -85,25 +85,24 @@ void update_display(const bool vsync)
 
 
 void draw_ram_buffer(void* const pixels,
-                     const struct vec2_i16* const pos,
-                     const struct vec2_u8* const size,
-                     const struct vec2_u8* const scale)
+                     const struct vec2* const pos,
+                     const struct vec2* const size,
+                     const uint8_t scale)
 {
-	const uint16_t* p = pixels;
+	const uint64_t* p = pixels;
 
 	for (int i = 0; i < size->y; ++i) {
 		for (int j = 0; j < size->x; ++j) {
-			if (p[i * size->x + j] != 0x8000) {
-				const int16_t x = pos->x + j;
-				const int16_t y = pos->y + i;
+				const int16_t x = pos->x + j * scale;
+				const int16_t y = pos->y + i * scale;
+				const uint64_t pixel = p[i * size->x + j];
 				gsKit_prim_sprite(
 					gs_global,
 					x, y,
-					x + scale->x, y + scale->y,
+					x + scale, y + scale,
 					0,
-					GS_SETREG_RGBAQ(0x00,0x00,0xFF,0x00,0x00)
+					pixel
 					);
-			}
 		}
 	}
 }

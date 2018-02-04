@@ -51,8 +51,8 @@ static int16_t ss_sprites_size = 0;
 static GsSPRITE* char_sprites = NULL; /* used to sort font characteres sprites */
 static int16_t char_sprites_size = 0;
 static uint8_t char_ascii_idx = 0;
-static struct vec2_u8 char_csize;
-static struct vec2_i16 char_tsize;
+static struct vec2 char_csize;
+static struct vec2 char_tsize;
 static GsSPRITE bkg_sprites[2];
 static bool bkg_loaded = false;
 
@@ -204,7 +204,7 @@ void update_display(const bool vsync)
 }
 
 
-void font_print(const struct vec2_i16* const pos,
+void font_print(const struct vec2* const pos,
                 const char* const fmt,
                 const void* const* varpack)
 {
@@ -292,9 +292,9 @@ void draw_sprites(const struct sprite* const sprites, const int16_t nsprites)
 }
 
 void draw_ram_buffer(void* const pixels,
-                     const struct vec2_i16* const pos,
-                     const struct vec2_u8* const size,
-                     const struct vec2_u8* const scale)
+                     const struct vec2* const pos,
+                     const struct vec2* const size,
+                     const uint8_t scale)
 {
 	static GsSPRITE sprt;
 
@@ -309,8 +309,8 @@ void draw_ram_buffer(void* const pixels,
 	sprt.h = size->y;
 	sprt.mx = size->x / 2u;
 	sprt.my = size->y / 2u;
-	sprt.scalex = ONE * scale->x;
-	sprt.scaley = ONE * scale->y;
+	sprt.scalex = ONE * scale;
+	sprt.scaley = ONE * scale;
 
 	GsSortSprite(&sprt, curr_drawot, OTENTRY_SPRITE);
 }
@@ -367,19 +367,19 @@ void load_bkg(void* const data)
 }
 
 void load_font(void* const data,
-               const struct vec2_u8* const charsize,
+               const struct vec2* const charsize,
                const uint8_t ascii_idx,
                const int16_t max_chars_on_scr)
 {
 	int16_t i;
 	int tpage;
 
-	char_tsize = (struct vec2_i16) {
+	char_tsize = (struct vec2) {
 		.x = ((uint16_t*)data)[0],
 		.y = ((uint16_t*)data)[1]
 	};
 
-	memcpy(&char_csize, charsize, sizeof(struct vec2_u8));
+	memcpy(&char_csize, charsize, sizeof(struct vec2));
 
 	tpage = LoadTPage((void*)(((uint32_t*)data) + 1), 2, 0,
 	                  FONT_FB_X, FONT_FB_Y, char_tsize.x, char_tsize.y);

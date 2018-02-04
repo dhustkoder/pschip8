@@ -18,16 +18,15 @@ static const uint8_t brix[] = {
 void  __attribute__((noreturn)) main(void)
 {
 	extern chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
-	const struct vec2_i16 pos = { 0, 0 };
-	const struct vec2_u8 size = { CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT };
-	const struct vec2_u8 scale = { 1, 1 };
+	const struct vec2 pos = { 0, 0 };
+	const struct vec2 size = { CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT };
 
 	init_system();
 	chip8_loadrom_data(brix, sizeof(brix));
 	chip8_reset();
 	for (;;) {
 		chip8_step();
-		draw_ram_buffer(chip8_gfx, &pos, &size, &scale);
+		draw_ram_buffer(chip8_gfx, &pos, &size, 8);
 		update_display(true);
 	}
 	

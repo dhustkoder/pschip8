@@ -81,15 +81,15 @@ static int8_t run_select_menu(const char* const title,
 {
 	const struct sprite* const circle = &menu_sprites[MENUSPRT_CIRCLE];
 	const struct sprite* const cross  = &menu_sprites[MENUSPRT_CROSS];
-	const struct vec2_i16 title_pos = {
+	const struct vec2 title_pos = {
 		.x = (SCREEN_WIDTH - (6 * strlen(title))) / 2u,
 		.y = 16
 	};
-	const struct vec2_i16 select_pos = {
+	const struct vec2 select_pos = {
 		.x = circle->spos.x + circle->size.x,
 		.y = circle->spos.y + ((circle->size.y - 8) / 2)
 	};
-	const struct vec2_i16 back_pos = {
+	const struct vec2 back_pos = {
 		.x = cross->spos.x + cross->size.x,
 		.y = cross->spos.y + ((cross->size.y - 8) / 2)
 	};
@@ -104,7 +104,7 @@ static int8_t run_select_menu(const char* const title,
 	int8_t index = 0;
 	int8_t index_old = index;
 
-	struct vec2_i16 opts_pos[nopts];
+	struct vec2 opts_pos[nopts];
 	int8_t i;
 
 	for (i = 0; i < nopts; ++i) {
@@ -205,9 +205,8 @@ static void run_game(const char* const gamepath)
 	extern chip8key_t chip8_keys;
 
 	const uint32_t usecs_per_step = 1000000u / CHIP8_FREQ;
-	const struct vec2_i16 pos = { (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) };
-	const struct vec2_u8 size = { CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT };
-	const struct vec2_u8 scale = { 3, 3 };
+	const struct vec2 pos = { (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) };
+	const struct vec2 size = { CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT };
 
 	uint32_t timer = 0;
 	uint32_t last_step = 0;
@@ -249,12 +248,12 @@ static void run_game(const char* const gamepath)
 			last_step += usecs_per_step;
 		}
 
-		font_print(&(struct vec2_i16){ 8, 8 },
+		font_print(&(struct vec2){ 8, 8 },
 		           "Press START & SELECT to reset\n"
 		           "Frames per second: %d\n"
 		           "Steps per second: %d", varpack);
 
-		draw_ram_buffer(chip8_gfx, &pos, &size, &scale);
+		draw_ram_buffer(chip8_gfx, &pos, &size, 3);
 		update_display(true);
 		++fps_cnt;
 		if ((timer - last_sec) >= 1000000u) {
@@ -285,7 +284,7 @@ void pschip8()
 
 		load_files(cdpaths, data, NFILES);
 		load_bkg(data[BKG]);
-		load_font(data[FONT], &(struct vec2_u8){6, 8}, 32, 256);
+		load_font(data[FONT], &(struct vec2){6, 8}, 32, 256);
 		load_sprite_sheet(data[SPRITES], 32);
 		load_snd(&data[HNDMOVESND], 3);
 		load_sync();

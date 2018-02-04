@@ -4,15 +4,17 @@
 #ifdef DEBUG /* DEBUG */
 #include <assert.h>
 #endif /* DEBUG */
+#include <gsKit.h>
 
 
-typedef unsigned char  uint8_t;
-typedef unsigned short uint16_t;
-typedef unsigned int   uint32_t;
-typedef signed short   int16_t;
-typedef signed char    int8_t;
-typedef signed int     int32_t;
-typedef uint8_t bool;
+typedef unsigned char      uint8_t;
+typedef unsigned short     uint16_t;
+typedef unsigned int       uint32_t;
+typedef unsigned long long uint64_t;
+typedef signed short       int16_t;
+typedef signed char        int8_t;
+typedef signed int         int32_t;
+typedef uint8_t            bool;
 #define true  ((bool)1)
 #define false ((bool)0)
 
@@ -56,28 +58,27 @@ typedef uint8_t bool;
 
 #endif /* DEBUG */
 
+/* chip8 settings */
+#define CHIP8_GFX_BGC (GS_SETREG_RGBAQ(0x00, 0x00, 0x00, 0x00, 0x00))
+#define CHIP8_GFX_FGC (GS_SETREG_RGBAQ(0xFF, 0xFF, 0xFF, 0x00, 0x00))
+typedef uint64_t chip8_gfx_t;
 
-struct vec2_i16 {
+
+struct vec2 {
 	int16_t x, y;
 };
 
-struct vec2_u8 {
-	uint8_t x, y;
-};
-
 struct sprite {
-	struct vec2_i16 spos;
-	struct vec2_i16 size;
-	struct vec2_u8  tpos;
+	struct vec2 spos;
+	struct vec2 size;
+	struct vec2 tpos;
 };
 
 
 void init_system(void);
 void update_display(bool vsync);
-void draw_ram_buffer(void* pixels,
-                     const struct vec2_i16* pos,
-                     const struct vec2_u8* size,
-                     const struct vec2_u8* scale);
+void draw_ram_buffer(void* pixels, const struct vec2* pos,
+                     const struct vec2* size, uint8_t scale);
                      
 
 static inline uint32_t get_msec_now(void)

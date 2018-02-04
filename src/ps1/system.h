@@ -73,6 +73,11 @@ typedef uint8_t bool;
 
 #define MAX_VOLUME (0x3FFF)
 
+/* chip8 settings */
+#define CHIP8_GFX_BGC     (0x8000)
+#define CHIP8_GFX_FGC     (0xFFFF)
+typedef uint16_t chip8_gfx_t;
+
 
 typedef uint16_t button_t;
 enum Button {
@@ -93,18 +98,15 @@ enum Button {
 };
 
 
-struct vec2_i16 {
+struct vec2 {
 	int16_t x, y;
 };
 
-struct vec2_u8 {
-	uint8_t x, y;
-};
 
 struct sprite {
-	struct vec2_i16 spos;
-	struct vec2_i16 size;
-	struct vec2_u8  tpos;
+	struct vec2 spos;
+	struct vec2 size;
+	struct vec2  tpos;
 };
 
 
@@ -113,17 +115,15 @@ void reset_timers(void);
 void update_timers(void);
 void update_display(bool vsync);
 
-void font_print(const struct vec2_i16* pos, const char* fmt, const void* const* varpack);
+void font_print(const struct vec2* pos, const char* fmt, const void* const* varpack);
 void draw_sprites(const struct sprite* sprites, short nsprites);
-void draw_ram_buffer(void* pixels,
-                     const struct vec2_i16* pos,
-                     const struct vec2_u8* size,
-                     const struct vec2_u8* scale);
+void draw_ram_buffer(void* pixels, const struct vec2* pos,
+                     const struct vec2* size, uint8_t scale);
 void assign_snd_chan(uint8_t chan, uint8_t snd_index);
 
 void load_bkg(void* data);
 void load_sprite_sheet(void* data, short max_sprites_on_screen);
-void load_font(void* data, const struct vec2_u8* charsize,
+void load_font(void* data, const struct vec2* charsize,
                uint8_t ascii_idx, short max_chars_on_scr);
 void load_snd(void* const* data, uint8_t nsnd);
 void load_files(const char* const* filenames, void** dsts, short nfiles);

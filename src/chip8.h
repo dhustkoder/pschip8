@@ -11,11 +11,8 @@
 #define CHIP8_FREQ        (512)
 #define CHIP8_BUZZ_FREQ   (480)
 #define CHIP8_DELAY_FREQ  (120)
-#define CHIP8_GFX_BGC     (0x8000)
-#define CHIP8_GFX_FGC     (0xFFFF)
 
 
-typedef uint16_t chip8_gfx_t;
 typedef uint16_t chip8key_t;
 enum Chip8Key {
 	CHIP8KEY_0 = 0x0001,
