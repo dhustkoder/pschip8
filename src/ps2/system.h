@@ -57,8 +57,28 @@ typedef uint8_t bool;
 #endif /* DEBUG */
 
 
+struct vec2_i16 {
+	int16_t x, y;
+};
+
+struct vec2_u8 {
+	uint8_t x, y;
+};
+
+struct sprite {
+	struct vec2_i16 spos;
+	struct vec2_i16 size;
+	struct vec2_u8  tpos;
+};
+
+
 void init_system(void);
 void update_display(bool vsync);
+void draw_ram_buffer(void* pixels,
+                     const struct vec2_i16* pos,
+                     const struct vec2_u8* size,
+                     const struct vec2_u8* scale);
+                     
 
 static inline uint32_t get_msec_now(void)
 {

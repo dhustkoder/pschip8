@@ -37,6 +37,7 @@ enum Chip8Key {
 };
 
 void chip8_loadrom(const char* filename);
+void chip8_loadrom_data(const void* data, short size);
 void chip8_reset(void);
 void chip8_step(void);
 

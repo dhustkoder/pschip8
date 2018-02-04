@@ -78,24 +78,35 @@ void init_system(void)
 
 void update_display(const bool vsync)
 {
-	static int fps = 0;
-	static int i = 0;
-
-	gsKit_prim_sprite(gs_global, i, 0, i + 10, 10, 0, GS_SETREG_RGBAQ(0x00,0x00,0xFF,0x00,0x00));
-
-	if (++fps >= 2) {
-	        fps = 0;
-	        if ((++i + 10) >= gs_global->Width)
-	        	i = 0;
-
-	}
-
 	gsKit_queue_exec(gs_global);
 	/* Flip before exec to take advantage of DMA execution double buffering. */
 	gsKit_sync_flip(gs_global);
 }
 
 
+void draw_ram_buffer(void* const pixels,
+                     const struct vec2_i16* const pos,
+                     const struct vec2_u8* const size,
+                     const struct vec2_u8* const scale)
+{
+	const uint16_t* p = pixels;
+
+	for (int i = 0; i < size->y; ++i) {
+		for (int j = 0; j < size->x; ++j) {
+			if (p[i * size->x + j] != 0x8000) {
+				const int16_t x = pos->x + j;
+				const int16_t y = pos->y + i;
+				gsKit_prim_sprite(
+					gs_global,
+					x, y,
+					x + scale->x, y + scale->y,
+					0,
+					GS_SETREG_RGBAQ(0x00,0x00,0xFF,0x00,0x00)
+					);
+			}
+		}
+	}
+}
 
 
 
