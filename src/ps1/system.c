@@ -432,7 +432,7 @@ void load_files(const char* const* const filenames,
 
 	for (i = 0; i < nfiles; ++i) {
 		sprintf(namebuff, "\\%s;1", filenames[i]);
-		LOGINFO("LOADING %s...\n", namebuff);
+		LOGINFO("LOADING %s...", namebuff);
 
 		for (j = 0; j < 10; ++j) {
 			if (CdSearchFile(&fp, namebuff) != 0)
@@ -440,15 +440,15 @@ void load_files(const char* const* const filenames,
 		}
 
 		if (j == 10)
-			FATALERROR("Couldn't find file %s in CDROM\n", namebuff);
+			FATALERROR("Couldn't find file %s in CDROM", namebuff);
 		
-		LOGINFO("Found file %s with size: %lu\n", namebuff, fp.size);
+		LOGINFO("Found file %s with size: %lu", namebuff, fp.size);
 
 		need_alloc = dsts[i] == NULL;
 		if (need_alloc) {
 			dsts[i] = MALLOC(2048 + fp.size);
 			if (dsts[i] == NULL)
-				FATALERROR("Couldn't allocate memory\n");
+				FATALERROR("Couldn't allocate memory");
 		}
 
 		for (j = 0; j < 10; ++j) {
@@ -462,7 +462,7 @@ void load_files(const char* const* const filenames,
 		}
 
 		if (j == 10)
-			FATALERROR("Couldn't read file %s from CDROM\n", namebuff);
+			FATALERROR("Couldn't read file %s from CDROM", namebuff);
 	}
 
 	CdStop();

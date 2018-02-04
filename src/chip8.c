@@ -42,7 +42,7 @@ static const uint8_t font[80] = {
 
 static void unknown_opcode(const uint16_t opcode)
 {
-	FATALERROR("Unkown Opcode: $%.4X\n", opcode);
+	FATALERROR("Unkown Opcode: $%.4X", opcode);
 }
 
 static void stackpush(const uint16_t value)

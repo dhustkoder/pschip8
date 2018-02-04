@@ -1,7 +1,6 @@
 #include "system.h"
 
 
-
 void  __attribute__((noreturn)) main(void)
 {
 
@@ -11,3 +10,4 @@ void  __attribute__((noreturn)) main(void)
 		update_display(true);
 	
 }
+

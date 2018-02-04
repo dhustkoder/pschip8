@@ -1,15 +1,12 @@
-#include <kernel.h>
-#include <tamtypes.h>
 #include <stdio.h>
-
+#include <kernel.h>
+#include <sifrpc.h>
+#include <tamtypes.h>
 #include <gif_tags.h>
-
 #include <gs_gp.h>
 #include <gs_psm.h>
-
 #include <dma.h>
 #include <dma_tags.h>
-
 #include <draw.h>
 #include <graph.h>
 #include <packet.h>
@@ -23,8 +20,12 @@ static packet_t* gpu_packet;
 static qword_t* gpu_packet_offset;
 
 
+
+
 void init_system(void)
 {
+	SifInitRpc(0);
+	LOGINFO("Init System");
 	/* graphics */
 	/* The data packet. */
 	gpu_packet = packet_init(50, PACKET_NORMAL);
@@ -33,8 +34,8 @@ void init_system(void)
 	dma_channel_fast_waits(DMA_CHANNEL_GIF);
 
 	/* Define a 32-bit 512x512 framebuffer. */
-	framebuffer.width  = 512;
-	framebuffer.height = 512;
+	framebuffer.width  = SCREEN_WIDTH;
+	framebuffer.height = SCREEN_HEIGHT;
 	framebuffer.mask   = 0;
 	framebuffer.psm    = GS_PSM_32;
 
@@ -83,7 +84,6 @@ void init_system(void)
 	dma_channel_shutdown(DMA_CHANNEL_GIF,0);
 	*/
 }
-
 
 void update_display(const bool vsync)
 {

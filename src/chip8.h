@@ -1,4 +1,4 @@
-#ifndef PSCHIP8_CHIP8_H_
+#ifndef PSCHIP8_CHIP8_H_  /* PSCHIP8_CHIP8_H_ */
 #define PSCHIP8_CHIP8_H_
 #include "system.h"
 
@@ -41,4 +41,4 @@ void chip8_reset(void);
 void chip8_step(void);
 
 
-#endif
+#endif /* PSCHIP8_CHIP8_H_ */

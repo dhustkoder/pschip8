@@ -1,4 +1,4 @@
-#ifndef PSCHIP8_SYSTEM_H_
+#ifndef PSCHIP8_SYSTEM_H_ /* PSCHIP8_SYSTEM_H_ */
 #define PSCHIP8_SYSTEM_H_
 #include <sys/errno.h>
 #include <sys/types.h>
@@ -18,10 +18,10 @@ typedef unsigned int uint32_t;
 typedef signed char int8_t;
 typedef signed short int16_t;
 typedef signed int int32_t;
-
 typedef uint8_t bool;
 #define false ((bool)0)
 #define true  ((bool)1)
+
 
 #define MALLOC malloc3
 #define FREE   free3
@@ -35,22 +35,33 @@ typedef uint8_t bool;
 #define NSEC_PER_HSYNC (63560u)
 #endif
 
-#define LOGINFO(...)  printf("INFO: " __VA_ARGS__)
-#define LOGERROR(...) printf("ERROR: " __VA_ARGS__)
 
-#define FATALERROR(...) {                        \
-	LOGERROR("FATAL FAILURE: " __VA_ARGS__); \
-	LOGERROR("\n");                          \
-	SystemError(_get_errno(), _get_errno()); \
+#define LOGINFO(...)  {           \
+	printf("INFO: " __VA_ARGS__); \
+	putchar('\n');                \
 }
 
-#ifdef DEBUG
+#define LOGERROR(...) {            \
+	printf("ERROR: " __VA_ARGS__); \
+	putchar('\n');                 \
+}
 
-#define LOGDEBUG(...) printf("DEBUG: " __VA_ARGS__)
+#define FATALERROR(...) {                    \
+	printf("FATAL FAILURE: " __VA_ARGS__);   \
+	putchar('\n');                           \
+	abort();                                 \
+}
 
-#define ASSERT_MSG(cond, ...) {              \
-	if (!(cond))                         \
-		FATALERROR(__VA_ARGS__);     \
+#ifdef DEBUG /* DEBUG */
+
+#define LOGDEBUG(...) {            \
+	printf("DEBUG: " __VA_ARGS__); \
+	putchar("\n");                 \
+}
+
+#define ASSERT_MSG(cond, ...) {  \
+	if (!(cond))                 \
+		FATALERROR(__VA_ARGS__); \
 }
 
 #else
@@ -58,7 +69,7 @@ typedef uint8_t bool;
 #define LOGDEBUG(...)   ((void)0)
 #define ASSERT_MSG(...) ((void)0)
 
-#endif
+#endif /* DEBUG */
 
 #define MAX_VOLUME (0x3FFF)
 
@@ -179,4 +190,4 @@ static inline uint32_t get_usec_now(void)
 }
 
 
-#endif
+#endif /* PSCHIP8_SYSTEM_H_ */
