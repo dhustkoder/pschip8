@@ -1,25 +1,11 @@
-#include <stdio.h>
-#include <kernel.h>
 #include <sifrpc.h>
-#include <tamtypes.h>
-#include <gif_tags.h>
-#include <gs_gp.h>
-#include <gs_psm.h>
-#include <dma.h>
-#include <dma_tags.h>
-#include <draw.h>
-#include <graph.h>
-#include <packet.h>
+#include <gsKit.h>
+#include <dmaKit.h>
 #include "system.h"
 
 
 /* The minimum buffers needed for single buffered rendering. */
-static framebuffer_t framebuffer;
-static zbuffer_t zbuffer;
-static packet_t* gpu_packet;
-static qword_t* gpu_packet_offset;
-
-
+static GSGLOBAL* gs_global;
 
 
 void init_system(void)
@@ -27,80 +13,86 @@ void init_system(void)
 	SifInitRpc(0);
 	LOGINFO("Init System");
 	/* graphics */
-	/* The data packet. */
-	gpu_packet = packet_init(50, PACKET_NORMAL);
-	/* Init GIF dma channel. */
-	dma_channel_initialize(DMA_CHANNEL_GIF, NULL, 0);
-	dma_channel_fast_waits(DMA_CHANNEL_GIF);
+	gs_global = gsKit_init_global();
 
-	/* Define a 32-bit 512x512 framebuffer. */
-	framebuffer.width  = SCREEN_WIDTH;
-	framebuffer.height = SCREEN_HEIGHT;
-	framebuffer.mask   = 0;
-	framebuffer.psm    = GS_PSM_32;
+	/*  By default the gsKit_init_global() uses an autodetected interlaced field mode */
+	/*  To set a new mode set these five variables for the resolution desired and */
+	/*  mode desired */
 
-	/* Switch the mask on for some fun. */
-	/*framebuffer.mask = 0xFFFF0000; */
+	/*  Some examples */
+	/*  Make sure that gs_global->Height is a factor of the mode's gs_global->DH */
 
-	/* Allocate some vram for our framebuffer */
-	framebuffer.address = graph_vram_allocate(framebuffer.width, framebuffer.height, framebuffer.psm, GRAPH_ALIGN_PAGE);
+	/* gs_global->Mode = GS_MODE_NTSC */
+	/* gs_global->Interlace = GS_INTERLACED; */
+	/* gs_global->Field = GS_FIELD; */
+	/* gs_global->Width = 640; */
+	/* gs_global->Height = 448; */
 
-	/* Disable the zbuffer. */
-	zbuffer.enable = 0;
-	zbuffer.address = 0;
-	zbuffer.mask = 0;
-	zbuffer.zsm = 0;
+	/* gs_global->Mode = GS_MODE_PAL; */
+	/* gs_global->Interlace = GS_INTERLACED; */
+	/* gs_global->Field = GS_FIELD; */
+	/* gs_global->Width = 640; */
+	/* gs_global->Height = 512; */
 
-	/* Initialize the screen and tie the framebuffer to the read circuits. */
-	graph_initialize(framebuffer.address, framebuffer.width, framebuffer.height, framebuffer.psm, 0, 0);
+	/* gs_global->Mode = GS_MODE_DTV_480P; */
+	/* gs_global->Interlace = GS_NONINTERLACED; */
+	/* gs_global->Field = GS_FRAME; */
+	/* gs_global->Width = 720; */
+	/* gs_global->Height = 480; */
 
-	/* This is how you would define a custom mode */
-	/*graph_set_mode(GRAPH_MODE_NONINTERLACED,GRAPH_MODE_VGA_1024_60,GRAPH_MODE_FRAME,GRAPH_DISABLE); */
-	/*graph_set_screen(0,0,512,768); */
-	/*graph_set_bgcolor(32,32,128);*/
-	/*graph_set_framebuffer_filtered(framebuffer.address,framebuffer.width,framebuffer.psm,0,0); */
-	/*graph_enable_output(); */
+	/* gs_global->Mode = GS_MODE_DTV_1080I; */
+	/* gs_global->Interlace = GS_INTERLACED; */
+	/* gs_global->Field = GS_FIELD; */
+	/* gs_global->Width = 640; */
+	/* gs_global->Height = 540; */
+	/* gs_global->PSM = GS_PSM_CT16; */
+	/* gs_global->PSMZ = GS_PSMZ_16; */
+	/* gs_global->Dithering = GS_SETTING_ON; */
 
-	/* This will setup a default drawing environment. */
-	gpu_packet_offset = draw_setup_environment(gpu_packet->data, 0, &framebuffer, &zbuffer);
+	/*  A width of 640 would work as well */
+	/*  However a height of 720 doesn't seem to work well */
+	/* gs_global->Mode = GS_MODE_DTV_720P; */
+	/* gs_global->Interlace = GS_NONINTERLACED; */
+	/* gs_global->Field = GS_FRAME; */
+	/* gs_global->Width = 640; */
+	/* gs_global->Height = 360; */
+	/* gs_global->PSM = GS_PSM_CT16; */
+	/* gs_global->PSMZ = GS_PSMZ_16; */
 
-	/* This is where you could add various other drawing environment settings, */
-	/* or keep on adding onto the packet, but I'll stop with the default setup */
-	/* by appending a finish tag. */
-	gpu_packet_offset = draw_finish(gpu_packet_offset);
+	/*  You can use these to turn off Z/Double Buffering. They are on by default. */
+	/*  gs_global->DoubleBuffering = GS_SETTING_OFF; */
+	/*  gs_global->ZBuffering = GS_SETTING_OFF; */
 
+	/*  This makes things look marginally better in half-buffer mode... */
+	/*  however on some CRT and all LCD, it makes a really horrible screen shake. */
+	/*  Uncomment this to disable it. (It is on by default) */
+	/*  gs_global->DoSubOffset = GS_SETTING_OFF; */
 
-	/* Free graphics
-	 Free the vram. 
-	graph_vram_free(framebuffer.address);
-
-	Free the packet. 
-	packet_free(gpu_packet);
-
-	 Disable output and reset the GS. 
-	graph_shutdown();
-
-	 Shutdown our currently used dma channel. 
-	dma_channel_shutdown(DMA_CHANNEL_GIF,0);
-	*/
+	gs_global->PrimAlphaEnable = GS_SETTING_ON;
+	gsKit_init_screen(gs_global);
+	gsKit_mode_switch(gs_global, GS_PERSISTENT);
+	gsKit_clear(gs_global, GS_SETREG_RGBAQ(0xFF,0xFF,0xFF,0x00,0x00));
+	gsKit_set_test(gs_global, GS_ZTEST_OFF);
+	gsKit_mode_switch(gs_global, GS_ONESHOT);
 }
 
 void update_display(const bool vsync)
 {
-	dma_channel_send_normal(DMA_CHANNEL_GIF, gpu_packet->data, gpu_packet_offset - gpu_packet->data, 0, 0);
+	static int fps = 0;
+	static int i = 0;
 
-	/* Wait until the screen is cleared. */
-	draw_wait_finish();
+	gsKit_prim_sprite(gs_global, i, 0, i + 10, 10, 0, GS_SETREG_RGBAQ(0x00,0x00,0xFF,0x00,0x00));
 
-	/* Update the screen. */
-	if (vsync)
-		graph_wait_vsync();
+	if (++fps >= 2) {
+	        fps = 0;
+	        if ((++i + 10) >= gs_global->Width)
+	        	i = 0;
 
-	/* Since we only have one packet, we need to wait until the dmac is done */
-	/* before reusing our pointer; */
-	dma_wait_fast();
-	gpu_packet_offset = draw_clear(gpu_packet->data, 0, 0, 0, framebuffer.width, framebuffer.height, 32, 32, 128);
-	gpu_packet_offset = draw_finish(gpu_packet_offset);
+	}
+
+	gsKit_queue_exec(gs_global);
+	/* Flip before exec to take advantage of DMA execution double buffering. */
+	gsKit_sync_flip(gs_global);
 }
 
 
