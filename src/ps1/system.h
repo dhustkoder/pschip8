@@ -46,10 +46,10 @@ typedef uint8_t bool;
 	putchar('\n');                 \
 }
 
-#define FATALERROR(...) {                    \
+#define FATALERROR(...) {                        \
 	printf("FATAL FAILURE: " __VA_ARGS__);   \
 	putchar('\n');                           \
-	abort();                                 \
+	SystemError(_get_errno(), _get_errno()); \
 }
 
 #ifdef DEBUG /* DEBUG */
