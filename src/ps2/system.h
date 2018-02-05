@@ -1,6 +1,7 @@
 #ifndef PSCHIP8_SYSTEM_H_ /* PSCHIP8_SYSTEM_H_ */
 #define PSCHIP8_SYSTEM_H_ 
 #include <stdio.h>
+#include <stdlib.h>
 #ifdef DEBUG /* DEBUG */
 #include <assert.h>
 #endif /* DEBUG */
@@ -19,8 +20,12 @@ typedef uint8_t            bool;
 #define false ((bool)0)
 
 
-#define SCREEN_WIDTH  (512)
-#define SCREEN_HEIGHT (512)
+#define MALLOC malloc
+#define FREE   free
+
+
+#define SCREEN_WIDTH  (640)
+#define SCREEN_HEIGHT (448)
 
 
 #define LOGINFO(...)  {           \
@@ -76,24 +81,38 @@ struct sprite {
 
 
 void init_system(void);
+void reset_timers(void);
+void update_timers(void);
 void update_display(bool vsync);
 void draw_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
-                     
+void load_files(const char* const* filenames, void** dsts, short nfiles);
+
+
+static inline uint32_t get_msec(void)
+{
+	extern uint32_t sys_msec_timer;
+	return sys_msec_timer;
+}
+
+static inline uint32_t get_usec(void)
+{
+	extern uint32_t sys_usec_timer;
+	return sys_usec_timer;
+}
 
 static inline uint32_t get_msec_now(void)
 {
-	return 0;
+	extern uint32_t sys_msec_timer;
+	update_timers();
+	return sys_msec_timer;
 }
 
 static inline uint32_t get_usec_now(void)
 {
-	return 0;
-}
-
-static inline void load_files(const char* const* filenames, void** dsts, short nfiles)
-{
-	/* ... */
+	extern uint32_t sys_usec_timer;
+	update_timers();
+	return sys_usec_timer;
 }
 
 

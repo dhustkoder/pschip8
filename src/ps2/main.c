@@ -24,6 +24,7 @@ void  __attribute__((noreturn)) main(void)
 	init_system();
 	chip8_loadrom_data(brix, sizeof(brix));
 	chip8_reset();
+	reset_timers();
 	for (;;) {
 		chip8_step();
 		draw_ram_buffer(chip8_gfx, &pos, &size, 8);
@@ -31,3 +32,4 @@ void  __attribute__((noreturn)) main(void)
 	}
 	
 }
+

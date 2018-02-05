@@ -1,11 +1,29 @@
+#include <time.h>
+#include <timer.h>
+#include <kernel.h>
 #include <sifrpc.h>
 #include <gsKit.h>
 #include <dmaKit.h>
 #include "system.h"
 
 
+
+/* timers */
+uint32_t sys_msec_timer;
+uint32_t sys_usec_timer;
+
+
+static uint32_t cputicks;
+
 /* The minimum buffers needed for single buffered rendering. */
 static GSGLOBAL* gs_global;
+
+
+static int vsync_callback(void)
+{
+	ExitHandler();
+	return 0;
+}
 
 
 void init_system(void)
@@ -25,8 +43,8 @@ void init_system(void)
 	/* gs_global->Mode = GS_MODE_NTSC */
 	/* gs_global->Interlace = GS_INTERLACED; */
 	/* gs_global->Field = GS_FIELD; */
-	/* gs_global->Width = 640; */
-	/* gs_global->Height = 448; */
+	/* gs_global->Width = SCREEN_WIDTH; */
+	/* gs_global->Height = SCREEN_HEIGHT; */
 
 	/* gs_global->Mode = GS_MODE_PAL; */
 	/* gs_global->Interlace = GS_INTERLACED; */
@@ -74,15 +92,52 @@ void init_system(void)
 	gsKit_clear(gs_global, GS_SETREG_RGBAQ(0xFF,0xFF,0xFF,0x00,0x00));
 	gsKit_set_test(gs_global, GS_ZTEST_OFF);
 	gsKit_mode_switch(gs_global, GS_ONESHOT);
+	gsKit_add_vsync_handler(vsync_callback);
+
+	/* timers */
+	reset_timers();
+}
+
+void reset_timers(void)
+{
+	sys_msec_timer = 0;
+	sys_usec_timer = 0;
+	cputicks = cpu_ticks();
+}
+
+void update_timers(void)
+{
+	const uint32_t now = cpu_ticks();
+	sys_usec_timer += (now - cputicks) / 299u;
+	sys_msec_timer = sys_usec_timer / 1000u;
+	cputicks = now;
 }
 
 void update_display(const bool vsync)
 {
-	gsKit_queue_exec(gs_global);
-	/* Flip before exec to take advantage of DMA execution double buffering. */
-	gsKit_sync_flip(gs_global);
-}
+	static clock_t clk = 0;
+	static int fps = 0;
+	static int i = 0;
 
+	gsKit_prim_sprite(gs_global, i, 0, i + 10, 10, 0, GS_SETREG_RGBAQ(0xFF, 0x00, 0x00, 0x00, 0x00));
+	if (++i >= gs_global->Width - 10)
+		i = 0;
+	
+	gsKit_queue_exec(gs_global);
+
+	if (vsync)
+		gsKit_vsync_wait();
+	gsKit_switch_context(gs_global);
+
+	/* gsKit_sync_flip(gs_global); */
+	
+	++fps;
+	if ((clock() - clk) >= CLOCKS_PER_SEC) {
+		LOGINFO("FPS: %d", fps);
+		fps = 0;
+		clk = clock();
+	}
+}
 
 void draw_ram_buffer(void* const pixels,
                      const struct vec2* const pos,
@@ -90,23 +145,24 @@ void draw_ram_buffer(void* const pixels,
                      const uint8_t scale)
 {
 	const uint64_t* p = pixels;
+	int i, j;
 
-	for (int i = 0; i < size->y; ++i) {
-		for (int j = 0; j < size->x; ++j) {
+	for (i = 0; i < size->y; ++i) {
+		for (j = 0; j < size->x; ++j) {
 				const int16_t x = pos->x + j * scale;
 				const int16_t y = pos->y + i * scale;
 				const uint64_t pixel = p[i * size->x + j];
-				gsKit_prim_sprite(
-					gs_global,
-					x, y,
-					x + scale, y + scale,
-					0,
-					pixel
-					);
+				gsKit_prim_sprite(gs_global, x, y,
+				                  x + scale, y + scale,
+				                  0, pixel);
 		}
 	}
 }
 
 
-
+void load_files(const char* const* filenames,
+                void** const dsts, const short nfiles)
+{
+	
+}
 

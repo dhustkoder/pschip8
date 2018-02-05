@@ -26,7 +26,7 @@ EE_CC_VERSION := $(shell $(EE_CC) --version 2>&1 | sed -n 's/^.*(GCC) //p')
 EE_INCS := -I$(PS2DEV)/gsKit/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -Isrc/ -Isrc/ps2 -I. $(EE_INCS)
 
 # C compiler flags
-EE_CFLAGS := -std=c99 -Wall -Wno-main -DDEBUG -D_EE -O2 -G0 $(EE_CFLAGS)
+EE_CFLAGS := -std=gnu99 -Wall -Wno-main -DDEBUG -D_EE -O2 -G0 $(EE_CFLAGS)
 
 # Linker flags
 EE_LDFLAGS := -L$(PS2SDK)/ee/lib -L$(PS2DEV)/gsKit/lib $(EE_LDFLAGS)
@@ -42,7 +42,7 @@ EE_ASFLAGS := -G0 $(EE_ASFLAGS)
 EE_LIBS = -Xlinker --start-group
 EE_LIBS += -lgskit_toolkit
 EE_LIBS += -lgskit -ldmakit
-EE_LIBS += -lpacket -ldma -lgraph -ldraw -lc -lmf -lkernel
+EE_LIBS += -lc -lkernel
 EE_LIBS += -Xlinker --end-group
 
 # include dir

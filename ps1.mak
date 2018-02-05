@@ -23,7 +23,7 @@ DISPLAY_TYPE=NTSC
 # Set to Release or Debug
 BUILD_TYPE=Release
 
-DATA_FILES=$(patsubst ps1data/%, %, $(wildcard ps1data/*.SPR ps1data/*.CH8 ps1data/*.SND ps1data/*.BKG))
+DATA_FILES=$(patsubst ps1cd/data/%, %, $(wildcard ps1cd/data/*.SPR ps1cd/data/*.CH8 ps1cd/data/*.SND ps1cd/data/*.BKG))
 
 INCLUDE_DIRS=-Isrc/ps1 -Isrc/
 SRC_FILES=$(wildcard src/ps1/*.c src/*.c)
@@ -109,7 +109,7 @@ asm/%.asm: src/%.c
 	$(foreach i, $(DATA_FILES), \
 	@echo 					File $(i) >> $@ & \
 	@echo 						XAFileAttributes Form1 Data >> $@ & \
-	@echo 						Source [ProjectPath]ps1data\$(i) >> $@ & \
+	@echo 						Source [ProjectPath]ps1cd\data\$(i) >> $@ & \
 	@echo 					EndFile >> $@ &)
 
 
