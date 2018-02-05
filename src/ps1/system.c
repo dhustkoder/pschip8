@@ -32,11 +32,12 @@
 u_long _ramsize   = 0x00200000; /* force 2 megabytes of RAM */
 u_long _stacksize = 0x00004000; /* force 16 kilobytes of stack */
 
-/* timers */
+/* input */
 uint16_t sys_paddata;
+
+/* timers */
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
-
 static uint32_t nsec_timer;
 static uint16_t rcnt1_last;
 

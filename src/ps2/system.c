@@ -11,8 +11,6 @@
 /* timers */
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
-
-
 static uint32_t cputicks;
 
 /* The minimum buffers needed for single buffered rendering. */
@@ -29,7 +27,8 @@ static int vsync_callback(void)
 void init_system(void)
 {
 	SifInitRpc(0);
-	LOGINFO("Init System");
+
+
 	/* graphics */
 	gs_global = gsKit_init_global();
 
@@ -96,6 +95,8 @@ void init_system(void)
 
 	/* timers */
 	reset_timers();
+
+	update_display(true);
 }
 
 void reset_timers(void)
