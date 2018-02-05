@@ -5,7 +5,7 @@
 #ifdef DEBUG /* DEBUG */
 #include <assert.h>
 #endif /* DEBUG */
-#include <gsKit.h>
+#include <SDL.h>
 
 
 typedef unsigned char      uint8_t;
@@ -64,9 +64,9 @@ typedef uint8_t            bool;
 #endif /* DEBUG */
 
 /* chip8 settings */
-#define CHIP8_GFX_BGC (GS_SETREG_RGBAQ(0x00, 0x00, 0x00, 0x00, 0x00))
-#define CHIP8_GFX_FGC (GS_SETREG_RGBAQ(0xFF, 0xFF, 0xFF, 0x00, 0x00))
-typedef uint64_t chip8_gfx_t;
+#define CHIP8_GFX_BGC (false)
+#define CHIP8_GFX_FGC (true)
+typedef bool chip8_gfx_t;
 
 
 struct vec2 {
@@ -84,10 +84,18 @@ void init_system(void);
 void reset_timers(void);
 void update_timers(void);
 void update_display(bool vsync);
+void font_print(const struct vec2* pos, const char* fmt, const void* const* varpack);
 void draw_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
+void load_font(const void* data, const struct vec2* charsize,
+               uint8_t ascii_idx, short max_chars_on_scr);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
 
+
+static inline void load_sync(void)
+{
+	update_display(true);
+}
 
 static inline uint32_t get_msec(void)
 {

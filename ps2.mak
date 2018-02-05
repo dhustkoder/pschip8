@@ -23,13 +23,13 @@ IOP_STRIP = $(IOP_PREFIX)strip
 EE_CC_VERSION := $(shell $(EE_CC) --version 2>&1 | sed -n 's/^.*(GCC) //p')
 
 # Include directories
-EE_INCS := -I$(PS2DEV)/gsKit/include -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -Isrc/ -Isrc/ps2 -I. $(EE_INCS)
+EE_INCS := -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -Isrc/ -Isrc/ps2 -I$(PS2SDK)/ps2sdk-ports/sdl/include -I. $(EE_INCS)
 
 # C compiler flags
 EE_CFLAGS := -std=gnu99 -Wall -Wno-main -DDEBUG -D_EE -O2 -G0 $(EE_CFLAGS)
 
 # Linker flags
-EE_LDFLAGS := -L$(PS2SDK)/ee/lib -L$(PS2DEV)/gsKit/lib $(EE_LDFLAGS)
+EE_LDFLAGS := -L$(PS2SDK)/ee/lib -L$(PS2SDK)/ps2sdk-ports/sdl/lib $(EE_LDFLAGS)
 
 # Assembler flags
 EE_ASFLAGS := -G0 $(EE_ASFLAGS)
@@ -40,23 +40,10 @@ EE_ASFLAGS := -G0 $(EE_ASFLAGS)
 #include $(GSKITSRC)/ee/Rules.make
 
 EE_LIBS = -Xlinker --start-group
-EE_LIBS += -lgskit_toolkit
-EE_LIBS += -lgskit -ldmakit
-EE_LIBS += -lc -lkernel
+EE_LIBS += -lsdl -lsdlmain
+EE_LIBS += -lc -lm -ldebug -lkernel
 EE_LIBS += -Xlinker --end-group
 
-# include dir
-EE_INCS += -I$(GSKITSRC)/ee/gs/include  -I$(GSKITSRC)/ee/dma/include
-EE_CFLAGS += -fno-builtin-printf
-
-# linker flags
-EE_LIB_DIRS += -L$(PS2SDK)/ee/lib
-EE_LDFLAGS += $(EE_LIB_DIRS)
-
-
-# Externally defined variables: EE_BIN, EE_OBJS, EE_LIB
-# These macros can be used to simplify certain build rules.
-EE_C_COMPILE = $(EE_CC) $(EE_CFLAGS) $(EE_INCS)
 
 # Extra macro for disabling the automatic inclusion of the built-in CRT object(s)
 ifeq ($(EE_CC_VERSION),3.2.2)
