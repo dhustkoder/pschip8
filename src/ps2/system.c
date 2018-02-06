@@ -210,7 +210,7 @@ void load_bkg(const void* const data)
 void load_files(const char* const* const filenames,
                 void** const dsts, const short nfiles)
 {
-	char namebuffer[32];
+	char namebuffer[48];
 
 	for  (short i = 0; i < nfiles; ++i) {
 		sprintf(namebuffer, "cdrom0:\\%s;1", filenames[i]);
