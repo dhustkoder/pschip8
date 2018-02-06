@@ -23,8 +23,9 @@ typedef uint8_t bool;
 #define true  ((bool)1)
 
 
-#define MALLOC malloc3
-#define FREE   free3
+#define MALLOC  malloc3
+#define REALLOC realloc3
+#define FREE    free3
 
 #define SCREEN_WIDTH   (320)
 #ifdef DISPLAY_TYPE_PAL
@@ -78,7 +79,6 @@ typedef uint8_t bool;
 #define CHIP8_GFX_FGC     (0xFFFF)
 typedef uint16_t chip8_gfx_t;
 
-
 typedef uint16_t button_t;
 enum Button {
 	BUTTON_LEFT     = 0x8000,
@@ -101,7 +101,6 @@ enum Button {
 struct vec2 {
 	int16_t x, y;
 };
-
 
 struct sprite {
 	struct vec2 spos;

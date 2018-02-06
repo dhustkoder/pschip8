@@ -1,3 +1,4 @@
+#include <SDL_main.h>
 #include "system.h"
 #include "chip8.h"
 
@@ -15,10 +16,36 @@ static const uint8_t brix[] = {
 };
 
 
-int SDL_main(int argc, char** argv)
+int main(int argc, char** argv)
 {
+	extern chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
+	int16_t x = CHIP8_GFX_WIDTH * 2;
+	const void* varpack[] = { "Hello" };
+	
 	init_system();
-	for (;;)
+
+	{
+		const char* files[] = { "WIZTOWER.BKG", "FONT3.SPR" };
+		void* data[] = { NULL, NULL };
+		load_files(files, data, 2);
+		load_bkg(data[0]);
+		load_font(data[1], &(struct vec2){6, 8}, 32, 16);
+		load_sync();
+		FREE(data[0]);
+		FREE(data[1]);
+	}
+
+	chip8_loadrom_raw(brix, sizeof(brix));
+	chip8_reset();
+	reset_timers();
+	for (;;) {
+		chip8_step();
+		draw_ram_buffer(chip8_gfx, &(struct vec2){x, SCREEN_HEIGHT / 2},
+		                &(struct vec2){CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT}, 4);
+		font_print(&(struct vec2){x, 50}, "%s", varpack);
+		if (++x >= (SCREEN_WIDTH - CHIP8_GFX_WIDTH * 2))
+			x = CHIP8_GFX_WIDTH * 2;
 		update_display(true);
+	}
 }
 

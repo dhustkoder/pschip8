@@ -5,6 +5,7 @@
 #ifdef DEBUG /* DEBUG */
 #include <assert.h>
 #endif /* DEBUG */
+#include <libpad.h>
 #include <SDL.h>
 
 
@@ -20,25 +21,26 @@ typedef uint8_t            bool;
 #define false ((bool)0)
 
 
-#define MALLOC malloc
-#define FREE   free
+#define MALLOC  malloc
+#define REALLOC realloc
+#define FREE    free
 
 
 #define SCREEN_WIDTH  (640)
 #define SCREEN_HEIGHT (448)
 
 
-#define LOGINFO(...)  {           \
+#define LOGINFO(...)  {               \
 	printf("INFO: " __VA_ARGS__); \
 	putchar('\n');                \
 }
 
-#define LOGERROR(...) {            \
+#define LOGERROR(...) {                \
 	printf("ERROR: " __VA_ARGS__); \
 	putchar('\n');                 \
 }
 
-#define FATALERROR(...) {                    \
+#define FATALERROR(...) {                        \
 	printf("FATAL FAILURE: " __VA_ARGS__);   \
 	putchar('\n');                           \
 	abort();                                 \
@@ -64,10 +66,27 @@ typedef uint8_t            bool;
 #endif /* DEBUG */
 
 /* chip8 settings */
-#define CHIP8_GFX_BGC (false)
-#define CHIP8_GFX_FGC (true)
-typedef bool chip8_gfx_t;
+#define CHIP8_GFX_BGC (0x00000000)
+#define CHIP8_GFX_FGC (0xFFFFFFFF)
+typedef uint32_t chip8_gfx_t;
 
+typedef uint16_t button_t;
+enum Button {
+	BUTTON_LEFT     = 0x8000,
+	BUTTON_DOWN     = 0x4000,
+	BUTTON_RIGHT    = 0x2000,
+	BUTTON_UP       = 0x1000,
+	BUTTON_START    = 0x0800,
+	BUTTON_SELECT   = 0x0100,
+	BUTTON_SQUARE   = 0x0080,
+	BUTTON_CROSS    = 0x0040,
+	BUTTON_CIRCLE   = 0x0020,
+	BUTTON_TRIANGLE = 0x0010,
+	BUTTON_R1       = 0x0008,
+	BUTTON_L1       = 0x0004,
+	BUTTON_R2       = 0x0002,
+	BUTTON_L2       = 0x0001
+};
 
 struct vec2 {
 	int16_t x, y;
@@ -89,12 +108,20 @@ void draw_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
 void load_font(const void* data, const struct vec2* charsize,
                uint8_t ascii_idx, short max_chars_on_scr);
+void load_bkg(const void* data);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
+
 
 
 static inline void load_sync(void)
 {
 	update_display(true);
+}
+
+static inline uint16_t get_paddata(void)
+{
+	extern uint16_t sys_paddata;
+	return sys_paddata;
 }
 
 static inline uint32_t get_msec(void)

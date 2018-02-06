@@ -333,7 +333,7 @@ void load_sprite_sheet(void* const data, const int16_t max_sprites_on_screen)
 	                  ((uint16_t*)data)[0], ((uint16_t*)data)[1]);
 
 	ss_sprites_size = max_sprites_on_screen;
-	ss_sprites = realloc3(ss_sprites, sizeof(GsSPRITE) * ss_sprites_size);
+	ss_sprites = REALLOC(ss_sprites, sizeof(GsSPRITE) * ss_sprites_size);
 
 	memset(ss_sprites, 0, sizeof(GsSPRITE) * ss_sprites_size);
 	for (i = 0; i < ss_sprites_size; ++i) {
@@ -387,7 +387,7 @@ void load_font(void* const data,
 
 	char_ascii_idx = ascii_idx;
 	char_sprites_size = max_chars_on_scr;
-	char_sprites = realloc3(char_sprites, sizeof(GsSPRITE) * max_chars_on_scr);
+	char_sprites = REALLOC(char_sprites, sizeof(GsSPRITE) * max_chars_on_scr);
 	memset(char_sprites, 0, sizeof(GsSPRITE) * max_chars_on_scr);
 	for (i = 0; i < max_chars_on_scr; ++i) {
 		char_sprites[i] = (GsSPRITE) {

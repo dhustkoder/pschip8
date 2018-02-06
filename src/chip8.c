@@ -115,7 +115,7 @@ void chip8_loadrom(const char* const fname)
 	load_files(&fname, &p, 1);
 }
 
-void chip8_loadrom_data(const void* data, const short size)
+void chip8_loadrom_raw(const void* data, const short size)
 {
 	memcpy(&ram[0x200], data, size);
 }
