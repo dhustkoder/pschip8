@@ -13,12 +13,13 @@ uint16_t sys_paddata;
 /* timers */
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
-static uint32_t cputicks;
+uint32_t last_ticks;
 
 /* video libsdl */
 static SDL_Surface* screen_surf;
 static SDL_Surface* bkg_surf = NULL;
 static SDL_Surface* font_surf = NULL;
+static SDL_Surface* sprite_sheet_surf = NULL;
 static struct vec2 char_csize;
 static struct vec2 char_tsize;
 static uint8_t char_ascii_index;
@@ -39,11 +40,21 @@ static void update_paddata(void)
 	}
 }
 
+static void set_bmp_surf(const void* const data, SDL_Surface** const surfp)
+{
+	const uint32_t size = *((uint32_t*)(((uint8_t*)data) + 0x02));
+
+	if (*surfp != NULL)
+		SDL_FreeSurface(*surfp);
+
+	*surfp = SDL_LoadBMP_RW(SDL_RWFromConstMem(data, size), 1);
+}
+
 
 void init_system(void)
 {
 	SifInitRpc(0);
-	SDL_Init(SDL_INIT_VIDEO);
+	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER);
 	SDL_ShowCursor(SDL_DISABLE);
 
 	/* graphics */
@@ -61,15 +72,16 @@ void reset_timers(void)
 {
 	sys_msec_timer = 0;
 	sys_usec_timer = 0;
-	cputicks = cpu_ticks();
+	last_ticks = SDL_GetTicks();
 }
 
 void update_timers(void)
 {
-	const uint32_t now = cpu_ticks();
-	sys_usec_timer += (now - cputicks) / 299u;
-	sys_msec_timer = sys_usec_timer / 1000u;
-	cputicks = now;
+	const uint32_t ticks = SDL_GetTicks();
+	sys_usec_timer += (ticks - last_ticks) * 1000u;
+	sys_msec_timer += ticks - last_ticks;
+	last_ticks = ticks;
+	LOGINFO("msec: %u", sys_msec_timer);
 }
 
 void update_display(const bool vsync)
@@ -149,6 +161,25 @@ void font_print(const struct vec2* const pos,
 	}
 }
 
+void draw_sprites(const struct sprite* const sprites, const short nsprites)
+{
+	for (short i = 0; i < nsprites; ++i) {
+		SDL_Rect src = {
+			.x = sprites[i].tpos.x,
+			.y = sprites[i].tpos.y,
+			.w = sprites[i].size.x,
+			.h = sprites[i].size.y
+		};
+		SDL_Rect dst = {
+			.x = sprites[i].spos.x,
+			.y = sprites[i].spos.y,
+			.w = sprites[i].size.x,
+			.h = sprites[i].size.y
+		};
+		SDL_BlitSurface(sprite_sheet_surf, &src, screen_surf, &dst);
+	}
+}
+
 void draw_ram_buffer(void* const pixels,
                      const struct vec2* const pos,
                      const struct vec2* const size,
@@ -172,17 +203,13 @@ void draw_ram_buffer(void* const pixels,
 void load_font(const void* const data, const struct vec2* const charsize,
                const uint8_t ascii_idx, const short max_chars_on_scr)
 {
-	const uint32_t size = *((uint32_t*)(((uint8_t*)data) + 0x02));
+	set_bmp_surf(data, &font_surf);
+	SDL_SetColorKey(font_surf, SDL_SRCCOLORKEY,
+	                font_surf->format->Rmask|
+	                font_surf->format->Bmask);
+
 	const uint32_t w = *((uint32_t*)(((uint8_t*)data) + 0x12));
 	const uint32_t h = *((uint32_t*)(((uint8_t*)data) + 0x16));
-
-	if (font_surf != NULL)
-		SDL_FreeSurface(font_surf);
-
-	font_surf = SDL_LoadBMP_RW(SDL_RWFromConstMem(data, size), 1);
-
-	SDL_SetColorKey(font_surf, SDL_SRCCOLORKEY,
-	                font_surf->format->Rmask|font_surf->format->Bmask);
 
 	char_tsize.x = w;
 	char_tsize.y = h;
@@ -193,18 +220,18 @@ void load_font(const void* const data, const struct vec2* const charsize,
 
 void load_bkg(const void* const data)
 {
-	const uint32_t size = *((uint32_t*)(((uint8_t*)data) + 0x02));
-	//const uint32_t w = *((uint32_t*)(((uint8_t*)data) + 0x12));
-	//const uint32_t h = *((uint32_t*)(((uint8_t*)data) + 0x16));
+	set_bmp_surf(data, &bkg_surf);
+	SDL_Surface* const tmp = bkg_surf;
+	bkg_surf = SDL_DisplayFormat(bkg_surf);
+	SDL_FreeSurface(tmp);
+}
 
-	SDL_Surface* const surf = SDL_LoadBMP_RW(SDL_RWFromConstMem(data, size), 1);
-
-	if (bkg_surf != NULL)
-		SDL_FreeSurface(bkg_surf);
-
-	bkg_surf = SDL_DisplayFormat(surf);
-
-	SDL_FreeSurface(surf);
+void load_sprite_sheet(const void* const data, const short max_sprites_on_screen)
+{
+	set_bmp_surf(data, &sprite_sheet_surf);
+	SDL_SetColorKey(sprite_sheet_surf, SDL_SRCCOLORKEY,
+	                sprite_sheet_surf->format->Rmask|
+	                sprite_sheet_surf->format->Bmask);
 }
 
 void load_files(const char* const* const filenames,

@@ -1,6 +1,6 @@
 EE_BIN = ps2cd/PSCHIP8.ELF
-SRC_FILES = src/chip8.c $(wildcard src/ps2/*.c)
-HEADER_FILES = src/chip8.h $(wildcard src/ps2/*.h)
+SRC_FILES = src/*.c $(wildcard src/ps2/*.c)
+HEADER_FILES = src/*.h $(wildcard src/ps2/*.h)
 
 
 EE_PREFIX ?= ee-

@@ -26,8 +26,8 @@ typedef uint8_t            bool;
 #define FREE    free
 
 
-#define SCREEN_WIDTH  (640)
-#define SCREEN_HEIGHT (448)
+#define SCREEN_WIDTH  (320)
+#define SCREEN_HEIGHT (256)
 
 
 #define LOGINFO(...)  {               \
@@ -98,19 +98,25 @@ struct sprite {
 	struct vec2 tpos;
 };
 
+/*  dummies */
+#define enable_chan(...)     ((void)0)
+#define load_snd(...)        ((void)0)
+#define assign_snd_chan(...) ((void)0)
+
 
 void init_system(void);
 void reset_timers(void);
 void update_timers(void);
 void update_display(bool vsync);
 void font_print(const struct vec2* pos, const char* fmt, const void* const* varpack);
+void draw_sprites(const struct sprite* sprites, short nsprites);
 void draw_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
 void load_font(const void* data, const struct vec2* charsize,
                uint8_t ascii_idx, short max_chars_on_scr);
 void load_bkg(const void* data);
+void load_sprite_sheet(const void* data, short max_sprites_on_screen);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
-
 
 
 static inline void load_sync(void)

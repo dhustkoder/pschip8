@@ -23,7 +23,7 @@ DISPLAY_TYPE=NTSC
 # Set to Release or Debug
 BUILD_TYPE=Release
 
-DATA_FILES=$(patsubst ps1cd/data/%, %, $(wildcard ps1cd/data/*.SPR ps1cd/data/*.CH8 ps1cd/data/*.SND ps1cd/data/*.BKG))
+DATA_FILES=$(patsubst ps1cd/data/%, %, $(wildcard data/*.CH8 ps1cd/data/*.SPR ps1cd/data/*.SND ps1cd/data/*.BKG))
 
 INCLUDE_DIRS=-Isrc/ps1 -Isrc/
 SRC_FILES=$(wildcard src/ps1/*.c src/*.c)

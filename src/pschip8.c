@@ -1,3 +1,4 @@
+#include <string.h>
 #include "system.h"
 #include "chip8.h"
 
