@@ -23,11 +23,15 @@ static struct vec2 char_tsize;
 static uint8_t char_ascii_index;
 
 /* input */
+#if defined(PLATFORM_PS2)
 static SDL_Joystick* joy;
+#endif
 
 
 static void update_paddata(void)
 {
+	#if defined(PLATFORM_PS2)
+
 	const int nbutns = SDL_JoystickNumButtons(joy);
 	uint8_t bit = 0;
 
@@ -47,6 +51,35 @@ static void update_paddata(void)
 		else
 			sys_paddata &= ~(1<<bit);
 	}
+
+	#elif defined(PLATFORM_LINUX)
+
+	SDL_Event ev;
+	while (SDL_PollEvent(&ev)) {
+		
+		if (ev.type == SDL_QUIT) {
+			term_system();
+			exit(0);
+		}
+
+		if (ev.type != SDL_KEYDOWN && ev.type != SDL_KEYUP)
+			continue;
+
+		button_t button;
+
+		switch (ev.key.keysym.sym) {
+		default: button = 0; break;
+		case SDLK_UP: button = BUTTON_UP; break;
+		case SDLK_DOWN: button = BUTTON_DOWN; break;
+		}
+
+		if (ev.type == SDL_KEYDOWN)
+			sys_paddata |= button;
+		else
+			sys_paddata &= ~button;
+	}
+
+	#endif
 }
 
 static void set_bmp_surf(const void* const data, SDL_Surface** const surfp)
@@ -69,7 +102,9 @@ void init_system(void)
 	screen_surf = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT,
 		                       32, SDL_DOUBLEBUF|SDL_HWSURFACE);
 	/* input */
+	#ifdef PLATFORM_PS2
 	joy = SDL_JoystickOpen(0);
+	#endif
 	sys_paddata = 0;
 
 	/* timers */
@@ -77,15 +112,16 @@ void init_system(void)
 	update_display(true);
 }
 
+#if defined(PLATFORM_LINUX)
 void term_system(void)
 {
 	SDL_FreeSurface(bkg_surf);
 	SDL_FreeSurface(font_surf);
 	SDL_FreeSurface(sprite_sheet_surf);
-	SDL_JoystickClose(joy);
 	SDL_FreeSurface(screen_surf);
 	SDL_Quit();
 }
+#endif
 
 void reset_timers(void)
 {

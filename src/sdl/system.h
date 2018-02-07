@@ -14,7 +14,7 @@
 #define int8_t   Sint8
 #define int16_t  Sint16
 #define int32_t  Sint32
-#define bool     _Bool
+#define bool     Uint8
 #define true     ((bool)1)
 #define false    ((bool)0)
 
@@ -91,7 +91,7 @@ enum Button {
 	BUTTON_SQUARE   = 0x0001,
 	BUTTON_CROSS    = 0x0002,
 	BUTTON_CIRCLE   = 0x0004,
-	BUTTON_TRIANGLE = 0x0008,
+	BUTTON_TRIANGLE = 0x0008
 
 };
 
@@ -113,6 +113,9 @@ struct sprite {
 
 
 void init_system(void);
+#if defined(PLATFORM_LINUX)
+void term_system(void);
+#endif
 void reset_timers(void);
 void update_timers(void);
 void update_display(bool vsync);

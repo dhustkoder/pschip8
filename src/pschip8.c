@@ -2,6 +2,7 @@
 #include "system.h"
 #include "chip8.h"
 
+
 enum Chan {
 	CHAN_HNDMOVE,
 	CHAN_HNDCLICK,
@@ -15,15 +16,11 @@ enum Snd {
 };
 
 enum MainMenuOpt {
-	MAINMENUOPT_DATA,
-	#if defined(PLATFORM_PS1) || defined(PLATFORM_PS2)
-	MAINMENUOPT_MEMORY_CARD,
-	#endif
-	MAINMENUOPT_OPTIONS,
+	MAINMENUOPT_GAMES,
 	#if defined(PLATFORM_LINUX)
 	MAINMENUOPT_EXIT,
 	#endif
-	MAINMENUOPT_NSUBMENUS
+	MAINMENUOPT_NOPTS
 };
 
 enum MenuSprites {
@@ -179,32 +176,28 @@ static int8_t run_select_menu(const char* const title,
 
 static enum MainMenuOpt main_menu(void)
 {
-	const char* const opts[] = {
-		"Data",
-		#if defined(PLATFORM_PS1) || defined(PLATFORM_PS2)
-		"Memory Card",
-		#endif
-		"Options",
+	const char* const opts[MAINMENUOPT_NOPTS] = {
+		"Games"
 		#if defined(PLATFORM_LINUX)
+		,
 		"Exit"
 		#endif
 	};
-
-	const enum MainMenuOpt out[] = {
-		MAINMENUOPT_DATA,
-		#if defined(PLATFORM_PS1) || defined(PLATFORM_PS2)
-		MAINMENUOPT_MEMORY_CARD,
-		#endif
-		MAINMENUOPT_OPTIONS,
+	const enum MainMenuOpt out[MAINMENUOPT_NOPTS] = {
+		MAINMENUOPT_GAMES,
 		#if defined(PLATFORM_LINUX)
 		MAINMENUOPT_EXIT
 		#endif
 	};
-	const uint8_t index = run_select_menu("- PSCHIP8 -", opts, 3, false);
+
+	const uint8_t index =
+		run_select_menu("- PSCHIP8 -", opts,
+				MAINMENUOPT_NOPTS, false);
+
 	return out[index];
 }
 
-static const char* data_menu(void)
+static const char* games_menu(void)
 {
 	const char* const opts[] = {
 		"Brix", "Missile", "Tank", "Pong 2",
@@ -217,7 +210,7 @@ static const char* data_menu(void)
 		"BLINKY.CH8"
 	};
 	const int8_t nopts = sizeof(opts) / sizeof(opts[0]);
-	const int8_t index = run_select_menu("- CDROM -", opts, nopts, true);
+	const int8_t index = run_select_menu("- GAMES -", opts, nopts, true);
 	return index != -1 ? out[index] : NULL;
 }
 
@@ -321,8 +314,8 @@ void pschip8()
 	reset_timers();
 	for (;;) {
 		switch (main_menu()) {
-			case MAINMENUOPT_DATA: {
-				const char* const gamepath = data_menu();
+			case MAINMENUOPT_GAMES: {
+				const char* const gamepath = games_menu();
 				if (gamepath != NULL)
 					run_game(gamepath);
 				break;
