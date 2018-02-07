@@ -5,20 +5,27 @@
 #ifdef DEBUG /* DEBUG */
 #include <assert.h>
 #endif /* DEBUG */
-#include <libpad.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 
 
-typedef unsigned char      uint8_t;
-typedef unsigned short     uint16_t;
-typedef unsigned int       uint32_t;
-typedef unsigned long long uint64_t;
-typedef signed short       int16_t;
-typedef signed char        int8_t;
-typedef signed int         int32_t;
-typedef uint8_t            bool;
-#define true  ((bool)1)
-#define false ((bool)0)
+#define uint8_t  Uint8
+#define uint16_t Uint16
+#define uint32_t Uint32
+#define int8_t   Sint8
+#define int16_t  Sint16
+#define int32_t  Sint32
+#define bool     _Bool
+#define true     ((bool)1)
+#define false    ((bool)0)
+
+
+#if defined(PLATFORM_PS2)
+#define DATA_PATH_PREFIX  "cdrom0:\\"
+#define DATA_PATH_POSTFIX ";1"
+#elif defined(PLATFORM_LINUX)
+#define DATA_PATH_PREFIX  "data/"
+#define DATA_PATH_POSTFIX ""
+#endif
 
 
 #define MALLOC  malloc
@@ -30,28 +37,22 @@ typedef uint8_t            bool;
 #define SCREEN_HEIGHT (256)
 
 
-#define LOGINFO(...)  {               \
-	printf("INFO: " __VA_ARGS__); \
-	putchar('\n');                \
+#define LOGAUX(category, ...) {            \
+	printf(category": " __VA_ARGS__); \
+	putchar('\n');                     \
 }
 
-#define LOGERROR(...) {                \
-	printf("ERROR: " __VA_ARGS__); \
-	putchar('\n');                 \
-}
+#define LOGINFO(...) LOGAUX("INFO", __VA_ARGS__)
+#define LOGERROR(...) LOGAUX("ERROR", __VA_ARGS__)
 
-#define FATALERROR(...) {                        \
-	printf("FATAL FAILURE: " __VA_ARGS__);   \
-	putchar('\n');                           \
-	abort();                                 \
+#define FATALERROR(...) {                   \
+	LOGAUX("FATAL ERROR", __VA_ARGS__); \
+	abort();                            \
 }
 
 #ifdef DEBUG /* DEBUG */
 
-#define LOGDEBUG(...) {            \
-	printf("DEBUG: " __VA_ARGS__); \
-	putchar("\n");                 \
-}
+#define LOGDEBUG(...) LOGAUX("DEBUG", __VA_ARGS__)
 
 #define ASSERT_MSG(cond, ...) {  \
 	if (!(cond))                 \
@@ -66,27 +67,34 @@ typedef uint8_t            bool;
 #endif /* DEBUG */
 
 /* chip8 settings */
-#define CHIP8_GFX_BGC (0x00000000)
-#define CHIP8_GFX_FGC (0xFFFFFFFF)
-typedef uint32_t chip8_gfx_t;
+#define CHIP8_FREQ        (512)
+#define CHIP8_DELAY_FREQ  (120)
+#define CHIP8_GFX_WIDTH   (68)
+#define CHIP8_GFX_HEIGHT  (34)
+#define CHIP8_GFX_BGC     (0x00)
+#define CHIP8_GFX_FGC     (0xFFFFFFFF)
+#define CHIP8_GFX_TYPE    uint32_t
+
 
 typedef uint16_t button_t;
 enum Button {
-	BUTTON_LEFT     = 0x8000,
-	BUTTON_DOWN     = 0x4000,
-	BUTTON_RIGHT    = 0x2000,
 	BUTTON_UP       = 0x1000,
-	BUTTON_START    = 0x0800,
-	BUTTON_SELECT   = 0x0100,
-	BUTTON_SQUARE   = 0x0080,
-	BUTTON_CROSS    = 0x0040,
-	BUTTON_CIRCLE   = 0x0020,
-	BUTTON_TRIANGLE = 0x0010,
-	BUTTON_R1       = 0x0008,
-	BUTTON_L1       = 0x0004,
-	BUTTON_R2       = 0x0002,
-	BUTTON_L2       = 0x0001
+	BUTTON_DOWN     = 0x2000,
+	BUTTON_LEFT     = 0x4000,
+	BUTTON_RIGHT    = 0x8000,
+	BUTTON_R2       = 0x0100,
+	BUTTON_L2       = 0x0200,
+	BUTTON_START    = 0x0010,
+	BUTTON_SELECT   = 0x0020,
+	BUTTON_L1       = 0x0040,
+	BUTTON_R1       = 0x0080,
+	BUTTON_SQUARE   = 0x0001,
+	BUTTON_CROSS    = 0x0002,
+	BUTTON_CIRCLE   = 0x0004,
+	BUTTON_TRIANGLE = 0x0008,
+
 };
+
 
 struct vec2 {
 	int16_t x, y;

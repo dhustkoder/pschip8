@@ -1,6 +1,6 @@
 EE_BIN = ps2cd/PSCHIP8.ELF
-SRC_FILES = src/*.c $(wildcard src/ps2/*.c)
-HEADER_FILES = src/*.h $(wildcard src/ps2/*.h)
+SRC_FILES = src/*.c $(wildcard src/sdl/*.c)
+HEADER_FILES = src/*.h $(wildcard src/sdl/*.h)
 
 
 EE_PREFIX ?= ee-
@@ -23,13 +23,13 @@ IOP_STRIP = $(IOP_PREFIX)strip
 EE_CC_VERSION := $(shell $(EE_CC) --version 2>&1 | sed -n 's/^.*(GCC) //p')
 
 # Include directories
-EE_INCS := -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -Isrc/ -Isrc/ps2 -I$(PS2SDK)/ps2sdk-ports/sdl/include -I. $(EE_INCS)
+EE_INCS := -I$(PS2SDK)/ee/include -I$(PS2SDK)/common/include -Isrc/ -Isrc/sdl -I$(PS2SDK)/ports/include -I. $(EE_INCS)
 
 # C compiler flags
-EE_CFLAGS := -std=gnu99 -Wall -Wno-main -DDEBUG -D_EE -O2 -G0 $(EE_CFLAGS)
+EE_CFLAGS := -std=gnu99 -Wall -Wno-main -DDEBUG -DPLATFORM_PS2 -D_EE -O2 -G0 $(EE_CFLAGS)
 
 # Linker flags
-EE_LDFLAGS := -L$(PS2SDK)/ee/lib -L$(PS2SDK)/ps2sdk-ports/sdl/lib $(EE_LDFLAGS)
+EE_LDFLAGS := -L$(PS2SDK)/ee/lib -L$(PS2SDK)/ports/lib $(EE_LDFLAGS)
 
 # Assembler flags
 EE_ASFLAGS := -G0 $(EE_ASFLAGS)
@@ -41,7 +41,7 @@ EE_ASFLAGS := -G0 $(EE_ASFLAGS)
 
 EE_LIBS = -Xlinker --start-group
 EE_LIBS += -lsdl -lsdlmain
-EE_LIBS += -lc -lm -ldebug -lkernel
+EE_LIBS += -lc -lm -lkernel
 EE_LIBS += -Xlinker --end-group
 
 

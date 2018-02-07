@@ -1,9 +1,6 @@
 #include <stdio.h>
 #include <string.h>
-#include <timer.h>
-#include <kernel.h>
-#include <sifrpc.h>
-#include <SDL.h>
+#include <SDL/SDL.h>
 #include "system.h"
 
 
@@ -13,7 +10,8 @@ uint16_t sys_paddata;
 /* timers */
 uint32_t sys_msec_timer;
 uint32_t sys_usec_timer;
-uint32_t last_ticks;
+static uint32_t last_ticks;
+
 
 /* video libsdl */
 static SDL_Surface* screen_surf;
@@ -24,19 +22,30 @@ static struct vec2 char_csize;
 static struct vec2 char_tsize;
 static uint8_t char_ascii_index;
 
+/* input */
+static SDL_Joystick* joy;
+
 
 static void update_paddata(void)
 {
-	static SDL_Event ev;
-	while (SDL_PollEvent(&ev)) {
-		switch (ev.type) {
-		case SDL_JOYBUTTONDOWN:
-			sys_paddata |= 1<<ev.jbutton.button;
-			break;
-		case SDL_JOYBUTTONUP:
-			sys_paddata &= ~(1<<ev.jbutton.button);
-			break;
-		}
+	const int nbutns = SDL_JoystickNumButtons(joy);
+	uint8_t bit = 0;
+
+	SDL_JoystickUpdate();
+	for (int i = 0; i < nbutns; ++i, ++bit) {
+		if (SDL_JoystickGetButton(joy, i))
+			sys_paddata |= (1<<bit);
+		else
+			sys_paddata &= ~(1<<bit);
+	}
+
+	const uint8_t dirs[] = { SDL_HAT_UP, SDL_HAT_DOWN, SDL_HAT_LEFT, SDL_HAT_RIGHT };
+	const uint8_t hat = SDL_JoystickGetHat(joy, 0);
+	for (int i = 0; i < sizeof(dirs)/sizeof(dirs[0]); ++i, ++bit) {
+		if (dirs[i]&hat)
+			sys_paddata |= (1<<bit);
+		else
+			sys_paddata &= ~(1<<bit);
 	}
 }
 
@@ -53,19 +62,29 @@ static void set_bmp_surf(const void* const data, SDL_Surface** const surfp)
 
 void init_system(void)
 {
-	SifInitRpc(0);
-	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER);
+	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_JOYSTICK);
 	SDL_ShowCursor(SDL_DISABLE);
 
 	/* graphics */
 	screen_surf = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT,
-	                               32, SDL_DOUBLEBUF|SDL_HWSURFACE|SDL_NOFRAME);
+		                       32, SDL_DOUBLEBUF|SDL_HWSURFACE);
 	/* input */
+	joy = SDL_JoystickOpen(0);
 	sys_paddata = 0;
 
 	/* timers */
 	reset_timers();
 	update_display(true);
+}
+
+void term_system(void)
+{
+	SDL_FreeSurface(bkg_surf);
+	SDL_FreeSurface(font_surf);
+	SDL_FreeSurface(sprite_sheet_surf);
+	SDL_JoystickClose(joy);
+	SDL_FreeSurface(screen_surf);
+	SDL_Quit();
 }
 
 void reset_timers(void)
@@ -79,19 +98,13 @@ void update_timers(void)
 {
 	const uint32_t ticks = SDL_GetTicks();
 	sys_usec_timer += (ticks - last_ticks) * 1000u;
-	sys_msec_timer += ticks - last_ticks;
+	sys_msec_timer += (ticks - last_ticks);
 	last_ticks = ticks;
-	LOGINFO("msec: %u", sys_msec_timer);
 }
 
 void update_display(const bool vsync)
 {
-	static uint32_t msec = 0;
-	static int fps = 0;
-
 	SDL_Flip(screen_surf);
-	update_timers();
-	update_paddata();
 
 	if (bkg_surf != NULL) {
 		SDL_SoftStretch(bkg_surf, NULL, screen_surf, NULL);
@@ -100,16 +113,21 @@ void update_display(const bool vsync)
 		             SDL_MapRGB(screen_surf->format, 0x66, 0x66, 0xFF));
 	}
 
-	++fps;
-	if ((sys_msec_timer - msec) >= 1000) {
-		LOGINFO("FPS: %d", fps);
-		fps = 0;
-		msec = sys_msec_timer;
-	}
+	update_timers();
+	update_paddata();
+
+	#ifdef PLATFORM_LINUX
+	/* vsync */
+	static uint32_t last_frame = 0;
+	const uint32_t now = SDL_GetTicks();
+	if ((now - last_frame) < 16)
+		SDL_Delay(16 - (now - last_frame));
+	last_frame = now;
+	#endif
 }
 
 void font_print(const struct vec2* const pos,
-                const char* fmt,
+                const char* const fmt,
                 const void* const* varpack)
 {
 	static char buffer[512];
@@ -148,6 +166,7 @@ void font_print(const struct vec2* const pos,
 			continue;
 		} else if (ch == '\n') {
 			dst.y += dst.h;
+			dst.x = pos->x;
 			continue;
 		}
 
@@ -188,7 +207,7 @@ void draw_ram_buffer(void* const pixels,
 	SDL_Surface* const surf =
 		SDL_CreateRGBSurfaceFrom(pixels,
 	          size->x, size->y, 32, size->x * sizeof(uint32_t),
-	          0x000000FF, 0x0000FF00, 0x00FF0000, 0x00000000);
+	          0x000000FF, 0x0000FF00, 0x00FF0000, 0x00);
 
 	SDL_Rect dst = {
 		pos->x - ((size->x * scale) / 2),
@@ -196,8 +215,10 @@ void draw_ram_buffer(void* const pixels,
 		size->x  * scale, size->y * scale
 	};
 
-	SDL_SoftStretch(surf, NULL, screen_surf, &dst);
+	SDL_Surface* surf2 = SDL_DisplayFormat(surf);
+	SDL_SoftStretch(surf2, NULL, screen_surf, &dst);
 	SDL_FreeSurface(surf);
+	SDL_FreeSurface(surf2);
 }
 
 void load_font(const void* const data, const struct vec2* const charsize,
@@ -240,7 +261,8 @@ void load_files(const char* const* const filenames,
 	char namebuffer[48];
 
 	for  (short i = 0; i < nfiles; ++i) {
-		sprintf(namebuffer, "cdrom0:\\%s;1", filenames[i]);
+		sprintf(namebuffer, DATA_PATH_PREFIX "%s" DATA_PATH_POSTFIX,
+		        filenames[i]);
 		FILE* const file = fopen(namebuffer, "r");
 
 		if (file == NULL)

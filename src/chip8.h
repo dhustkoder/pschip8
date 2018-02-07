@@ -2,17 +2,22 @@
 #define PSCHIP8_CHIP8_H_
 #include "system.h"
 
+
 /* Chip8 draws with res 64x32
  * if the gfx buffer is larger than that
  * the image is centered in the gfx buffer
  */
-#define CHIP8_GFX_WIDTH   (68)
-#define CHIP8_GFX_HEIGHT  (34)
-#define CHIP8_FREQ        (512)
-#define CHIP8_BUZZ_FREQ   (480)
-#define CHIP8_DELAY_FREQ  (120)
+#if !defined(CHIP8_GFX_BGC) || !defined(CHIP8_GFX_FGC) || !defined(CHIP8_GFX_TYPE) || \
+    !defined(CHIP8_GFX_WIDTH) || !defined(CHIP8_GFX_HEIGHT)
+#error Need CHIP8 GFX Definitions!
+#endif
+
+#if !defined(CHIP8_FREQ) || !defined(CHIP8_DELAY_FREQ)
+#error Need CHIP8 FREQ Definitions
+#endif
 
 
+typedef CHIP8_GFX_TYPE chip8_gfx_t;
 typedef uint16_t chip8key_t;
 enum Chip8Key {
 	CHIP8KEY_0 = 0x0001,

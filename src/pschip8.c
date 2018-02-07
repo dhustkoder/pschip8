@@ -14,11 +14,16 @@ enum Snd {
 	SND_HNDBACK
 };
 
-enum SubMenu {
-	SUBMENU_CDROM,
-	SUBMENU_MEMORY_CARD,
-	SUBMENU_OPTIONS,
-	SUBMENU_NSUBMENUS
+enum MainMenuOpt {
+	MAINMENUOPT_DATA,
+	#if defined(PLATFORM_PS1) || defined(PLATFORM_PS2)
+	MAINMENUOPT_MEMORY_CARD,
+	#endif
+	MAINMENUOPT_OPTIONS,
+	#if defined(PLATFORM_LINUX)
+	MAINMENUOPT_EXIT,
+	#endif
+	MAINMENUOPT_NSUBMENUS
 };
 
 enum MenuSprites {
@@ -150,7 +155,7 @@ static int8_t run_select_menu(const char* const title,
 			pad_old = pad;
 		}
 
-		sprite_animation_update(2u, 8u, &hand_anim_last,
+		sprite_animation_update(4u, 8u, &hand_anim_last,
 		                        &hand_fwd_last, &hand_fwd, hand);
 
 		font_print(&title_pos, title, NULL);
@@ -172,18 +177,34 @@ static int8_t run_select_menu(const char* const title,
 	return index;
 }
 
-static enum SubMenu main_menu(void)
+static enum MainMenuOpt main_menu(void)
 {
-	const char* const opts[] = { "CDROM", "Memory Card", "Options" };
-	const enum SubMenu out[] = {
-		SUBMENU_CDROM, SUBMENU_MEMORY_CARD, SUBMENU_OPTIONS
+	const char* const opts[] = {
+		"Data",
+		#if defined(PLATFORM_PS1) || defined(PLATFORM_PS2)
+		"Memory Card",
+		#endif
+		"Options",
+		#if defined(PLATFORM_LINUX)
+		"Exit"
+		#endif
 	};
 
-	const int8_t index = run_select_menu("- PSCHIP8 -", opts, 3, false);
+	const enum MainMenuOpt out[] = {
+		MAINMENUOPT_DATA,
+		#if defined(PLATFORM_PS1) || defined(PLATFORM_PS2)
+		MAINMENUOPT_MEMORY_CARD,
+		#endif
+		MAINMENUOPT_OPTIONS,
+		#if defined(PLATFORM_LINUX)
+		MAINMENUOPT_EXIT
+		#endif
+	};
+	const uint8_t index = run_select_menu("- PSCHIP8 -", opts, 3, false);
 	return out[index];
 }
 
-static const char* cdrom_menu(void)
+static const char* data_menu(void)
 {
 	const char* const opts[] = {
 		"Brix", "Missile", "Tank", "Pong 2",
@@ -300,12 +321,17 @@ void pschip8()
 	reset_timers();
 	for (;;) {
 		switch (main_menu()) {
-			case SUBMENU_CDROM: {
-				const char* const gamepath = cdrom_menu();
+			case MAINMENUOPT_DATA: {
+				const char* const gamepath = data_menu();
 				if (gamepath != NULL)
 					run_game(gamepath);
 				break;
 			}
+			#if defined(PLATFORM_LINUX)
+			case MAINMENUOPT_EXIT:
+				return;
+				break;
+			#endif
 			default:
 				break;
 		}
