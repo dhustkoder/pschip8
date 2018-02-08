@@ -20,11 +20,13 @@
 
 
 #if defined(PLATFORM_PS2)
-#define DATA_PATH_PREFIX  "cdrom0:\\"
-#define DATA_PATH_POSTFIX ";1"
+#define DATA_PATH_PREFIX     "cdrom0:\\"
+#define DATA_PATH_POSTFIX    ";1"
+#define DATA_NAMEBUFFER_SIZE 32
 #elif defined(PLATFORM_LINUX)
-#define DATA_PATH_PREFIX  "data/"
-#define DATA_PATH_POSTFIX ""
+#define DATA_PATH_PREFIX     "data/"
+#define DATA_PATH_POSTFIX    ""
+#define DATA_NAMEBUFFER_SIZE 24
 #endif
 
 

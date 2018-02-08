@@ -298,7 +298,7 @@ void load_sprite_sheet(const void* const data, const short max_sprites_on_screen
 void load_files(const char* const* const filenames,
                 void** const dsts, const short nfiles)
 {
-	char namebuffer[48];
+	char namebuffer[DATA_NAMEBUFFER_SIZE];
 
 	for  (short i = 0; i < nfiles; ++i) {
 		sprintf(namebuffer, DATA_PATH_PREFIX "%s" DATA_PATH_POSTFIX,
