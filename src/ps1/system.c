@@ -50,6 +50,7 @@ static GsOT* curr_drawot = NULL;
 static GsSPRITE* ss_sprites = NULL;   /* used to sort sprite sheet sprites */
 static int16_t ss_sprites_size = 0;
 static GsSPRITE* char_sprites = NULL; /* used to sort font characteres sprites */
+static GsSPRITE ram_buff_spr;
 static int16_t char_sprites_size = 0;
 static uint8_t char_ascii_idx = 0;
 static struct vec2 char_csize;
@@ -291,28 +292,9 @@ void draw_sprites(const struct sprite* const sprites, const int16_t nsprites)
 	}
 }
 
-void draw_ram_buffer(void* const pixels,
-                     const struct vec2* const pos,
-                     const struct vec2* const size,
-                     const uint8_t scale)
+void draw_ram_buffer(void)
 {
-	static GsSPRITE sprt;
-
-	memset(&sprt, 0, sizeof sprt);
-
-	sprt.tpage = LoadTPage(pixels, 2, 0,
-	                       TMPBUFF_FB_X, TMPBUFF_FB_Y, size->x, size->y);
-	sprt.attribute = (1<<6)|(1<<25);
-	sprt.x = pos->x;
-	sprt.y = pos->y;
-	sprt.w = size->x;
-	sprt.h = size->y;
-	sprt.mx = size->x / 2u;
-	sprt.my = size->y / 2u;
-	sprt.scalex = ONE * scale;
-	sprt.scaley = ONE * scale;
-
-	GsSortSprite(&sprt, curr_drawot, OTENTRY_SPRITE);
+	GsSortSprite(&ram_buff_spr, curr_drawot, OTENTRY_SPRITE);
 }
 
 void assign_snd_chan(const uint8_t chan, const uint8_t snd_index)
@@ -417,6 +399,26 @@ void load_snd(void* const* const data, const uint8_t nsnd)
 	}
 
 	spu_nsnd = nsnd;
+}
+
+void load_ram_buffer(void* const pixels,
+                     const struct vec2* const pos,
+                     const struct vec2* const size,
+                     const uint8_t scale)
+{
+	memset(&ram_buff_spr, 0, sizeof ram_buff_spr);
+
+	ram_buff_spr.tpage = LoadTPage(pixels, 2, 0,
+	                       TMPBUFF_FB_X, TMPBUFF_FB_Y, size->x, size->y);
+	ram_buff_spr.attribute = (1<<6)|(1<<25);
+	ram_buff_spr.x = pos->x;
+	ram_buff_spr.y = pos->y;
+	ram_buff_spr.w = size->x;
+	ram_buff_spr.h = size->y;
+	ram_buff_spr.mx = size->x / 2u;
+	ram_buff_spr.my = size->y / 2u;
+	ram_buff_spr.scalex = ONE * scale;
+	ram_buff_spr.scaley = ONE * scale;
 }
 
 void load_files(const char* const* const filenames, 
