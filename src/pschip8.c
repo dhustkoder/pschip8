@@ -168,7 +168,7 @@ static int8_t run_select_menu(const char* const title,
 			draw_sprites(menu_sprites, 2);
 		}
 
-		update_display(true);
+		update_display();
 	}
 
 	return index;
@@ -219,17 +219,16 @@ static void run_game(const char* const gamepath)
 	extern chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 	extern chip8key_t chip8_keys;
 
-	const uint32_t usecs_per_step = 1000000u / CHIP8_FREQ;
 	const struct vec2 pos = { (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) };
 	const struct vec2 size = { CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT };
 
 	uint32_t timer = 0;
-	uint32_t last_step = 0;
 	uint32_t last_sec = 0;
 	int steps = 0;
 	int steps_cnt = 0;
 	int fps = 0;
 	int fps_cnt = 0;
+	int steps_per_frame = 0;
 	const void* const varpack[] = { &fps, &steps };
 	button_t pad_old = 0;
 	button_t pad;
@@ -241,6 +240,7 @@ static void run_game(const char* const gamepath)
 	reset_timers();
 	for (;;) {
 		pad = get_paddata();
+
 		if (pad != pad_old) {
 			if ((pad&BUTTON_START) && (pad&BUTTON_SELECT))
 				break;
@@ -255,12 +255,10 @@ static void run_game(const char* const gamepath)
 			pad_old = pad;
 		}
 
-
-		timer = get_usec();
-		while ((timer - last_step) > usecs_per_step) {
+		timer = get_msec();
+		for (i = 0; i < steps_per_frame; ++i) {
 			chip8_step();
 			++steps_cnt;
-			last_step += usecs_per_step;
 		}
 
 		font_print(&(struct vec2){ 8, 8 },
@@ -269,11 +267,14 @@ static void run_game(const char* const gamepath)
 		           "Steps per second: %d", varpack);
 
 		draw_ram_buffer(chip8_gfx, &pos, &size, 3);
-		update_display(true);
+
+		update_display();
+
 		++fps_cnt;
-		if ((timer - last_sec) >= 1000000u) {
+		if ((timer - last_sec) >= 1000u) {
 			steps = steps_cnt;
 			fps = fps_cnt;
+			steps_per_frame = CHIP8_FREQ / fps;
 			steps_cnt = 0;
 			fps_cnt = 0;
 			last_sec = timer;

@@ -117,7 +117,7 @@ struct sprite {
 void init_system(void);
 void reset_timers(void);
 void update_timers(void);
-void update_display(bool vsync);
+void update_display(void);
 
 void font_print(const struct vec2* pos, const char* fmt, const void* const* varpack);
 void draw_sprites(const struct sprite* sprites, short nsprites);

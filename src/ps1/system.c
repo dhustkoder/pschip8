@@ -159,7 +159,7 @@ void init_system(void)
 	/* callbacks */
 	VSyncCallback(vsync_callback);
 
-	update_display(true);
+	update_display();
 }
 
 void reset_timers(void)
@@ -185,12 +185,11 @@ void update_timers(void)
 	rcnt1_last = rcnt1;
 }
 
-void update_display(const bool vsync)
+void update_display(void)
 {
 	/* finish last drawing */
 	DrawSync(0);
-	if (vsync)
-		VSync(0);
+	VSync(0);
 
 	/* display finished draw / start new drawing */
 	GsSwapDispBuff();

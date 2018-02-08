@@ -129,7 +129,7 @@ void chip8_reset(void)
 	rgs.pc = 0x200;
 	rgs.sp = 15;
 	chip8_draw_flag = true;
-	srand(get_usec_now());
+	srand(get_msec_now());
 }
 
 void chip8_step(void)

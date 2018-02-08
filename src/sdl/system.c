@@ -9,7 +9,6 @@ uint16_t sys_paddata;
 
 /* timers */
 uint32_t sys_msec_timer;
-uint32_t sys_usec_timer;
 static uint32_t last_ticks;
 
 
@@ -66,11 +65,18 @@ static void update_paddata(void)
 			continue;
 
 		button_t button;
-
 		switch (ev.key.keysym.sym) {
-		default: button = 0; break;
 		case SDLK_UP: button = BUTTON_UP; break;
 		case SDLK_DOWN: button = BUTTON_DOWN; break;
+		case SDLK_LEFT: button = BUTTON_LEFT; break;
+		case SDLK_RIGHT: button = BUTTON_RIGHT; break;
+		case SDLK_v: button = BUTTON_START; break;
+		case SDLK_c: button = BUTTON_SELECT; break;
+		case SDLK_a: button = BUTTON_TRIANGLE; break;
+		case SDLK_s: button = BUTTON_CIRCLE; break;
+		case SDLK_x: button = BUTTON_CROSS; break;
+		case SDLK_z: button = BUTTON_SQUARE; break;
+		default: button = 0; break;
 		}
 
 		if (ev.type == SDL_KEYDOWN)
@@ -109,7 +115,7 @@ void init_system(void)
 
 	/* timers */
 	reset_timers();
-	update_display(true);
+	update_display();
 }
 
 #if defined(PLATFORM_LINUX)
@@ -126,19 +132,17 @@ void term_system(void)
 void reset_timers(void)
 {
 	sys_msec_timer = 0;
-	sys_usec_timer = 0;
 	last_ticks = SDL_GetTicks();
 }
 
 void update_timers(void)
 {
 	const uint32_t ticks = SDL_GetTicks();
-	sys_usec_timer += (ticks - last_ticks) * 1000u;
-	sys_msec_timer += (ticks - last_ticks);
+	sys_msec_timer += ticks - last_ticks;
 	last_ticks = ticks;
 }
 
-void update_display(const bool vsync)
+void update_display(void)
 {
 	SDL_Flip(screen_surf);
 
@@ -154,11 +158,11 @@ void update_display(const bool vsync)
 
 	#ifdef PLATFORM_LINUX
 	/* vsync */
-	static uint32_t last_frame = 0;
-	const uint32_t now = SDL_GetTicks();
-	if ((now - last_frame) < 16)
-		SDL_Delay(16 - (now - last_frame));
-	last_frame = now;
+	static uint32_t lastticks = 0;
+	const uint32_t ticks = SDL_GetTicks();
+	if ((ticks - lastticks) < 16u)
+		SDL_Delay(16u - (ticks - lastticks));
+	lastticks = SDL_GetTicks();
 	#endif
 }
 

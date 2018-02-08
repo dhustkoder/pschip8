@@ -118,7 +118,7 @@ void term_system(void);
 #endif
 void reset_timers(void);
 void update_timers(void);
-void update_display(bool vsync);
+void update_display(void);
 void font_print(const struct vec2* pos, const char* fmt, const void* const* varpack);
 void draw_sprites(const struct sprite* sprites, short nsprites);
 void draw_ram_buffer(void* pixels, const struct vec2* pos,
@@ -132,7 +132,7 @@ void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 static inline void load_sync(void)
 {
-	update_display(true);
+	update_display();
 }
 
 static inline uint16_t get_paddata(void)
@@ -147,24 +147,11 @@ static inline uint32_t get_msec(void)
 	return sys_msec_timer;
 }
 
-static inline uint32_t get_usec(void)
-{
-	extern uint32_t sys_usec_timer;
-	return sys_usec_timer;
-}
-
 static inline uint32_t get_msec_now(void)
 {
 	extern uint32_t sys_msec_timer;
 	update_timers();
 	return sys_msec_timer;
-}
-
-static inline uint32_t get_usec_now(void)
-{
-	extern uint32_t sys_usec_timer;
-	update_timers();
-	return sys_usec_timer;
 }
 
 
