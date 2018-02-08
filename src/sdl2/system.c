@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <string.h>
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
+#include <SDL2/SDL_mixer.h>
 #include "system.h"
 
 
@@ -13,46 +14,26 @@ static uint32_t last_ticks;
 
 
 /* video libsdl */
-static SDL_Surface* screen_surf;
-static SDL_Surface* bkg_surf = NULL;
-static SDL_Surface* font_surf = NULL;
-static SDL_Surface* sprite_sheet_surf = NULL;
+static SDL_Window* window;
+static SDL_Renderer* renderer;
+static SDL_Texture* bkg_tex = NULL;
+static SDL_Texture* font_tex = NULL;
+static SDL_Texture* sprite_sheet_tex = NULL;
+static SDL_Texture* ram_buffer_tex = NULL;
+static SDL_Rect ram_buffer_rect;
 static struct vec2 char_csize;
 static struct vec2 char_tsize;
 static uint8_t char_ascii_index;
 
-/* input */
-#if defined(PLATFORM_PS2)
-static SDL_Joystick* joy;
-#endif
+
+/* audio */
+static Mix_Chunk** snds_chunks = NULL;
+static uint8_t* snds_chans = NULL;
+static short nsnds_chunks;
 
 
 static void update_paddata(void)
 {
-	#if defined(PLATFORM_PS2)
-
-	const int nbutns = SDL_JoystickNumButtons(joy);
-	uint8_t bit = 0;
-
-	SDL_JoystickUpdate();
-	for (int i = 0; i < nbutns; ++i, ++bit) {
-		if (SDL_JoystickGetButton(joy, i))
-			sys_paddata |= (1<<bit);
-		else
-			sys_paddata &= ~(1<<bit);
-	}
-
-	const uint8_t dirs[] = { SDL_HAT_UP, SDL_HAT_DOWN, SDL_HAT_LEFT, SDL_HAT_RIGHT };
-	const uint8_t hat = SDL_JoystickGetHat(joy, 0);
-	for (int i = 0; i < sizeof(dirs)/sizeof(dirs[0]); ++i, ++bit) {
-		if (dirs[i]&hat)
-			sys_paddata |= (1<<bit);
-		else
-			sys_paddata &= ~(1<<bit);
-	}
-
-	#elif defined(PLATFORM_LINUX)
-
 	SDL_Event ev;
 	while (SDL_PollEvent(&ev)) {
 		
@@ -84,18 +65,26 @@ static void update_paddata(void)
 		else
 			sys_paddata &= ~button;
 	}
-
-	#endif
 }
 
-static void set_bmp_surf(const void* const data, SDL_Surface** const surfp)
+static void set_bmp_tex(const void* const data,
+                        SDL_Texture** const texp,
+                        bool magic_pink)
 {
 	const uint32_t size = *((uint32_t*)(((uint8_t*)data) + 0x02));
 
-	if (*surfp != NULL)
-		SDL_FreeSurface(*surfp);
+	if (*texp != NULL)
+		SDL_DestroyTexture(*texp);
 
-	*surfp = SDL_LoadBMP_RW(SDL_RWFromConstMem(data, size), 1);
+	SDL_Surface* const surf = SDL_LoadBMP_RW(SDL_RWFromConstMem(data, size), 1);
+
+	if (magic_pink) {
+		SDL_SetColorKey(surf, SDL_TRUE,
+				surf->format->Rmask|surf->format->Bmask);
+	}
+
+	*texp = SDL_CreateTextureFromSurface(renderer, surf);
+	SDL_FreeSurface(surf);
 }
 
 
@@ -105,29 +94,41 @@ void init_system(void)
 	SDL_ShowCursor(SDL_DISABLE);
 
 	/* graphics */
-	screen_surf = SDL_SetVideoMode(SCREEN_WIDTH, SCREEN_HEIGHT,
-		                       32, SDL_DOUBLEBUF|SDL_HWSURFACE);
+	window = SDL_CreateWindow("PSCHIP8",
+	                          SDL_WINDOWPOS_UNDEFINED,
+	                          SDL_WINDOWPOS_UNDEFINED,
+	                          0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
+	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+
 	/* input */
-	#ifdef PLATFORM_PS2
-	joy = SDL_JoystickOpen(0);
-	#endif
 	sys_paddata = 0;
+
+	/* audio */
+	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
+
 
 	/* timers */
 	reset_timers();
 	update_display();
 }
 
-#if defined(PLATFORM_LINUX)
 void term_system(void)
 {
-	SDL_FreeSurface(bkg_surf);
-	SDL_FreeSurface(font_surf);
-	SDL_FreeSurface(sprite_sheet_surf);
-	SDL_FreeSurface(screen_surf);
+	if (snds_chunks != NULL) {
+		for (int i = 0; i < nsnds_chunks; ++i)
+			Mix_FreeChunk(snds_chunks[i]);
+		free(snds_chunks);
+		free(snds_chans);
+	}
+
+	SDL_DestroyTexture(bkg_tex);
+	SDL_DestroyTexture(font_tex);
+	SDL_DestroyTexture(sprite_sheet_tex);
+	Mix_Quit();
 	SDL_Quit();
 }
-#endif
 
 void reset_timers(void)
 {
@@ -144,26 +145,14 @@ void update_timers(void)
 
 void update_display(void)
 {
-	SDL_Flip(screen_surf);
+	SDL_RenderPresent(renderer);
+	SDL_RenderClear(renderer);
 
-	if (bkg_surf != NULL) {
-		SDL_SoftStretch(bkg_surf, NULL, screen_surf, NULL);
-	} else {
-		SDL_FillRect(screen_surf, NULL,
-		             SDL_MapRGB(screen_surf->format, 0x66, 0x66, 0xFF));
-	}
+	if (bkg_tex != NULL)
+		SDL_RenderCopy(renderer, bkg_tex, NULL, NULL);
 
 	update_timers();
 	update_paddata();
-
-	#ifdef PLATFORM_LINUX
-	/* vsync */
-	static uint32_t lastticks = 0;
-	const uint32_t ticks = SDL_GetTicks();
-	if ((ticks - lastticks) < 16u)
-		SDL_Delay(16u - (ticks - lastticks));
-	lastticks = SDL_GetTicks();
-	#endif
 }
 
 void font_print(const struct vec2* const pos,
@@ -214,7 +203,7 @@ void font_print(const struct vec2* const pos,
 		src.x = (char_csize.x * ch_idx) % char_tsize.x;
 		src.y = char_csize.y * ((char_csize.x * ch_idx) / char_tsize.x);
 
-		SDL_BlitSurface(font_surf, &src, screen_surf, &dst);
+		SDL_RenderCopy(renderer, font_tex, &src, &dst);
 
 		dst.x += dst.w;
 	}
@@ -235,39 +224,39 @@ void draw_sprites(const struct sprite* const sprites, const short nsprites)
 			.w = sprites[i].size.x,
 			.h = sprites[i].size.y
 		};
-		SDL_BlitSurface(sprite_sheet_surf, &src, screen_surf, &dst);
+		SDL_RenderCopy(renderer, sprite_sheet_tex, &src, &dst);
 	}
 }
 
-void draw_ram_buffer(void* const pixels,
-                     const struct vec2* const pos,
-                     const struct vec2* const size,
-                     const uint8_t scale)
+void draw_ram_buffer(void)
 {
-	SDL_Surface* const surf =
-		SDL_CreateRGBSurfaceFrom(pixels,
-	          size->x, size->y, 32, size->x * sizeof(uint32_t),
-	          0x000000FF, 0x0000FF00, 0x00FF0000, 0x00);
+	SDL_RenderCopy(renderer, ram_buffer_tex, NULL, &ram_buffer_rect);
+}
 
-	SDL_Rect dst = {
-		pos->x - ((size->x * scale) / 2),
-		pos->y - ((size->y * scale) / 2),
-		size->x  * scale, size->y * scale
-	};
+void assign_snd_chan(const uint8_t chan, const uint8_t snd_index)
+{
+	snds_chans[chan] = snd_index;
+}
 
-	SDL_Surface* surf2 = SDL_DisplayFormat(surf);
-	SDL_SoftStretch(surf2, NULL, screen_surf, &dst);
-	SDL_FreeSurface(surf);
-	SDL_FreeSurface(surf2);
+void enable_chan(const uint8_t chan)
+{
+	Mix_PlayChannel(chan, snds_chunks[snds_chans[chan]], 0);
+}
+
+void load_sprite_sheet(const void* const data, const short max_sprites_on_screen)
+{
+	set_bmp_tex(data, &sprite_sheet_tex, true);
+}
+
+void load_bkg(const void* const data)
+{
+	set_bmp_tex(data, &bkg_tex, false);
 }
 
 void load_font(const void* const data, const struct vec2* const charsize,
                const uint8_t ascii_idx, const short max_chars_on_scr)
 {
-	set_bmp_surf(data, &font_surf);
-	SDL_SetColorKey(font_surf, SDL_SRCCOLORKEY,
-	                font_surf->format->Rmask|
-	                font_surf->format->Bmask);
+	set_bmp_tex(data, &font_tex, true);
 
 	const uint32_t w = *((uint32_t*)(((uint8_t*)data) + 0x12));
 	const uint32_t h = *((uint32_t*)(((uint8_t*)data) + 0x16));
@@ -279,30 +268,54 @@ void load_font(const void* const data, const struct vec2* const charsize,
 	char_ascii_index = ascii_idx;
 }
 
-void load_bkg(const void* const data)
+void load_snd(void* const* const snds, const short nsnds)
 {
-	set_bmp_surf(data, &bkg_surf);
-	SDL_Surface* const tmp = bkg_surf;
-	bkg_surf = SDL_DisplayFormat(bkg_surf);
-	SDL_FreeSurface(tmp);
+	if (snds_chunks != NULL) {
+		for (int i = 0; i < nsnds_chunks; ++i)
+			Mix_FreeChunk(snds_chunks[i]);
+		free(snds_chunks);
+		free(snds_chans);
+	}
+
+	nsnds_chunks = nsnds;
+	snds_chunks = malloc(sizeof(Mix_Chunk*) * nsnds_chunks);
+	snds_chans = malloc(sizeof(uint8_t) * nsnds_chunks);
+
+	for (int i = 0; i < nsnds; ++i)
+		snds_chunks[i] = Mix_QuickLoad_WAV(snds[i]);
 }
 
-void load_sprite_sheet(const void* const data, const short max_sprites_on_screen)
+void load_ram_buffer(void* const pixels,
+                     const struct vec2* const pos,
+                     const struct vec2* const size,
+                     const uint8_t scale)
 {
-	set_bmp_surf(data, &sprite_sheet_surf);
-	SDL_SetColorKey(sprite_sheet_surf, SDL_SRCCOLORKEY,
-	                sprite_sheet_surf->format->Rmask|
-	                sprite_sheet_surf->format->Bmask);
+	SDL_Surface* const surf =
+		SDL_CreateRGBSurfaceFrom(pixels,
+	          size->x, size->y, 32, size->x * sizeof(uint32_t),
+	          0x000000FF, 0x0000FF00, 0x00FF0000, 0x00);
+
+	ram_buffer_rect = (SDL_Rect) {
+		.x = pos->x - ((size->x * scale) / 2),
+		.y = pos->y - ((size->y * scale) / 2),
+		.w = size->x * scale,
+		.h = size->y * scale
+	};
+
+	if (ram_buffer_tex != NULL)
+		SDL_DestroyTexture(ram_buffer_tex);
+
+	ram_buffer_tex = SDL_CreateTextureFromSurface(renderer, surf);
+
+	SDL_FreeSurface(surf);
 }
 
 void load_files(const char* const* const filenames,
                 void** const dsts, const short nfiles)
 {
-	char namebuffer[DATA_NAMEBUFFER_SIZE];
-
+	char namebuffer[24];
 	for  (short i = 0; i < nfiles; ++i) {
-		sprintf(namebuffer, DATA_PATH_PREFIX "%s" DATA_PATH_POSTFIX,
-		        filenames[i]);
+		sprintf(namebuffer,"data/%s", filenames[i]);
 		FILE* const file = fopen(namebuffer, "r");
 
 		if (file == NULL)

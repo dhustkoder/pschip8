@@ -5,19 +5,19 @@
 
 enum Chan {
 	CHAN_HNDMOVE,
-	CHAN_HNDCLICK,
-	CHAN_HNDBACK
+	CHAN_HNDBACK,
+	CHAN_HNDCLICK
 };
 
 enum Snd {
 	SND_HNDMOVE,
-	SND_HNDCLICK,
-	SND_HNDBACK
+	SND_HNDBACK,
+	SND_HNDCLICK
 };
 
 enum MainMenuOpt {
 	MAINMENUOPT_GAMES,
-	#if defined(PLATFORM_LINUX)
+	#if defined(PLATFORM_SDL2)
 	MAINMENUOPT_EXIT,
 	#endif
 	MAINMENUOPT_NOPTS
@@ -178,14 +178,14 @@ static enum MainMenuOpt main_menu(void)
 {
 	const char* const opts[MAINMENUOPT_NOPTS] = {
 		"Games"
-		#if defined(PLATFORM_LINUX)
+		#if defined(PLATFORM_SDL2)
 		,
 		"Exit"
 		#endif
 	};
 	const enum MainMenuOpt out[MAINMENUOPT_NOPTS] = {
 		MAINMENUOPT_GAMES,
-		#if defined(PLATFORM_LINUX)
+		#if defined(PLATFORM_SDL2)
 		MAINMENUOPT_EXIT
 		#endif
 	};
@@ -218,6 +218,7 @@ static void run_game(const char* const gamepath)
 {
 	extern chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
 	extern chip8key_t chip8_keys;
+	extern bool chip8_draw_flag;
 
 	const struct vec2 pos = { (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) };
 	const struct vec2 size = { CHIP8_GFX_WIDTH, CHIP8_GFX_HEIGHT };
@@ -266,8 +267,10 @@ static void run_game(const char* const gamepath)
 		           "Frames per second: %d\n"
 		           "Steps per second: %d", varpack);
 
-		draw_ram_buffer(chip8_gfx, &pos, &size, 3);
+		if (chip8_draw_flag)
+			load_ram_buffer(chip8_gfx, &pos, &size, 3);
 
+		draw_ram_buffer();
 		update_display();
 
 		++fps_cnt;
@@ -286,13 +289,13 @@ void pschip8()
 {
 	{
 		enum Files { 
-			BKG, FONT, SPRITES, HNDMOVESND, HNDCLICKSND, HNDBACKSND,
+			BKG, FONT, SPRITES, HNDMOVESND, HNDBACKSND, HNDCLICKSND,
 			NFILES
 		};
 
 		const char* const cdpaths[NFILES] = {
 			"WIZTOWER.BKG", "FONT3.SPR", "SPRITES1.SPR",
-			"HNDMOVE.SND", "HNDCLICK.SND", "HNDBACK.SND"
+			"HNDMOVE.SND", "HNDBACK.SND", "HNDCLICK.SND"
 		};
 
 		void* data[NFILES] = { NULL, NULL, NULL, NULL, NULL, NULL };
@@ -321,7 +324,7 @@ void pschip8()
 					run_game(gamepath);
 				break;
 			}
-			#if defined(PLATFORM_LINUX)
+			#if defined(PLATFORM_SDL2)
 			case MAINMENUOPT_EXIT:
 				return;
 				break;

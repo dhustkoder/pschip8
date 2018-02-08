@@ -124,9 +124,8 @@ void draw_sprites(const struct sprite* sprites, short nsprites);
 void draw_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
 void assign_snd_chan(uint8_t chan, uint8_t snd_index);
-
-void load_bkg(void* data);
 void load_sprite_sheet(void* data, short max_sprites_on_screen);
+void load_bkg(void* data);
 void load_font(void* data, const struct vec2* charsize,
                uint8_t ascii_idx, short max_chars_on_scr);
 void load_snd(void* const* data, uint8_t nsnd);

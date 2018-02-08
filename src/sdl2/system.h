@@ -5,7 +5,7 @@
 #ifdef DEBUG /* DEBUG */
 #include <assert.h>
 #endif /* DEBUG */
-#include <SDL/SDL.h>
+#include <SDL2/SDL.h>
 
 
 #define uint8_t  Uint8
@@ -17,17 +17,6 @@
 #define bool     Uint8
 #define true     ((bool)1)
 #define false    ((bool)0)
-
-
-#if defined(PLATFORM_PS2)
-#define DATA_PATH_PREFIX     "cdrom0:\\"
-#define DATA_PATH_POSTFIX    ";1"
-#define DATA_NAMEBUFFER_SIZE 32
-#elif defined(PLATFORM_LINUX)
-#define DATA_PATH_PREFIX     "data/"
-#define DATA_PATH_POSTFIX    ""
-#define DATA_NAMEBUFFER_SIZE 24
-#endif
 
 
 #define MALLOC  malloc
@@ -108,27 +97,24 @@ struct sprite {
 	struct vec2 tpos;
 };
 
-/*  dummies */
-#define enable_chan(...)     ((void)0)
-#define load_snd(...)        ((void)0)
-#define assign_snd_chan(...) ((void)0)
-
 
 void init_system(void);
-#if defined(PLATFORM_LINUX)
 void term_system(void);
-#endif
 void reset_timers(void);
 void update_timers(void);
 void update_display(void);
 void font_print(const struct vec2* pos, const char* fmt, const void* const* varpack);
 void draw_sprites(const struct sprite* sprites, short nsprites);
-void draw_ram_buffer(void* pixels, const struct vec2* pos,
-                     const struct vec2* size, uint8_t scale);
+void draw_ram_buffer(void);
+void assign_snd_chan(uint8_t chan, uint8_t snd_index);
+void enable_chan(uint8_t chan);
+void load_sprite_sheet(const void* data, short max_sprites_on_screen);
+void load_bkg(const void* data);
 void load_font(const void* data, const struct vec2* charsize,
                uint8_t ascii_idx, short max_chars_on_scr);
-void load_bkg(const void* data);
-void load_sprite_sheet(const void* data, short max_sprites_on_screen);
+void load_snd(void* const* snds, short nsnds);
+void load_ram_buffer(void* pixels, const struct vec2* pos,
+                     const struct vec2* size, uint8_t scale);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 
