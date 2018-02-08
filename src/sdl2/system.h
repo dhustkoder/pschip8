@@ -57,14 +57,6 @@
 
 #endif /* DEBUG */
 
-/* chip8 settings */
-#define CHIP8_FREQ        (512)
-#define CHIP8_DELAY_FREQ  (120)
-#define CHIP8_GFX_WIDTH   (68)
-#define CHIP8_GFX_HEIGHT  (34)
-#define CHIP8_GFX_BGC     (0x00)
-#define CHIP8_GFX_FGC     (0xFFFFFFFF)
-#define CHIP8_GFX_TYPE    uint32_t
 
 
 typedef uint16_t button_t;

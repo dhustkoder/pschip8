@@ -291,9 +291,14 @@ void load_ram_buffer(void* const pixels,
                      const uint8_t scale)
 {
 	SDL_Surface* const surf =
-		SDL_CreateRGBSurfaceFrom(pixels,
-	          size->x, size->y, 32, size->x * sizeof(uint32_t),
-	          0x000000FF, 0x0000FF00, 0x00FF0000, 0x00);
+		SDL_CreateRGBSurfaceWithFormatFrom(
+                  pixels,
+	          size->x, size->y, 16, size->x * sizeof(uint16_t),
+	          SDL_PIXELFORMAT_ARGB1555);
+
+	if (surf == NULL) {
+		FATALERROR("%s", SDL_GetError());
+	}
 
 	ram_buffer_rect = (SDL_Rect) {
 		.x = pos->x - ((size->x * scale) / 2),

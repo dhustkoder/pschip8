@@ -74,15 +74,6 @@ typedef uint8_t bool;
 
 #define MAX_VOLUME (0x3FFF)
 
-/* chip8 settings */
-#define CHIP8_FREQ        (512)
-#define CHIP8_DELAY_FREQ  (120)
-#define CHIP8_GFX_WIDTH   (68)
-#define CHIP8_GFX_HEIGHT  (34)
-#define CHIP8_GFX_BGC     (0x8000)
-#define CHIP8_GFX_FGC     (0xFFFF)
-#define CHIP8_GFX_TYPE    uint16_t
-
 
 typedef uint16_t button_t;
 enum Button {
