@@ -99,8 +99,8 @@ void init_system(void)
 	                          SDL_WINDOWPOS_UNDEFINED,
 	                          0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
 	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
-	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
+	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
 	/* input */
 	sys_paddata = 0;
