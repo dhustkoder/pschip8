@@ -32,6 +32,9 @@
 u_long _ramsize   = 0x00200000; /* force 2 megabytes of RAM */
 u_long _stacksize = 0x00004000; /* force 16 kilobytes of stack */
 
+/* system */
+bool sys_quit_flag = false;
+
 /* input */
 uint16_t sys_paddata;
 

@@ -4,6 +4,8 @@
 #include <SDL2/SDL_mixer.h>
 #include "system.h"
 
+/* system */
+bool sys_quit_flag = false;
 
 /* input */
 uint16_t sys_paddata;
@@ -13,7 +15,7 @@ uint32_t sys_msec_timer;
 static uint32_t last_ticks;
 
 
-/* video libsdl */
+/* video */
 static SDL_Window* window;
 static SDL_Renderer* renderer;
 static SDL_Texture* bkg_tex = NULL;
@@ -32,14 +34,13 @@ static uint8_t* snds_chans = NULL;
 static short nsnds_chunks;
 
 
-static void update_paddata(void)
+static void poll_events(void)
 {
 	SDL_Event ev;
 	while (SDL_PollEvent(&ev)) {
-		
 		if (ev.type == SDL_QUIT) {
-			term_system();
-			exit(0);
+			sys_quit_flag = true;
+			return;
 		}
 
 		if (ev.type != SDL_KEYDOWN && ev.type != SDL_KEYUP)
@@ -69,7 +70,7 @@ static void update_paddata(void)
 
 static void set_bmp_tex(const void* const data,
                         SDL_Texture** const texp,
-                        bool magic_pink)
+                        const bool magic_pink)
 {
 	const uint32_t size = *((uint32_t*)(((uint8_t*)data) + 0x02));
 
@@ -90,7 +91,9 @@ static void set_bmp_tex(const void* const data,
 
 void init_system(void)
 {
-	SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_JOYSTICK);
+	if (SDL_Init(SDL_INIT_VIDEO|SDL_INIT_TIMER|SDL_INIT_JOYSTICK) != 0)
+		FATALERROR("%s", SDL_GetError());
+
 	SDL_ShowCursor(SDL_DISABLE);
 
 	/* graphics */
@@ -98,7 +101,17 @@ void init_system(void)
 	                          SDL_WINDOWPOS_UNDEFINED,
 	                          SDL_WINDOWPOS_UNDEFINED,
 	                          0, 0, SDL_WINDOW_FULLSCREEN_DESKTOP);
-	renderer = SDL_CreateRenderer(window, -1, SDL_RENDERER_PRESENTVSYNC);
+
+	if (window == NULL)
+		FATALERROR("%s", SDL_GetError()); 
+
+	renderer = SDL_CreateRenderer(window, -1,
+	                              SDL_RENDERER_ACCELERATED|
+	                              SDL_RENDERER_PRESENTVSYNC);
+
+	if (renderer == NULL)
+		FATALERROR("%s", SDL_GetError());
+
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
 
@@ -106,8 +119,8 @@ void init_system(void)
 	sys_paddata = 0;
 
 	/* audio */
-	Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048);
-
+	if (Mix_OpenAudio(44100, MIX_DEFAULT_FORMAT, 2, 2048) != 0)
+		FATALERROR("%s", Mix_GetError());
 
 	/* timers */
 	reset_timers();
@@ -126,6 +139,9 @@ void term_system(void)
 	SDL_DestroyTexture(bkg_tex);
 	SDL_DestroyTexture(font_tex);
 	SDL_DestroyTexture(sprite_sheet_tex);
+	SDL_DestroyRenderer(renderer);
+	SDL_DestroyWindow(window);
+	SDL_CloseAudio();
 	Mix_Quit();
 	SDL_Quit();
 }
@@ -151,8 +167,8 @@ void update_display(void)
 	if (bkg_tex != NULL)
 		SDL_RenderCopy(renderer, bkg_tex, NULL, NULL);
 
+	poll_events();
 	update_timers();
-	update_paddata();
 }
 
 void font_print(const struct vec2* const pos,
@@ -292,13 +308,9 @@ void load_ram_buffer(void* const pixels,
 {
 	SDL_Surface* const surf =
 		SDL_CreateRGBSurfaceWithFormatFrom(
-                  pixels,
-	          size->x, size->y, 16, size->x * sizeof(uint16_t),
+                  pixels, size->x, size->y,
+                  16, size->x * sizeof(uint16_t),
 	          SDL_PIXELFORMAT_ARGB1555);
-
-	if (surf == NULL) {
-		FATALERROR("%s", SDL_GetError());
-	}
 
 	ram_buffer_rect = (SDL_Rect) {
 		.x = pos->x - ((size->x * scale) / 2),
@@ -338,5 +350,30 @@ void load_files(const char* const* const filenames,
 
 		fread(dsts[i], 1, size, file);
 	}
+}
+
+void sys_logaux(const char* const cat, const char* const fmt, va_list ap)
+{
+	printf("%s: ", cat);
+	vprintf(fmt, ap);
+	putchar('\n');
+}	
+
+void sys_log(const char* const cat, const char* const fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	sys_logaux(cat, fmt, ap);
+	va_end(ap);
+}
+
+void sys_fatalerror(const char* const fmt, ...)
+{
+	va_list ap;
+	va_start(ap, fmt);
+	sys_logaux("[FATAL ERROR]", fmt, ap);
+	va_end(ap);
+	term_system();
+	exit(EXIT_FAILURE);
 }
 

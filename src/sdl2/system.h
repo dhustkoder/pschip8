@@ -27,26 +27,20 @@
 #define SCREEN_WIDTH  (320)
 #define SCREEN_HEIGHT (256)
 
-
-#define LOGAUX(category, ...) {            \
-	printf(category": " __VA_ARGS__); \
-	putchar('\n');                     \
-}
-
-#define LOGINFO(...) LOGAUX("INFO", __VA_ARGS__)
-#define LOGERROR(...) LOGAUX("ERROR", __VA_ARGS__)
-
-#define FATALERROR(...) {                   \
-	LOGAUX("FATAL ERROR", __VA_ARGS__); \
-	abort();                            \
-}
+/* logging / crash */
+void sys_log(const char* cat, const char* fmt, ...);
+void sys_fatalerror(const char* fmt, ...);
+#define LOGAUX(category, fmt, ...) sys_log(category, fmt, __VA_ARGS__)
+#define FATALERROR(...)            sys_fatalerror(__VA_ARGS__)
+#define LOGINFO(...)               LOGAUX("[INFO]", __VA_ARGS__)
+#define LOGERROR(...)              LOGAUX("[ERROR]", __VA_ARGS__)
 
 #ifdef DEBUG /* DEBUG */
 
-#define LOGDEBUG(...) LOGAUX("DEBUG", __VA_ARGS__)
+#define LOGDEBUG(...) LOGAUX("[DEBUG]", __VA_ARGS__)
 
-#define ASSERT_MSG(cond, ...) {  \
-	if (!(cond))                 \
+#define ASSERT_MSG(cond, ...) {          \
+	if (!(cond))                     \
 		FATALERROR(__VA_ARGS__); \
 }
 

@@ -29,6 +29,11 @@ enum MenuSprites {
 	MENUSPRT_CROSS 
 };
 
+
+
+extern bool sys_quit_flag;
+
+
 static struct sprite menu_sprites[] = {
 	[MENUSPRT_HAND] = {
 		.size = { 26, 14  },
@@ -118,7 +123,7 @@ static int8_t run_select_menu(const char* const title,
 	hand->spos.x = opts_pos[index].x - 32;
 	hand->spos.y = opts_pos[index].y;
 
-	for (;;) {
+	while (!sys_quit_flag) {
 		pad = get_paddata();
 
 		if (pad != pad_old) {
@@ -229,7 +234,8 @@ static void run_game(const char* const gamepath)
 	int steps_cnt = 0;
 	int fps = 0;
 	int fps_cnt = 0;
-	int steps_per_frame = 0;
+	int32_t steps_per_frame = 0;
+	int32_t steps_leftouver = 0;
 	const void* const varpack[] = { &fps, &steps };
 	button_t pad_old = 0;
 	button_t pad;
@@ -239,7 +245,7 @@ static void run_game(const char* const gamepath)
 	chip8_reset();
 
 	reset_timers();
-	for (;;) {
+	while (!sys_quit_flag) {
 		pad = get_paddata();
 
 		if (pad != pad_old) {
@@ -257,10 +263,15 @@ static void run_game(const char* const gamepath)
 		}
 
 		timer = get_msec();
-		for (i = 0; i < steps_per_frame; ++i) {
+		for (i = 0; i < (steps_per_frame + steps_leftouver) / 1000; ++i) {
 			chip8_step();
 			++steps_cnt;
 		}
+
+		if (steps_leftouver >= 1000)
+			steps_leftouver -= 1000;
+		
+		steps_leftouver += (steps_per_frame + steps_leftouver) - (i * 1000);
 
 		font_print(&(struct vec2){ 8, 8 },
 		           "Press START & SELECT to reset\n"
@@ -277,7 +288,8 @@ static void run_game(const char* const gamepath)
 		if ((timer - last_sec) >= 1000u) {
 			steps = steps_cnt;
 			fps = fps_cnt;
-			steps_per_frame = CHIP8_FREQ / fps;
+			steps_per_frame = (CHIP8_FREQ * 1000) / fps;
+			steps_leftouver = steps_per_frame - ((steps_per_frame / 1000) * 1000);
 			steps_cnt = 0;
 			fps_cnt = 0;
 			last_sec = timer;
@@ -316,7 +328,7 @@ void pschip8()
 	assign_snd_chan(CHAN_HNDBACK, SND_HNDBACK);
 
 	reset_timers();
-	for (;;) {
+	while (!sys_quit_flag) {
 		switch (main_menu()) {
 			case MAINMENUOPT_GAMES: {
 				const char* const gamepath = games_menu();
@@ -327,7 +339,6 @@ void pschip8()
 			#if defined(PLATFORM_SDL2)
 			case MAINMENUOPT_EXIT:
 				return;
-				break;
 			#endif
 			default:
 				break;
