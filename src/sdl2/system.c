@@ -107,13 +107,15 @@ void init_system(void)
 
 	renderer = SDL_CreateRenderer(window, -1,
 	                              SDL_RENDERER_ACCELERATED|
-	                              SDL_RENDERER_PRESENTVSYNC);
+				      SDL_RENDERER_PRESENTVSYNC);
 
 	if (renderer == NULL)
 		FATALERROR("%s", SDL_GetError());
 
 	SDL_RenderSetLogicalSize(renderer, SCREEN_WIDTH, SCREEN_HEIGHT);
 	SDL_SetRenderDrawColor(renderer, 0, 0, 0, 255);
+	SDL_RenderClear(renderer);
+	SDL_RenderPresent(renderer);
 
 	/* input */
 	sys_paddata = 0;

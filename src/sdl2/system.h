@@ -106,7 +106,9 @@ void load_files(const char* const* filenames, void** dsts, short nfiles);
 
 static inline void load_sync(void)
 {
-	update_display();
+	const uint32_t ticks = SDL_GetTicks();
+	while (SDL_GetTicks() < (ticks + 5000))
+		update_display();
 }
 
 static inline uint16_t get_paddata(void)
