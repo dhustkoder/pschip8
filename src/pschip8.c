@@ -111,7 +111,6 @@ static int8_t run_select_menu(const char* const title,
 	uint16_t pad_old = pad;
 	int8_t index = 0;
 	int8_t index_old = index;
-
 	struct vec2 opts_pos[nopts];
 	int8_t i;
 
@@ -148,10 +147,10 @@ static int8_t run_select_menu(const char* const title,
 			}
 
 			if (index != index_old) {
-				enable_chan(CHAN_HNDMOVE);
+				index_old = index;
 				hand->spos.x = opts_pos[index].x - 32;
 				hand->spos.y = opts_pos[index].y;
-				index_old = index;
+				enable_chan(CHAN_HNDMOVE);
 			}
 
 			pad_old = pad;
@@ -161,8 +160,9 @@ static int8_t run_select_menu(const char* const title,
 		                        &hand_fwd_last, &hand_fwd, hand);
 
 		font_print(&title_pos, title, NULL);
-		for (i = 0; i < nopts; ++i)
-		       font_print(&opts_pos[i], opts[i], NULL);
+		for (i = 0; i < nopts; ++i) {
+			font_print(&opts_pos[i], opts[i], NULL);
+		}
 
 		font_print(&select_pos, "SELECT", NULL);
 
@@ -282,9 +282,8 @@ static void run_game(const char* const gamepath)
 
 void pschip8()
 {
-	char** game_files;
-	uint8_t ngames;
-	
+	struct game_list* gamelist;
+
 	{
 		enum Files { 
 			BKG, FONT, SPRITES, HNDMOVESND, HNDBACKSND, HNDCLICKSND,
@@ -313,18 +312,19 @@ void pschip8()
 	assign_snd_chan(CHAN_HNDCLICK, SND_HNDCLICK);
 	assign_snd_chan(CHAN_HNDBACK, SND_HNDBACK);
 
-	open_game_list(&game_files, &ngames);
+	gamelist = open_game_list();
 
 	reset_timers();
 	while (!sys_quit_flag) {
 		switch (main_menu()) {
 			case MAINMENUOPT_GAMES: {
-				const int8_t idx = run_select_menu("- GAMES -",
-				                                   (const char**)game_files,
-				                                   ngames,
-				                                   true);
+				const int8_t idx =
+				  run_select_menu("- GAMES -",
+				                 (const char**)gamelist->files,
+				                  gamelist->size,
+				                  true);
 				if (idx != -1)
-					run_game(game_files[idx]);
+					run_game(gamelist->files[idx]);
 
 				break;
 			}
@@ -338,6 +338,6 @@ void pschip8()
 		}
 	}
 
-	close_game_list(game_files, ngames);
+	close_game_list(gamelist);
 }
 

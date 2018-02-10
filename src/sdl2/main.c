@@ -6,13 +6,11 @@
 
 int main(int argc, char** argv)
 {
-	char** p;
-	uint8_t s;
 	init_system();
-	open_game_list(&p, &s);
-	for (int i = 0; i < s; ++i)
-		LOGINFO("GAME: %s", p[i]);
-	close_game_list(p, s);
+	struct game_list* gamelist = open_game_list();
+	for (int i = 0; i < gamelist->size; ++i)
+		LOGINFO("GAME: %s", gamelist->files[i]);
+	close_game_list(gamelist);
 	pschip8();
 	term_system();
 	return EXIT_SUCCESS;

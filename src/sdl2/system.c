@@ -355,46 +355,49 @@ void load_files(const char* const* const filenames,
 	}
 }
 
-void open_game_list(char*** const files, uint8_t* const size)
+struct game_list* open_game_list(void)
 {
-	*files = NULL;
-	*size = 0;
-
 	DIR* const dir = opendir("data/");
 	if (dir == NULL) {
 		LOGERROR("Couldn't opendir data/");
-		return;
+		return NULL;
 	}
 
+	uint8_t size = 0;
 	uint8_t bufsize = 32;
-	*files = MALLOC(sizeof(char*) * bufsize);
-	if (*files == NULL) {
+	char** files = MALLOC(sizeof(char*) * bufsize);
+	if (files == NULL) {
 		LOGERROR("Couldn't allocate mem");
-		return;
+		return NULL;
 	}
 
 	struct dirent* ent;
 	while ((ent = readdir(dir)) != NULL) {
 		const int len = strlen(ent->d_name);
 		if (strcmp(&ent->d_name[len - 4], ".CH8") == 0) {
-			if (*size > bufsize) {
+			if (size > bufsize) {
 				bufsize += 32;
-				*files = REALLOC(*files, sizeof(char*) * bufsize);
+				files = REALLOC(files, sizeof(char*) * bufsize);
 			}
-			(*files)[*size] = MALLOC(len + 1);
-			strcpy((*files)[*size], ent->d_name);
-			*size += 1;
+			files[size] = MALLOC(len + 1);
+			strcpy(files[size], ent->d_name);
+			size += 1;
 		}
 	}
 
 	closedir(dir);
+	struct game_list* gamelist = MALLOC(sizeof(struct game_list));
+	gamelist->files = files;
+	gamelist->size = size;
+	return gamelist;
 }
 
-void close_game_list(char** const p, const uint8_t size)
+void close_game_list(struct game_list* const gamelist)
 {
-	for (int i = 0; i < size; ++i)
-		FREE(p[i]);
-	FREE(p);
+	for (int i = 0; i < gamelist->size; ++i)
+		FREE(gamelist->files[i]);
+	FREE(gamelist->files);
+	FREE(gamelist);
 }
 
 void sys_logaux(const char* const cat, const char* const fmt, va_list ap)

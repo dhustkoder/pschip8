@@ -81,6 +81,11 @@ struct sprite {
 	struct vec2 tpos;
 };
 
+struct game_list {
+	char** files;
+	uint8_t size;
+};
+
 
 void init_system(void);
 void term_system(void);
@@ -100,8 +105,8 @@ void load_snd(void* const* snds, short nsnds);
 void load_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
-void open_game_list(char*** files, uint8_t* size);
-void close_game_list(char** p, uint8_t size);
+struct game_list* open_game_list(void);
+void close_game_list(struct game_list* gamelist);
 void sys_log(const char* cat, const char* fmt, ...);
 void sys_fatalerror(const char* fmt, ...);
 
