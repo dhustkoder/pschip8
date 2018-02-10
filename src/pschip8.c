@@ -282,7 +282,7 @@ static void run_game(const char* const gamepath)
 
 void pschip8()
 {
-	struct game_list* gamelist;
+	const struct game_list* gamelist;
 
 	{
 		enum Files { 

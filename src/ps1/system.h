@@ -104,6 +104,11 @@ struct sprite {
 	struct vec2  tpos;
 };
 
+struct game_list {
+	const char* const* files;
+	uint8_t size;
+};
+
 
 void init_system(void);
 void reset_timers(void);
@@ -122,8 +127,8 @@ void load_snd(void* const* data, uint8_t nsnd);
 void load_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
-void open_game_list(char*** files, uint8_t* size);
-void close_game_list(char** files, uint8_t size);
+const struct game_list* open_game_list(void);
+#define close_game_list(...) ((void)0)
 
 
 static inline void set_chan_volume(const uint8_t chan, const uint16_t vol)

@@ -7,7 +7,7 @@
 int main(int argc, char** argv)
 {
 	init_system();
-	struct game_list* gamelist = open_game_list();
+	const struct game_list* gamelist = open_game_list();
 	for (int i = 0; i < gamelist->size; ++i)
 		LOGINFO("GAME: %s", gamelist->files[i]);
 	close_game_list(gamelist);

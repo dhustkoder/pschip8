@@ -480,7 +480,7 @@ void free_files(void* const* const pointers, const int16_t nfiles)
 		FREE(pointers[i]);
 }
 
-void open_game_list(char*** const files, uint8_t* const size)
+const struct game_list* open_game_list(void)
 {
 	static const char* const sfiles[] = {
 		"BRIX.CH8", "MISSILE.CH8", "TANK.CH8", "PONG2.CH8",
@@ -488,25 +488,13 @@ void open_game_list(char*** const files, uint8_t* const size)
 		"BLINKY.CH8"
 	};
 
-	static const uint8_t nsfiles = sizeof(sfiles)/sizeof(sfiles[0]);
-	
-	short i;
+	static const uint8_t nsfiles = sizeof(sfiles) / sizeof(sfiles[0]);
 
-	*size = nsfiles;
-	*files = MALLOC(sizeof(char*) * nsfiles);
-	for (i = 0; i < nsfiles; ++i) {
-		(*files)[i] = MALLOC(strlen(sfiles[i]));
-		strcpy((*files)[i], sfiles[i]);
-	}
+	static struct game_list gamelist;
+	gamelist.files = sfiles;
+	gamelist.size = nsfiles;
 
+	return &gamelist;
 }
 
-void close_game_list(char** const files, uint8_t size)
-{
-	short i;
-	for (i = 0; i < size; ++i) {
-		FREE(files[i]);
-	}
-	FREE(files);
-}
 

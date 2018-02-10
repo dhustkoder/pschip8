@@ -355,7 +355,7 @@ void load_files(const char* const* const filenames,
 	}
 }
 
-struct game_list* open_game_list(void)
+const struct game_list* open_game_list(void)
 {
 	DIR* const dir = opendir("data/");
 	if (dir == NULL) {
@@ -387,17 +387,17 @@ struct game_list* open_game_list(void)
 
 	closedir(dir);
 	struct game_list* gamelist = MALLOC(sizeof(struct game_list));
-	gamelist->files = files;
+	gamelist->files = (const char* const*)files;
 	gamelist->size = size;
 	return gamelist;
 }
 
-void close_game_list(struct game_list* const gamelist)
+void close_game_list(const struct game_list* const gamelist)
 {
 	for (int i = 0; i < gamelist->size; ++i)
-		FREE(gamelist->files[i]);
-	FREE(gamelist->files);
-	FREE(gamelist);
+		FREE((char*)gamelist->files[i]);
+	FREE((char**)gamelist->files);
+	FREE((struct game_list*)gamelist);
 }
 
 void sys_logaux(const char* const cat, const char* const fmt, va_list ap)
