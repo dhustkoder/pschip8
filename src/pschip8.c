@@ -83,7 +83,7 @@ static void sprite_animation_update(const uint8_t fwd_div,
 }
 
 static int8_t run_select_menu(const char* const title,
-                              const char* const* opts,
+                              const char* const* const opts,
                               const int8_t nopts,
                               const bool exit_on_cross)
 {
@@ -202,23 +202,6 @@ static enum MainMenuOpt main_menu(void)
 	return out[index];
 }
 
-static const char* games_menu(void)
-{
-	const char* const opts[] = {
-		"Brix", "Missile", "Tank", "Pong 2",
-		"Maze", "Invaders", "UFO", "Tetris",
-		"Blinky"
-	};
-	const char* const out[] = {
-		"BRIX.CH8", "MISSILE.CH8", "TANK.CH8", "PONG2.CH8",
-		"MAZE.CH8", "INVADERS.CH8", "UFO.CH8", "TETRIS.CH8",
-		"BLINKY.CH8"
-	};
-	const int8_t nopts = sizeof(opts) / sizeof(opts[0]);
-	const int8_t index = run_select_menu("- GAMES -", opts, nopts, true);
-	return index != -1 ? out[index] : NULL;
-}
-
 static void run_game(const char* const gamepath)
 {
 	extern chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
@@ -299,6 +282,9 @@ static void run_game(const char* const gamepath)
 
 void pschip8()
 {
+	char** game_files;
+	uint8_t ngames;
+	
 	{
 		enum Files { 
 			BKG, FONT, SPRITES, HNDMOVESND, HNDBACKSND, HNDCLICKSND,
@@ -327,22 +313,31 @@ void pschip8()
 	assign_snd_chan(CHAN_HNDCLICK, SND_HNDCLICK);
 	assign_snd_chan(CHAN_HNDBACK, SND_HNDBACK);
 
+	open_game_list(&game_files, &ngames);
+
 	reset_timers();
 	while (!sys_quit_flag) {
 		switch (main_menu()) {
 			case MAINMENUOPT_GAMES: {
-				const char* const gamepath = games_menu();
-				if (gamepath != NULL)
-					run_game(gamepath);
+				const int8_t idx = run_select_menu("- GAMES -",
+				                                   (const char**)game_files,
+				                                   ngames,
+				                                   true);
+				if (idx != -1)
+					run_game(game_files[idx]);
+
 				break;
 			}
 			#if defined(PLATFORM_SDL2)
 			case MAINMENUOPT_EXIT:
-				return;
+				sys_quit_flag = true;
+				break;
 			#endif
 			default:
 				break;
 		}
 	}
+
+	close_game_list(game_files, ngames);
 }
 

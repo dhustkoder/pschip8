@@ -2,7 +2,7 @@ SRC_FILES=src/*.c src/sdl2/*.c
 HEADER_FIELS=src/*.h src/sdl2/*.h
 
 CC=gcc
-CFLAGS=-std=gnu99 -Wall -O3 -g -Isrc/ -Isrc/sdl2 $(shell sdl2-config --cflags) -DPLATFORM_SDL2
+CFLAGS=-std=gnu99 -Wall -O0 -g -Isrc/ -Isrc/sdl2 $(shell sdl2-config --cflags) -DPLATFORM_SDL2 -fsanitize=address
 
 
 all: $(SRC_FILES) $(HEADER_FILES)

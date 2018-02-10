@@ -19,18 +19,16 @@
 #define false    ((bool)0)
 
 
-#define MALLOC  malloc
-#define REALLOC realloc
-#define FREE    free
+#define MALLOC(...)  malloc(__VA_ARGS__)
+#define REALLOC(...) realloc(__VA_ARGS__)
+#define FREE(...)    free(__VA_ARGS__)
 
 
 #define SCREEN_WIDTH  (320)
 #define SCREEN_HEIGHT (256)
 
 /* logging / crash */
-void sys_log(const char* cat, const char* fmt, ...);
-void sys_fatalerror(const char* fmt, ...);
-#define LOGAUX(category, fmt, ...) sys_log(category, fmt, __VA_ARGS__)
+#define LOGAUX(category, ...)      sys_log(category, __VA_ARGS__)
 #define FATALERROR(...)            sys_fatalerror(__VA_ARGS__)
 #define LOGINFO(...)               LOGAUX("[INFO]", __VA_ARGS__)
 #define LOGERROR(...)              LOGAUX("[ERROR]", __VA_ARGS__)
@@ -102,6 +100,10 @@ void load_snd(void* const* snds, short nsnds);
 void load_ram_buffer(void* pixels, const struct vec2* pos,
                      const struct vec2* size, uint8_t scale);
 void load_files(const char* const* filenames, void** dsts, short nfiles);
+void open_game_list(char*** files, uint8_t* size);
+void close_game_list(char** p, uint8_t size);
+void sys_log(const char* cat, const char* fmt, ...);
+void sys_fatalerror(const char* fmt, ...);
 
 
 static inline void load_sync(void)

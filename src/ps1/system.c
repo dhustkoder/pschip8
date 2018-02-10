@@ -480,3 +480,33 @@ void free_files(void* const* const pointers, const int16_t nfiles)
 		FREE(pointers[i]);
 }
 
+void open_game_list(char*** const files, uint8_t* const size)
+{
+	static const char* const sfiles[] = {
+		"BRIX.CH8", "MISSILE.CH8", "TANK.CH8", "PONG2.CH8",
+		"MAZE.CH8", "INVADERS.CH8", "UFO.CH8", "TETRIS.CH8",
+		"BLINKY.CH8"
+	};
+
+	static const uint8_t nsfiles = sizeof(sfiles)/sizeof(sfiles[0]);
+	
+	short i;
+
+	*size = nsfiles;
+	*files = MALLOC(sizeof(char*) * nsfiles);
+	for (i = 0; i < nsfiles; ++i) {
+		(*files)[i] = MALLOC(strlen(sfiles[i]));
+		strcpy((*files)[i], sfiles[i]);
+	}
+
+}
+
+void close_game_list(char** const files, uint8_t size)
+{
+	short i;
+	for (i = 0; i < size; ++i) {
+		FREE(files[i]);
+	}
+	FREE(files);
+}
+
