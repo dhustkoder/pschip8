@@ -15,7 +15,7 @@
 #define CHIP8_GFX_FGC     (0xFFFF)
 
 typedef uint16_t chip8_gfx_t;
-typedef uint16_t chip8key_t;
+typedef uint16_t chip8_key_t;
 enum Chip8Key {
 	CHIP8KEY_0 = 0x0001,
 	CHIP8KEY_1 = 0x0002,

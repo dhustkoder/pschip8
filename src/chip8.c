@@ -4,7 +4,7 @@
 
 
 chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
-chip8key_t chip8_keys;
+chip8_key_t chip8_keys;
 bool chip8_draw_flag;
 
 

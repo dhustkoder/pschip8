@@ -205,7 +205,7 @@ static enum MainMenuOpt main_menu(void)
 static void run_game(const char* const gamepath)
 {
 	extern chip8_gfx_t chip8_gfx[CHIP8_GFX_HEIGHT][CHIP8_GFX_WIDTH];
-	extern chip8key_t chip8_keys;
+	extern chip8_key_t chip8_keys;
 	extern bool chip8_draw_flag;
 
 	const struct vec2 pos = { (SCREEN_WIDTH / 2), (SCREEN_HEIGHT / 2) };
