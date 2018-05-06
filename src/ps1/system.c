@@ -460,7 +460,7 @@ void load_files(const char* const* const filenames,
 			CdReadFile(namebuff, (void*)dsts[i], fp.size);
 
 			while ((cnt = CdReadSync(1, NULL)) > 0)
-					VSync(0);
+				VSync(0);
 				
 			if (cnt == 0)
 				break;
